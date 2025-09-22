@@ -25,35 +25,32 @@
 
 **Project:** moneynote-api
 
-**Report ID:** CM-20250911-134104
+**Report ID:** CM-20250919-110659
 
-**Generated:** Sep 11, 2025, 1:41 PM
+**Generated:** Sep 19, 2025, 11:06 AM
 
 ## Summary
 #### Executive Summary
 
-The MoneyNote system is a self-hosted, open-source bookkeeping application designed for individuals and small businesses to manage their finances privately. Built as a layered monolith using Java and the Spring Boot framework, it provides core functionalities such as multi-currency transaction tracking, account management, hierarchical categorization, and collaborative finance management through user groups. The architecture consists of distinct presentation, business, and data access layers communicating with a MySQL database.
+This report provides a comprehensive assessment of the MoneyNote application, a self-hostable, open-source bookkeeping solution for personal and small business finance management. Built as a monolithic Java Spring Boot application with a MySQL database, it allows users to track financial transactions, manage multiple accounts across different currencies, categorize spending, and attach supporting documents like receipts.
 
-#### Key Findings
+### Key Findings
+The assessment has identified several architectural and operational challenges that present risks to the application's scalability, maintainability, and performance:
 
-Analysis of the codebase and architecture reveals several critical challenges and limitations that impact the system's scalability, maintainability, and readiness for the cloud:
+*   **Inefficient File Storage:** The practice of storing file attachments (e.g., receipts) as `LONGBLOB` data directly within the MySQL database is a significant bottleneck. This approach increases database size and cost, slows down backup and restore processes, and does not scale effectively.
+*   **Monolithic Architecture:** The application's single-unit structure limits deployment flexibility, fault isolation, and the ability to scale individual features independently. Updates to any part of the system require a full redeployment of the entire application.
+*   **Direct External Dependencies:** The system relies on a direct, uncached connection to an external third-party API for currency exchange rates. This creates a potential single point of failure and performance bottleneck, and it offers no resilience if the external service is unavailable.
+*   **Stateful Deployment Process:** Database schema migrations are handled by a SQL script that runs upon application startup. This method is not well-suited for modern, orchestrated environments like Kubernetes, where stateless and idempotent deployments are preferred.
 
-*   **Monolithic Architecture**: The application's single-unit design leads to tight coupling between components. This slows down development cycles, complicates deployments, and prevents the independent scaling of specific features.
-*   **Stateful Session Management**: The use of a session-scoped bean (`CurrentSession`) to hold user state makes the backend stateful. This requires "sticky sessions" for horizontal scaling, adding complexity to the infrastructure and hindering modern, stateless deployment patterns.
-*   **Inefficient File Storage**: Transaction attachments (e.g., receipts) are stored as `LONGBLOB` data directly within the MySQL database. This approach is inefficient, increases database size and load, complicates backups, and does not scale effectively.
-*   **Single Points of Failure**: The system relies on a single MySQL database, creating a potential performance bottleneck and a critical point of failure. Additionally, the external currency exchange rate API is only called at application startup, making the system vulnerable to API outages and causing rate data to become stale.
+### Strategic Recommendations
+To address these findings and prepare the application for future growth, the following high-level strategies are recommended:
 
-#### Strategic Recommendations
-
-To address these findings and prepare the application for a successful future on Google Cloud, the following strategic actions are recommended:
-
-*   **Adopt a Phased Modernization Approach**: While a low-effort "lift-and-shift" to Compute Engine is possible for an initial cloud entry, a higher-benefit modernization strategy is strongly advised for long-term success. This involves refactoring the application to align with cloud-native principles.
-*   **Refactor to a Stateless, Microservices Architecture**: Decompose the monolith into smaller, independent services (e.g., user management, transaction processing). Critically, this includes eliminating the stateful session bean to enable stateless scaling. This architecture is better suited for deployment on modern platforms like **Cloud Run** for serverless execution or **Google Kubernetes Engine** for robust orchestration.
-*   **Leverage Managed Google Cloud Services**: Offload operational burdens by migrating from self-managed components to fully managed Google Cloud services. Key migrations include:
-    *   **Database**: Migrate the MySQL database to **Cloud SQL for MySQL** to gain automated scalability, backups, and high availability.
-    *   **File Storage**: Rearchitect the file attachment feature to use **Cloud Storage**. This involves storing files in a dedicated object storage bucket and only saving a reference ID in the database, a more scalable and cost-effective solution.
-    *   **Container Registry and CI/CD**: Centralize container image management in **Artifact Registry** and enhance the CI/CD pipeline using **Cloud Build** for seamless, automated deployments to Google Cloud.
-    *   **Security**: Store all sensitive credentials, such as database passwords and API keys, securely in **Secret Manager**.
+*   **Migrate to Google Cloud:** The primary recommendation is to migrate the application and its dependencies to Google Cloud to leverage its managed services, scalability, and reliability. This can be approached in phases, starting with a direct "lift and shift" to minimize initial disruption.
+*   **Adopt Managed Services:**
+    *   Migrate the MySQL database to **Cloud SQL for MySQL** to gain automated backups, high availability, and simplified management.
+    *   Critically, refactor the application to store file attachments in **Cloud Storage**. This will significantly improve performance and scalability while reducing database load.
+*   **Implement Container Orchestration:** Deploy the application container on **Google Kubernetes Engine (GKE)**, preferably using GKE Autopilot to reduce operational overhead. Configuration and secrets should be managed using Kubernetes `ConfigMaps` and `Secrets`.
+*   **Decompose the Monolith:** As a long-term strategy, incrementally decompose the monolith into a set of independent microservices. This would involve extracting domains like user authentication, transaction processing, and reporting into separate services that can be developed, deployed, and scaled independently, using **Pub/Sub** for asynchronous communication.
 
 #### Report Information
 
@@ -61,24 +58,24 @@ To address these findings and prepare the application for a successful future on
 
 | Metric | Value |
 | :--- | :--- |
-| Scanned Lines of Code (LOC) | 13,559 |
-| Scanned Files | 242 |
-| API Endpoints | 19 |
+| Scanned Lines of Code (LOC) | 13,288 |
+| Scanned Files | 235 |
+| API Endpoints | 82 |
 | Database Tables | 13 |
 
 ##### AI-Identified Security Findings
 
 | Metric | Value |
 | :--- | :--- |
-| Known Vulnerabilities | 3 |
-| Critical/High Security Findings | 0% |
+| Known Vulnerabilities | N/A |
+| Critical/High Security Findings | N/A |
 
 ##### AI-Analyzed Technical Debt & Legacy
 
 | Metric | Value |
 | :--- | :--- |
-| Detected technologies stacks | 15 |
-| EOL/Unsupported Technologies | 20% |
+| Detected technologies stacks | 32 |
+| EOL/Unsupported Technologies | 6% |
 
 #### Generation Details
 
@@ -135,2121 +132,5896 @@ An Example user flow that the user goes through. Include at least 1 user flow in
 
 ## About this Project
 ### Assessment Overview
+This document provides a high-level overview of the MoneyNote system, an open-source bookkeeping application. It outlines the system's purpose, identifies its primary users, summarizes its core functionalities, and describes key user journeys.
+
 #### Purpose of the System
-
-The MoneyNote system is a comprehensive, open-source bookkeeping solution designed for personal and small business financial management. Its primary purpose is to provide users with a self-hosted, independent platform to track their financial activities without relying on third-party services, ensuring data privacy and control.
-
-The system solves the problem of fragmented and insecure financial tracking by offering a centralized application for managing income, expenses, assets, and liabilities. The value it provides is a clear, detailed, and consolidated view of one's financial health, enabling better decision-making, budgeting, and financial planning.
+MoneyNote is an open-source, self-hostable bookkeeping solution designed for personal finance management and small-scale business accounting. The system's primary purpose is to provide users with a private, independent, and comprehensive tool to track their financial activities without relying on third-party services. By allowing users to monitor assets and liabilities, record income and expenses, and manage multiple accounts and currencies, it empowers them to gain a clear understanding of their financial situation.
 
 #### Primary Users
-
-The application is designed for a few distinct user groups, each with specific goals.
-
-| User Group | Description | Goals & Interactions |
-| :--- | :--- | :--- |
-| **Individual Users** | Individuals managing their personal or household finances. | - Track daily expenses and income. <br> - Monitor account balances (bank accounts, credit cards). <br> - Analyze spending habits through reports. <br> - Manage personal assets and debts. |
-| **Self-Employed / Small Business Owners** | Freelancers or owners of small businesses (e.g., retail shops, restaurants) needing a simple bookkeeping tool. | - Separate business finances from personal ones using multiple books. <br> - Record business-related income and expenditures. <br> - Track transactions with specific payees (suppliers, customers). <br> - Export transaction data for accounting purposes. [^1] |
-| **Group Collaborators** | Users sharing financial responsibilities, such as families or small teams, within a "Group". [^2] | - Collaboratively manage a shared set of books and accounts. <br> - Have different access levels (Owner, Operator, Guest) to control permissions. [^3] <br> - View and contribute to shared financial records. |
+The system is designed for two main user groups:
+*   **Individuals**: Users looking to manage their personal budgets, track spending, and monitor their net worth. Their goal is to maintain financial discipline and visibility over their personal cash flow.
+*   **Self-Employed & Small Business Owners**: Users who need a simple solution for business-related bookkeeping, such as tracking revenue, operational costs, and business assets. They may use the multi-user features to collaborate with a partner or an accountant within a shared "Group".
 
 #### Core Functionality
+The MoneyNote application offers a comprehensive suite of features for financial tracking and management. The key capabilities are summarized in the table below.
 
-The system offers a robust set of features for comprehensive financial management. The core capabilities are summarized below.
-
-| Feature | High-Level Description |
+| Feature Area | Description |
 | :--- | :--- |
-| **Account Management** | Create and manage various types of financial accounts, including checking, credit, assets, and debts. Each account tracks a real-time balance. [^4] |
-| **Transaction Tracking** | Record detailed financial flows, including expenses, income, transfers between accounts, and balance adjustments. [^5] |
-| **Multi-Book System** | Maintain separate "books" to isolate different financial contexts, such as personal vs. business, each with its own categories, tags, and payees. [^6] |
-| **Multi-Currency Support** | Manage accounts and transactions in different currencies, with automatic and manual exchange rate handling for accurate reporting. [^7] |
-| **Categorization & Tagging** | Organize transactions using a hierarchical system of categories and tags for granular analysis and reporting. [^8] |
-| **Reporting & Analytics** | Generate visual reports and statistics on expenses, income, and account balances to gain insights into financial health and spending patterns. [^9] |
-| **File Attachments** | Attach files, such as receipts or invoices, to transaction records for complete and verifiable bookkeeping. [^10] |
-| **User & Group Management** | Supports multi-user collaboration through a "Group" system, allowing users to be invited and assigned roles for shared financial management. [^2] |
+| **Financial Overview** | Provides a real-time dashboard to monitor assets, liabilities, and overall net worth. |
+| **Transaction Management** | Allows users to record detailed income, expense, and transfer transactions. |
+| **Multi-Book Support** | Enables users to maintain separate ledgers (Books) for different purposes, such as personal vs. business finances. |
+| **Multi-Currency Support** | Supports accounts and transactions in various currencies, with automatic conversion for reporting. |
+| **Categorization & Tagging** | Offers a hierarchical system for categorizing transactions and applying tags for detailed analysis. |
+| **Reporting & Statistics** | Generates reports and visualizations for expenses, income, and balances by category, tag, or payee. |
+| **Multi-User Collaboration** | Allows multiple users to be part of a "Group," with different roles (Owner, Operator, Guest) to share and manage books collaboratively. |
+| **Data Management** | Includes features for attaching files to transactions, creating books from templates, and exporting transaction data to Excel. |
+| **Self-Hosting** | Designed for easy deployment using Docker, giving users full control over their data privacy. [^1] |
+
+<br/>
 
 #### User Journeys
-
-The following section outlines the primary user journeys, detailing the interactions, business requirements, and a typical user flow for each.
-
-##### Journey 1: Monitoring Financial Situation
-
-This journey describes how a user assesses their overall financial health by using the system's reporting and dashboard features.
-
-###### Core Interactions
-
-The user logs into the application and navigates to the main dashboard or a dedicated "Reports" section. From here, they can view high-level summaries of their net worth, assets, and liabilities. They can interact with various charts and tables, applying filters for date ranges, specific accounts, or books to drill down into specific areas of interest.
-
-###### Business Requirements
-
-| Requirement ID | Description |
-| :--- | :--- |
-| **BR-MON-01** | The system must display a high-level overview of the user's total assets, total liabilities, and calculated net worth. [^11] |
-| **BR-MON-02** | Reports must be available to visualize expenses and income broken down by category, tag, and payee. [^9] |
-| **BR-MON-03** | All report data must be aggregated into the user's default currency, applying the correct exchange rates for multi-currency accounts. [^12] |
-| **BR-MON-04** | Users must be able to filter report data by date range, book, account, and other relevant transaction attributes. [^13] |
-| **BR-MON-05** | Reports should be presented visually (e.g., pie charts, bar charts) and include percentage breakdowns for easy interpretation. [^14] |
-| **BR-MON-06** | The system must allow users to drill down into report segments (e.g., clicking a category to see its sub-categories). [^12] |
-
-###### Example User Flow
-
-1.  **Login and View Dashboard**: The user logs in and lands on the main overview page, which displays their current net worth, total assets, and total debts.
-2.  **Navigate to Reports**: The user clicks on the "Reports" tab to explore their finances in more detail.
-3.  **Analyze Expenses**: They select the "Expense by Category" report for their "Personal" book for the current month. A pie chart shows that "Food & Drink" is their largest expense category at 40%.
-4.  **Drill-Down**: The user clicks on the "Food & Drink" slice of the pie. The report updates to show the sub-categories, revealing that "Restaurants" makes up the majority of that spending.
-5.  **Actionable Insight**: Realizing their restaurant spending is higher than expected, the user decides to cook at home more for the rest of the month.
-
-##### Journey 2: Tracking Incomes & Expenses
-
-This journey covers the fundamental task of recording a new financial transaction, such as a daily expense or a monthly salary deposit.
-
-###### Core Interactions
-
-The user selects the appropriate book (e.g., "Personal Finances") and initiates the creation of a new transaction. A form appears where they can specify the transaction type (Expense or Income), the amount, the date, and the account from which the money was spent or deposited. They also select one or more categories and can optionally add tags, a payee, and descriptive notes.
-
-###### Business Requirements
-
-| Requirement ID | Description |
-| :--- | :--- |
-| **BR-TRK-01** | The system must support the creation of four transaction types: Expense, Income, Transfer, and Adjust. [^5] |
-| **BR-TRK-02** | All transactions must be associated with a specific book and a financial account. [^15] |
-| **BR-TRK-03** | For Expense and Income types, a transaction must be linked to one or more spending/earning categories and have an amount. [^16] |
-| **BR-TRK-04** | The system must allow for transactions to be split across multiple categories, each with its own amount. [^16] |
-| **BR-TRK-05** | Upon confirmation of a transaction, the system must automatically update the balance of the associated account(s). [^17] |
-| **BR-TRK-06** | Users must be able to edit and delete existing transactions. Deleting a confirmed transaction must reverse the financial change on the associated account balance. [^18] |
-| **BR-TRK-07** | Users can mark transactions as "unconfirmed," which prevents them from affecting account balances until confirmed. [^19] |
-
-###### Example User Flow
-
-1.  **Select Context**: The user is in their "Personal Finances" book and wants to record a grocery purchase.
-2.  **Initiate Transaction**: They click the "Add Expense" button.
-3.  **Fill Form**:
-    *   **Account**: They select their "Checking Account".
-    *   **Amount**: They enter `85.40`.
-    *   **Category**: They select "Groceries".
-    *   **Payee**: They select "Local Supermarket".
-    *   **Date**: The current date is pre-filled, which is correct.
-    *   **Notes**: They add a note: "Weekly grocery run".
-4.  **Save Transaction**: The user clicks "Save".
-5.  **System Action**: The system creates the transaction record and deducts $85.40 from the balance of the "Checking Account".
-
-##### Journey 3: Managing Finance Record Files
-
-This journey details how a user attaches a digital document, such as a receipt or warranty, to a transaction for record-keeping.
-
-###### Core Interactions
-
-While adding or editing a transaction, the user finds an "Attach File" option. They click it, which opens a file selector to choose a document from their local device. After the upload is complete, an icon or link appears on the transaction details page. The user can later click this link to view or download the attachment.
-
-###### Business Requirements
-
-| Requirement ID | Description |
-| :--- | :--- |
-| **BR-FILE-01** | The system must allow users to upload and associate one or more files with a balance flow transaction. [^10] |
-| **BR-FILE-02** | File uploads must be restricted to supported types, such as PDF, PNG, and JPG, to ensure compatibility and security. [^20] |
-| **BR-FILE-03** | The system must store the file's binary data, content type, size, and original filename. [^21] |
-| **BR-FILE-04** | Users must be able to view and download attached files from the transaction details screen. [^22] |
-| **BR-FILE-05** | Users must have the ability to delete a previously uploaded file from a transaction. [^23] |
-
-###### Example User Flow
-
-1.  **Record a Purchase**: The user creates a new expense transaction for a new laptop costing $1,200 from the "Electronics" category.
-2.  **Attach Receipt**: After saving the transaction, they see an "Add Attachment" button on the details page. They click it.
-3.  **Upload File**: They select the PDF receipt for the laptop from their computer's "Downloads" folder and upload it.
-4.  **Confirmation**: The file appears in a list of attachments for that transaction.
-5.  **Future Retrieval**: Six months later, the user needs to file a warranty claim. They search for the laptop transaction, open it, and download the attached PDF receipt to send to the manufacturer.
-
-##### Journey 4: Supporting Multiple Books
-
-This journey illustrates how a user leverages the multi-book feature to manage separate financial areas, such as personal life and a side business.
-
-###### Core Interactions
-
-The user navigates to a "Manage Books" area. Here, they can create a new book from scratch, from a predefined template, or by copying an existing book. Once multiple books exist, the user can easily switch between them from a primary navigation menu. All subsequent actions—adding transactions, creating categories, viewing reports—are performed within the context of the currently selected book.
-
-###### Business Requirements
-
-| Requirement ID | Description |
-| :--- | :--- |
-| **BR-BOOK-01** | Users must be able to create, edit, and delete multiple "books" to manage finances in logically separate containers. [^6] |
-| **BR-BOOK-02** | Each book must have its own unique set of categories, tags, and payees. [^24] |
-| **BR-BOOK-03** | Each book must have a configurable name and a default currency. [^25] |
-| **BR-BOOK-04** | The system must provide an easy way for users to switch their active context from one book to another. [^26] |
-| **BR-BOOK-05** | Users must be able to create new books from pre-defined templates (e.g., "Personal Life," "Restaurant Business"). [^27] |
-| **BR-BOOK-06** | Users must be able to create a new book by copying the structure (categories, tags, payees) of an existing book. [^28] |
-
-###### Example User Flow
-
-1.  **Identify Need**: A user who runs a small online store wants to keep its finances separate from their personal spending.
-2.  **Create Business Book**: They go to "Manage Books" and click "Add Book". They choose the "Business" template, name the book "My Online Store," and set the default currency.
-3.  **Switch Context**: In the main navigation, a dropdown now shows "Personal Finances" and "My Online Store". The user selects "My Online Store".
-4.  **Record Business Transaction**: They add an expense for "Shipping Supplies" and categorize it under "Operations". This transaction is only visible within the "My Online Store" book.
-5.  **Record Personal Transaction**: Later, they switch back to the "Personal Finances" book to record their dinner expense. This keeps the two financial areas completely separate.
-
-##### Journey 5: Supporting Multiple Currencies
-
-This journey describes how a user who deals with more than one currency manages their accounts and transactions.
-
-###### Core Interactions
-
-When creating a new financial account, the user selects its currency from a dropdown list (e.g., USD, EUR, JPY). When adding a transaction to an account with a foreign currency, the system prompts for the converted value into the book's default currency. All reports and dashboard summaries automatically display aggregated totals in the user's primary default currency.
-
-###### Business Requirements
-
-| Requirement ID | Description |
-| :--- | :--- |
-| **BR-CUR-01** | The system must allow users to assign a specific currency to each financial account. [^29] |
-| **BR-CUR-02** | A list of global currencies and their exchange rates (relative to a base currency like USD) must be maintained by the system. [^30] |
-| **BR-CUR-03** | The system should be able to refresh exchange rates from an external API. [^31] |
-| **BR-CUR-04** | When a transaction involves a currency different from the book's default currency, the system must capture both the original amount and the converted amount. [^32] |
-| **BR-CUR-05** | When transferring funds between accounts with different currencies, the system must capture the source amount and the target (converted) amount. [^17] |
-| **BR-CUR-06** | All reports and financial summaries must present data in a single, consistent default currency, performing conversions as needed. [^12] |
-
-###### Example User Flow
-
-1.  **Setup**: A user based in Canada (CAD book currency) receives payment for freelance work in a US-based bank account. They first create a new account in MoneyNote called "US Bank" and set its currency to "USD".
-2.  **Record Foreign Income**: They receive a payment of $500 USD. In MoneyNote, they select the "US Bank" account and add an income of `500`.
-3.  **Handle Conversion**: The system detects that the account currency (USD) is different from the book currency (CAD) and prompts for the converted amount. The user enters the equivalent value, for example, `650` CAD.
-4.  **System State**: The transaction is saved, and the "US Bank" balance increases by $500. The income report for the month, however, shows an increase of 650 CAD, ensuring consistent reporting.
-5.  **Transfer Funds**: The user later transfers $100 from their "US Bank" to their "Canadian Chequing" (CAD) account. The transfer form requires them to enter the source amount (`100` USD) and the destination amount (`130` CAD). The system updates both account balances accordingly.
-
-[^1]: BookService.java: exportFlow() - Allows exporting book transactions to an Excel workbook.
-[^2]: Group.java: Group Entity - Represents a user group that can contain multiple users and books.
-[^3]: UserGroupRelation.java: role - Defines user roles within a group: 1 (Owner), 2 (Operator), 3 (Guest), 4 (Invited).
-[^4]: Account.java: Account Entity - Defines different account types such as CHECKING, CREDIT, ASSET, and DEBT.
-[^5]: FlowType.java: FlowType Enum - Defines transaction types: EXPENSE, INCOME, TRANSFER, ADJUST.
-[^6]: Book.java: Book Entity - Represents a financial ledger that contains its own transactions, categories, and tags.
-[^7]: CurrencyService.java: convert() - Handles currency conversion between different currency codes.
-[^8]: Category.java: TreeEntity - Categories are structured as a tree, allowing for hierarchical organization.
-[^9]: ReportService.java: reportCategory(), reportTag(), reportPayee() - Provides methods to generate various financial reports.
-[^10]: FlowFile.java: FlowFile Entity - Represents a file attached to a balance flow transaction.
-[^11]: AccountService.java: overview() - Calculates total assets, debts, and net worth.
-[^12]: ReportService.java: reportCategory() - Aggregates transaction amounts, converting them to the default currency for reporting.
-[^13]: CategoryReportQueryForm.java: buildPredicate() - Constructs query predicates based on user-supplied filters for reporting.
-[^14]: ChartVO.java: Chart View Object - A data transfer object for chart data, including x/y values and percentages.
-[^15]: BalanceFlow.java: book, account - A transaction entity is linked to both a Book and an Account.
-[^16]: BalanceFlowService.java: add() - Logic to handle adding transactions, including checks for categories and amounts.
-[^17]: BalanceFlowService.java: confirmBalance() - Updates account balances after a transaction is confirmed, handling expenses, incomes, and transfers.
-[^18]: BalanceFlowService.java: remove(), refundBalance() - Logic to delete a transaction and reverse its impact on account balances.
-[^19]: BalanceFlow.java: confirm - A boolean flag indicating if the transaction is confirmed and should affect balances.
-[^20]: FileValidator.java: isSupportedContentType() - Validates that an uploaded file has a supported content type (PDF, PNG, JPG, JPEG).
-[^21]: FlowFile.java: FlowFile Entity fields - Stores data, contentType, size, and originalName of the uploaded file.
-[^22]: FlowFileController.java: handleView() - Endpoint to retrieve and view an attached file.
-[^23]: FlowFileService.java: remove() - Service method to delete a file attachment.
-[^24]: Category.java, Tag.java, Payee.java: Entities - These entities are all linked to a specific Book.
-[^25]: Book.java: defaultCurrencyCode - Each book has its own default currency.
-[^26]: UserService.java: setDefaultBook() - Allows a user to change their active book context.
-[^27]: BookService.java: addByTemplate() - Creates a new book using a predefined JSON template.
-[^28]: BookService.java: addByBook() - Creates a new book by copying the structure of an existing one.
-[^29]: Account.java: currencyCode - Each account entity has a currency code attribute.
-[^30]: currency.json: Resource file - Contains a list of supported currencies and their default rates against USD.
-[^31]: CurrencyService.java: refreshCurrency() - Fetches latest exchange rates from an external API (exchangerate-api.com).
-[^32]: BalanceFlow.java: amount, convertedAmount - The transaction entity stores both the original and the converted currency amounts.
-
-### Architecture
-#### Architectural Overview
-
-The MoneyNote API is designed as a classic, layered monolithic application. This architecture provides a robust and well-organized foundation for the system's bookkeeping functionalities. Its primary goal is to offer a self-hostable, comprehensive solution for personal and small business financial tracking, emphasizing data ownership and independence from third-party services. The architecture is built using the Spring Boot framework, which promotes convention over configuration and facilitates rapid development.
-
-The choice of a monolithic structure allows for straightforward development, testing, and deployment, which is ideal for a project of this scale. All core business logic is encapsulated within a single, deployable artifact, simplifying initial setup and maintenance.
-
-##### Architectural Layers
-
-The system is logically divided into four distinct layers, each with specific responsibilities. This separation of concerns is a cornerstone of the architecture, promoting maintainability and modularity.
-
-| Layer | Role & Responsibilities | Key Technologies & Components |
-| :--- | :--- | :--- |
-| **Presentation Layer** | Handles all incoming HTTP requests, authenticates users, and delegates tasks to the business layer. It exposes a RESTful API for clients (web and mobile apps) to interact with. | - Spring Web MVC<br>- `*Controller` classes (e.g., `AccountController`, `BalanceFlowController`) [^1]<br>- Jackson for JSON serialization/deserialization |
-| **Business Logic Layer** | Contains the core application logic and orchestrates business workflows. It implements the rules for managing accounts, transactions, books, and user groups. | - Spring `Service` Components<br>- `*Service` classes (e.g., `AccountService`, `BalanceFlowService`, `UserService`) [^2]<br>- Custom business logic for financial calculations and state management |
-| **Data Access Layer** | Abstracts the communication with the underlying database. It defines interfaces for CRUD (Create, Read, Update, Delete) operations and complex data queries. | - Spring Data JPA & Hibernate<br>- QueryDSL for type-safe dynamic queries [^3]<br>- `*Repository` interfaces (e.g., `AccountRepository`, `BalanceFlowRepository`) [^4]<br>- Custom repository implementation (`BaseRepositoryImpl`) for shared functionality [^5] |
-| **Data Layer** | Represents the persistence tier of the application. It consists of the database schema and the data itself. | - MySQL Database (`mysql-connector-j`) [^6]<br>- JPA Entities (e.g., `Account.java`, `User.java`, `BalanceFlow.java`) [^7]<br>- HikariCP for connection pooling |
-
-##### Main Components and Interactions
-
-The application is structured into several feature-oriented packages, each representing a core domain or component. These components work in concert to deliver the application's features.
-
-| Component | Package | Role & Responsibilities |
-| :--- | :--- | :--- |
-| **User & Group Management** | `cn.biq.mn.user`, `cn.biq.mn.group` | Manages user registration, authentication, and profiles. Supports multi-user collaboration through "Groups". |
-| **Authentication & Security** | `cn.biq.mn.security` | Handles user authentication using JSON Web Tokens (JWT) [^8]. A session-scoped bean (`CurrentSession`) holds user state [^9]. |
-| **Book Management** | `cn.biq.mn.book` | Core concept for organizing financial records. A user can have multiple books (e.g., "Personal," "Business"). |
-| **Account Management** | `cn.biq.mn.account` | Manages financial accounts like Checking, Credit, Assets, and Debts. Tracks balances and properties. |
-| **Transaction Flow** | `cn.biq.mn.balanceflow` | The heart of the system. Records all financial transactions: expenses, incomes, transfers, and balance adjustments [^10]. |
-| **Categorization** | `cn.biq.mn.category`, `cn.biq.mn.tag` | Allows users to organize transactions using hierarchical categories and tags for detailed reporting. |
-| **File Attachments** | `cn.biq.mn.flowfile` | Manages file uploads (e.g., receipts) and associates them with financial transactions [^11]. |
-| **Currency Management** | `cn.biq.mn.currency` | Provides multi-currency support by fetching exchange rates from an external API on startup [^12]. |
-| **Reporting** | `cn.biq.mn.report` | Generates financial reports and statistics based on user data, such as expenses by category. |
-| **CI/CD Automation**| `.github/workflows` | Defines GitHub Actions workflows for automatically building and publishing Docker images to Aliyun Container Registry and Docker Hub, enabling continuous integration and deployment [^13]. |
-
-###### Example Data Flow: Creating an Expense
-
-1.  A user submits a new expense record via the client application.
-2.  The `BalanceFlowController` receives the POST request.
-3.  The request is delegated to the `BalanceFlowService`.
-4.  `BalanceFlowService` validates the data, creates a `BalanceFlow` entity, and associates it with the correct `Book`, `Account`, `Category`, and `Tags`.
-5.  If the transaction is confirmed, the `BalanceFlowService` updates the balance of the associated `Account` by calling the `AccountRepository`.
-6.  The new `BalanceFlow` and any related entities (like `CategoryRelation`) are persisted to the MySQL database via their respective repositories.
-7.  A success response is returned to the user.
-
-##### Technology and Design Patterns
-
--   **Architectural Style**: **Layered Monolith**. This classic style is evident in the clear separation between presentation, business, and data access layers within a single codebase.
--   **Key Technologies**:
-    -   **Backend**: Java 17, Spring Boot 3
-    -   **Data Persistence**: Spring Data JPA, Hibernate, QueryDSL, MySQL
-    -   **Authentication**: JSON Web Tokens (JWT)
-    -   **Deployment**: Docker, with CI/CD pipelines managed by GitHub Actions.
--   **Design Patterns**:
-    -   **Model-View-Controller (MVC)**: Spring MVC is used to separate request handling (`Controller`) from business logic (`Service`) and data (`Entity`).
-    -   **Data Transfer Object (DTO)**: `*Form`, `*Details`, and `*Vo` classes are used to transfer data between layers and over the network, decoupling the API from the internal data model.
-    -   **Repository Pattern**: Implemented by Spring Data JPA, abstracting data persistence logic.
-    -   **Dependency Injection**: Heavily used throughout the application via Spring's IoC container to manage object lifecycles and dependencies.
-
-##### Scalability and Resilience
-
-The current architecture supports scalability primarily through **horizontal scaling**. Multiple instances of the application can be deployed as Docker containers and run behind a load balancer.
-
--   **Database Pooling**: The use of HikariCP ensures efficient management of database connections, which is critical for performance under load.
--   **Containerization**: The application is designed to be deployed via Docker, as defined in the `Dockerfile` and `docker-compose.yml` files [^14]. This simplifies deployment, environment consistency, and scaling.
--   **CI/CD**: Automated build and push workflows to container registries streamline the process of deploying new versions and scaling out instances.
-
-##### Key Challenges and Architectural Limitations
-
-While the architecture is functional and well-suited for its purpose, certain design choices present challenges for future modernization and large-scale deployment.
-
--   **Monolithic Structure**: The single-unit design leads to tight coupling between components. Any small change requires a full redeployment of the application. This can slow down development cycles and make it difficult to scale individual features independently.
--   **Stateful Session Management**: The use of a `@SessionScope` bean `CurrentSession` introduces state into the backend [^9]. For horizontal scaling to work effectively, a load balancer with "sticky sessions" is required to route a user's requests to the same application instance. This complicates infrastructure and limits stateless scaling.
--   **Single Point of Failure**:
-    -   The entire application relies on a single MySQL database, which can become a performance bottleneck and a single point of failure.
-    -   Currency exchange rates are fetched from an external API only at application startup [^12]. If this service is unavailable, rates will not be refreshed. Furthermore, the rates can become stale during the application's runtime.
--   **Database Schema Management**: The application uses an SQL script (`1.sql`) that runs on startup to perform schema migrations [^15]. This approach is less robust than dedicated migration tools like Flyway or Liquibase, as it can be prone to errors and is harder to manage and version control.
-
-[^1]: src/main/java/cn/biq/mn/account/AccountController.java: AccountController - Exposes REST endpoints for managing user accounts.
-[^2]: src/main/java/cn/biq/mn/account/AccountService.java: AccountService - Implements business logic for account creation, queries, and balance adjustments.
-[^3]: build.gradle: "com.querydsl:querydsl-jpa" - Dependency for QueryDSL, used for building type-safe SQL-like queries.
-[^4]: src/main/java/cn/biq/mn/account/AccountRepository.java: AccountRepository - Spring Data JPA interface for database operations on the Account entity.
-[^5]: src/main/java/cn/biq/mn/base/BaseRepositoryImpl.java: BaseRepositoryImpl - A custom repository implementation providing shared query logic, such as `calcSum`.
-[^6]: build.gradle: "com.mysql:mysql-connector-j" - The MySQL JDBC driver dependency, indicating the use of a MySQL database.
-[^7]: src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java: BalanceFlow - JPA entity representing a single financial transaction.
-[^8]: src/main/java/cn/biq/mn/security/JwtUtils.java: createToken() - Method for generating a JWT for an authenticated user.
-[^9]: src/main/java/cn/biq/mn/security/CurrentSession.java: CurrentSession - A @SessionScope bean that holds the current user's session data, including access token and user object.
-[^10]: src/main/java/cn/biq/mn/balanceflow/FlowType.java: FlowType - Enum defining the different types of transactions (EXPENSE, INCOME, TRANSFER, ADJUST).
-[^11]: src/main/java/cn/biq/mn/flowfile/FlowFile.java: FlowFile - JPA entity for storing file metadata and its binary content, linked to a `BalanceFlow`.
-[^12]: src/main/java/cn/biq/mn/currency/CurrencyRemoteDataLoader.java: run() - Method that triggers a refresh of currency exchange rates from an external API upon application startup.
-[^13]: .github/workflows/docker-image-ali.yml: docker/build-push-action - GitHub Action step that builds a Docker image and pushes it to Aliyun Container Registry.
-[^14]: Dockerfile: Dockerfile - Defines the steps to build the application's Docker image, including setting up the Java environment and copying the JAR file.
-[^15]: src/main/java/cn/biq/mn/SqlScriptRunner.java: run() - Component that executes the `1.sql` script upon application startup to update the database schema.
-
-### Technology Stack
-The application is built on a modern Java and Spring Boot foundation, containerized with Docker, and configured for automated deployments through GitHub Actions. The technology stack is generally up-to-date, with only minor version updates recommended for some libraries to ensure the latest security patches and bug fixes are applied.
-
-#### Backend Technologies
-
-The backend is a monolithic application powered by the Spring ecosystem, which provides a robust and scalable foundation.
-
-| Technology/Tool Name | Version | Purpose/Role | EOL Status / Replacement |
-| :--- | :--- | :--- | :--- |
-| Java (OpenJDK) | 17 | Core programming language for the application backend. | **Not EOL**. Java 17 is a Long-Term Support (LTS) release with premier support until September 2026. Sticking with LTS versions like 17 or migrating to the latest LTS (21) is recommended for long-term stability and security. [^1] |
-| Spring Boot | 3.2.1 | The primary framework for building the backend RESTful API, managing dependency injection, and simplifying configuration. | **Not EOL**. Version 3.2.x is actively supported. Upgrading to the latest patch release (e.g., 3.2.x) is advisable for ongoing security updates. [^2] |
-| Spring Data JPA | 3.2.1 (from Boot) | Provides the data access layer, simplifying database interactions through an Object-Relational Mapping (ORM) pattern. | **Not EOL**. This component is part of the Spring Boot stack and is actively maintained. [^2] |
-| Spring Security | 3.2.1 (from Boot) | Manages authentication and authorization, securing API endpoints. | **Not EOL**. This is a core component of the Spring ecosystem and is actively maintained. [^3] |
-| Hibernate | ~6.4.1 (from Boot) | The underlying ORM provider for Spring Data JPA, translating Java objects into database records. | **Not EOL**. Its version is managed by the Spring Boot dependency management, ensuring compatibility. |
-| QueryDSL | 5.0.0 | A framework used to write type-safe, SQL-like queries in Java, enhancing maintainability and reducing runtime errors. | **Not EOL**. The latest stable version is 5.1.0. An upgrade is recommended for bug fixes and new features, though version 5.0.0 is stable. [^4] |
-| java-jwt (Auth0) | 4.2.1 | Library for creating and verifying JSON Web Tokens (JWT) to enable stateless user authentication. | **Not EOL**, but an older version. The current stable version is 4.4.0. **Replacement**: Upgrade to the latest 4.x version to incorporate the latest security patches and bug fixes. [^5] |
-| Apache POI | 5.2.2 | A library used for creating and managing Microsoft Excel files, specifically for the data export feature. | **Not EOL**, but an older version. The current version is 5.2.5. **Replacement**: An upgrade to the latest patch version (5.2.5) is recommended for bug fixes and performance improvements. [^6] |
-
-#### Database
-
-The application relies on a traditional relational database for data persistence.
-
-| Technology/Tool Name | Version | Purpose/Role | EOL Status / Replacement |
-| :--- | :--- | :--- | :--- |
-| MySQL | Determined by Deployment | The relational database system used for storing all application data, including users, accounts, and transactions. | The EOL status depends on the deployed version (e.g., 5.7 is EOL, 8.0+ is active). **Modernization Path**: For Google Cloud migration, **Cloud SQL for MySQL** offers a fully managed, scalable, and secure replacement with minimal code changes. |
-| MySQL Connector/J | Runtime Determined | The official JDBC driver that enables the Java application to connect and interact with the MySQL database. | The project uses the modern `mysql-connector-j` artifact, which is **not EOL**. The specific version is managed by Gradle. [^7] |
-
-#### Build, Deployment, and Infrastructure
-
-The project employs a modern CI/CD pipeline for automated builds and deployments using containerization.
-
-| Technology/Tool Name | Version | Purpose/Role | EOL Status / Replacement |
-| :--- | :--- | :--- | :--- |
-| Gradle | Wrapper-defined | The build automation and dependency management tool for the project. | **Not EOL**. The Gradle Wrapper ensures a consistent build environment across different machines. |
-| Docker | N/A | The containerization platform used to package the application and its dependencies into a portable, isolated environment. | **Not EOL**. Docker is the industry standard for containerization and is a key enabler for cloud migration. [^8] |
-| GitHub Actions | N/A | CI/CD platform used to automate building the Java application and publishing the resulting Docker images to container registries. | **Not EOL**. This is a fully managed service from GitHub. **Modernization Path**: Can be integrated with Google Cloud services like **Cloud Build** or used to deploy directly to **Cloud Run** or **Google Kubernetes Engine**. [^9] |
-| Aliyun Container Registry (ACR) | N/A | A cloud service from Alibaba Cloud used as one of the target container registries for storing Docker images. | **Not EOL**. This is an actively maintained service. **Modernization Path**: For migration to Google Cloud, **Artifact Registry** is the recommended replacement for storing and managing container images and other build artifacts securely. [^10] |
-| Docker Hub | N/A | A public container registry used as an alternative destination for the application's Docker images. | **Not EOL**. While suitable for open-source projects, a private registry like **Artifact Registry** is recommended for production workloads on Google Cloud to ensure better security and control. [^11] |
-
-[^1]: .github/workflows/docker-image-ali.yml: setup-java@v1 - Sets up Java environment with version 17.
-[^2]: build.gradle: org.springframework.boot version '3.2.1' - Specifies the version for the Spring Boot framework and its managed dependencies.
-[^3]: build.gradle: spring-boot-starter-security - Includes Spring Security for handling application security.
-[^4]: build.gradle: com.querydsl:querydsl-jpa:5.0.0 - Defines the version for the QueryDSL JPA integration.
-[^5]: build.gradle: com.auth0:java-jwt:4.2.1 - Specifies the version for the Java JWT library from Auth0.
-[^6]: build.gradle: org.apache.poi:poi:5.2.2 - Includes the Apache POI library for Excel file manipulation.
-[^7]: build.gradle: com.mysql:mysql-connector-j - Declares the dependency for the MySQL JDBC driver.
-[^8]: Dockerfile: FROM ubuntu:23.04 - Defines the base Docker image for containerizing the application.
-[^9]: .github/workflows/docker-image-ali.yml: name: api acr image - Defines a GitHub Actions workflow to build and push Docker images.
-[^10]: .github/workflows/docker-image-ali.yml: registry: registry.cn-hangzhou.aliyuncs.com - Specifies Aliyun Container Registry as the destination for Docker images.
-[^11]: .github/workflows/docker-image.yml: tags: markliu2018/moneynote-api:latest - Specifies Docker Hub as a destination for the built image.
-
-### APIs and Endpoints
-This section outlines the primary user journeys and features supported by the MoneyNote API, framed as a set of business requirements. This analysis is derived from the application's controllers, services, and data models to reconstruct the intended functionality from a user-centric perspective.
-
-#### User Journeys
+This section breaks down the essential user journeys, outlining the core interactions, business requirements, and a practical user flow for each.
 
 ##### 1. Monitor Financial Situation
-
-This journey focuses on the user's ability to get a high-level overview of their financial health, including their assets, liabilities, and net worth.
+This journey describes how a user assesses their overall financial health through the application's overview and reporting features.
 
 ###### Core Interactions
-
-The user logs into the application and accesses a primary dashboard or overview screen. This screen presents a consolidated view of their financial standing. The user can see totals for their assets (what they own) and debts (what they owe), along with their calculated net worth. From this overview, they can drill down into specific reports to see the breakdown of these figures, often visualized through charts.
+The user logs into the application and navigates to a dashboard or overview screen. The system presents an aggregated summary of their financial position, including total assets, total debts, and the resulting net worth. The user can drill down to see balances of individual accounts that contribute to these totals.
 
 ###### Business Requirements
+*   The system must calculate total assets by summing the balances of all asset-type accounts (e.g., Checking, Savings, Investment) marked for inclusion.
+*   The system must calculate total debts by summing the balances of all debt-type accounts (e.g., Credit Card, Loan).
+*   The system must calculate and display the user's net worth (Total Assets - Total Debts).
+*   All account balances must be converted to the user's default group currency to ensure a consistent and accurate summary. [^2]
+*   The overview must only reflect accounts that are enabled and explicitly included in statistical calculations (`enable=true`, `include=true`). [^3]
 
--   **Financial Overview Calculation**: The system must provide an aggregated overview of the user's finances. This includes calculating total assets, total liabilities (debts), and the resulting net worth [^1].
--   **Account-Based Aggregation**:
-    -   Total assets shall be the sum of balances from all enabled and included accounts of type `CHECKING` and `ASSET` [^2].
-    -   Total liabilities shall be the sum of balances from all enabled and included accounts of type `CREDIT` and `DEBT` [^2].
-    -   Net worth is calculated as Total Assets minus Total Liabilities.
--   **Currency Conversion for Reporting**: All account balances must be converted to the user group's default currency before being aggregated to ensure a consistent and accurate financial summary [^1].
--   **Visual Reporting**: The system should offer visual reports, such as pie charts, that break down the composition of assets and debts by individual accounts. This allows users to quickly identify where their wealth and debt are concentrated [^3].
--   **Account Statistics**: The system must provide summary statistics for a filtered list of accounts, including total balance, total credit limit, and remaining credit limit [^4].
-
-###### Example User Flow: Reviewing Monthly Financial Health
-
-1.  **Login and View Dashboard**: The user logs in and lands on the main dashboard.
-2.  **API Call for Overview**: The frontend calls the `/api/v1/accounts/overview` endpoint. The `AccountService` calculates the total assets, debts, and net worth by fetching all relevant accounts, converting their balances to the group's default currency, and summing them up.
-3.  **Display Key Metrics**: The dashboard displays the three key metrics: Total Assets: $50,000, Total Debts: $15,000, Net Worth: $35,000.
-4.  **API Call for Visuals**: The frontend simultaneously calls `/api/v1/reports/balance`. The `ReportService` generates two data sets: one for asset accounts and one for debt accounts, preparing them for chart visualization.
-5.  **View Charts**: The user sees two pie charts. The "Assets" chart shows that "Savings Account" makes up 60% of their assets, and "Investment Portfolio" makes up 40%. The "Debts" chart shows "Visa Credit Card" is 70% of their debt and "Student Loan" is 30%.
-6.  **Drill Down**: The user clicks on the "Visa Credit Card" slice in the debt chart. The application navigates to the transaction list for that account, filtering to show only the records associated with it.
+###### Example User Flow
+1.  **Login**: The user logs into the MoneyNote application.
+2.  **Navigate to Overview**: The user accesses the main dashboard or clicks on an "Overview" tab.
+3.  **View Summary**: The UI calls the `/accounts/overview` endpoint. [^4] The screen displays three primary figures:
+    *   **Total Assets**: $15,000
+    *   **Total Debts**: $5,000
+    *   **Net Worth**: $10,000
+4.  **Analyze Breakdown**: Below the summary, the user views pie charts or lists that break down the totals. For instance, the "Assets" chart shows "Savings Account: $10,000" and "Checking Account: $5,000".
 
 ##### 2. Track Incomes & Expenses
-
-This journey describes the fundamental bookkeeping capability of the application: recording financial transactions.
+This journey outlines the process of a user recording a financial transaction, which is the most frequent and fundamental interaction with the system.
 
 ###### Core Interactions
-
-The user performs a financial transaction in their daily life (e.g., buys coffee, receives a salary) and wants to record it in the application. They open a form dedicated to adding a new transaction, where they can specify if it's an expense, income, or transfer. The user fills in details such as the amount, date, the account used, and categorizes the transaction. Upon saving, the transaction is logged, and the relevant account balance is updated.
+The user selects the appropriate ledger ("Book") and initiates the creation of a new transaction. They are presented with a form to input details such as the transaction type (income/expense), amount, date, associated account, and category. After saving, the transaction appears in their record list, and the corresponding account balance is automatically updated.
 
 ###### Business Requirements
+*   Users must be able to create transactions with a specific type: `EXPENSE`, `INCOME`, `TRANSFER`, or `ADJUST`. [^5]
+*   Each transaction must be associated with a `Book`, `Account`, date, and amount.
+*   The system must support assigning one or more `Categories` and `Tags` to a transaction for detailed tracking. [^6]
+*   If a transaction's currency differs from the book's default currency, the system must require and record a `convertedAmount`. [^7]
+*   Upon creation, the transaction's `amount` must be added to (for income) or subtracted from (for expense) the associated account's balance. [^8]
+*   Users must be able to view, filter, and paginate through their transaction history. [^9]
 
--   **Transaction Types**: The system must support the creation of `EXPENSE`, `INCOME`, and `TRANSFER` transaction types (`FlowType`) [^5].
--   **Core Transaction Attributes**: Every transaction record (`BalanceFlow`) must have a date, an associated "book", an amount, and a confirmation status [^6].
--   **Account Linking**: Transactions can be linked to a source `Account`. When a transaction is marked as confirmed, the system must automatically update the account's balance.
-    -   Expenses decrease the balance.
-    -   Incomes increase the balance.
-    -   Transfers decrease the source account and increase the destination account balance [^7].
--   **Categorization**:
-    -   Expense and Income transactions must be associated with at least one `Category`.
-    -   The system must support splitting a single transaction across multiple categories, with a specific amount allocated to each [^8].
--   **Optional Details**: Users can enrich transactions with optional details, including a title, notes, a `Payee` (merchant or person), and multiple `Tags` for advanced filtering and reporting [^6].
--   **Data Validation**: The system enforces validation rules, such as preventing duplicate categories in a single transaction and limiting the number of categories per transaction [^9].
-
-###### Example User Flow: Recording a Grocery Shopping Trip
-
-1.  **Initiate Transaction**: The user is in their default book, "Personal Finances," and clicks the "Add Expense" button.
-2.  **Open Transaction Form**: The UI displays a form. It's pre-populated with the user's default expense account, "Checking Account."
-3.  **Enter Details**:
-    -   The user leaves the account as "Checking Account."
-    -   They set the date to today.
-    -   They click on the "Category" field.
-4.  **Split Categories**: The grocery bill includes food and household items. The user adds two category entries:
-    -   Category: `Food`, Amount: `$55.50`
-    -   Category: `Household`, Amount: `$22.00`
-5.  **Add Payee and Tag**: The user selects "SuperMart" as the `Payee` and adds a tag: "Weekly Shopping."
-6.  **Save Transaction**: The user clicks "Save."
-7.  **API Call**: The frontend sends a `POST` request to `/api/v1/balance-flows` with a JSON payload containing the transaction details.
-8.  **Backend Processing**:
-    -   `BalanceFlowService.add()` receives the request.
-    -   It calculates the total amount of the transaction (`$77.50`) by summing the category amounts.
-    -   It creates a new `BalanceFlow` entity and associated `CategoryRelation` entities.
-    -   Since the transaction is confirmed, `confirmBalance()` is called, which subtracts `$77.50` from the "Checking Account" balance.
+###### Example User Flow
+1.  **Select Book**: The user ensures their "Personal" book is active.
+2.  **Initiate Transaction**: The user clicks the "Add Expense" button.
+3.  **Enter Details**: A form is displayed, and the user enters the following:
+    *   **Title**: "Weekly Groceries"
+    *   **Category**: "Food"
+    *   **Amount**: $125.50
+    *   **Account**: "Checking Account"
+    *   **Payee**: "Local Supermarket"
+    *   **Tags**: "Household"
+4.  **Save Transaction**: The user clicks "Save". The UI sends a request to the `POST /balance-flows` endpoint.
+5.  **System Update**: The system creates a `BalanceFlow` record and calls the `confirmBalance` method to deduct $125.50 from the "Checking Account" balance. [^8]
+6.  **Confirmation**: The user sees the new transaction at the top of their transaction list.
 
 ##### 3. Finance Record File
-
-This journey allows the user to attach digital files, such as receipts or invoices, to their transaction records for archival and reference.
+This journey details how a user attaches supporting documents, like receipts or invoices, to a financial record.
 
 ###### Core Interactions
-
-While creating or editing a transaction, the user decides to upload a corresponding document. They use a file upload interface to select a file from their device. The file is uploaded and linked to the transaction record. Later, when viewing the transaction details, the user can see a list of attached files and can choose to view or download them.
+While creating or editing a transaction, the user finds an option to upload a file. They select a file from their device, which is then uploaded and linked to the transaction. Later, when viewing the transaction, they can see a list of its attachments and can click to view or download them.
 
 ###### Business Requirements
+*   The system must allow one or more files to be attached to a `BalanceFlow` entity. [^10]
+*   File uploads must be validated for supported content types (e.g., PDF, PNG, JPEG) and size limits. [^11][^12]
+*   Users must be able to retrieve a list of all files associated with a single transaction. [^13]
+*   The system must provide a secure endpoint for viewing or downloading the raw file data. [^14]
+*   Users must have the ability to delete attachments from a transaction. [^15]
 
--   **File Attachment**: The system must provide a mechanism to upload one or more files and associate them with a specific `BalanceFlow` (transaction) record [^10].
--   **File Storage**: Uploaded files must be stored within the system. The `FlowFile` entity stores the file content as a `byte[]` array, along with metadata [^11].
--   **File Metadata**: For each uploaded file, the system must store:
-    -   Original filename
-    -   File size
-    -   Content type (MIME type)
-    -   Creation timestamp
-    -   The user who uploaded it [^11].
--   **Access and Retrieval**:
-    -   Users must be able to retrieve a list of all files attached to a transaction [^12].
-    -   A secure endpoint must be available to view or download the file content. Access is controlled by checking the file ID and creation timestamp to prevent simple enumeration of URLs [^13].
--   **File Deletion**: Users must be able to delete previously attached files [^14].
--   **Validation**: The system must enforce constraints on file uploads, including file size (max 100MB) and allowed content types (PDF, PNG, JPG, JPEG) [^15] [^16].
-
-###### Example User Flow: Attaching a Receipt to an Expense
-
-1.  **Find Transaction**: The user locates a recent expense record for "New Monitor" with an amount of `$350`.
-2.  **Initiate Upload**: On the transaction detail page, the user clicks "Attach File."
-3.  **Select and Upload**: A file dialog opens. The user selects `monitor_receipt.pdf` from their computer and confirms.
-4.  **API Call for Upload**: The frontend sends a `POST` request to `/api/v1/balance-flows/25/addFile` (where 25 is the transaction ID). The request is of type `multipart/form-data` and contains the file data.
-5.  **Backend Processing**: `BalanceFlowService.addFile()` handles the request. It validates the file, creates a `FlowFile` entity, stores the byte data and metadata, and links it to `BalanceFlow` with ID 25.
-6.  **View Attachment**: The transaction detail page now shows `monitor_receipt.pdf` in an "Attachments" section.
-7.  **Retrieve File**: Clicking on the filename makes a `GET` request to `/api/v1/flow-files/view?id=101&createTime=1672531200000`. The `FlowFileService` validates the request and serves the PDF file to the user's browser.
+###### Example User Flow
+1.  **Find Transaction**: The user locates an expense record for a "New Monitor" purchase.
+2.  **Upload Receipt**: They click "Add Attachment" and select the `monitor_receipt.pdf` file from their computer.
+3.  **System Processing**: The file is uploaded via a `POST` request to `/balance-flows/{id}/addFile`. The system creates a `FlowFile` record, storing the file's binary data and metadata. [^10]
+4.  **View Attachment**: The transaction details page now lists `monitor_receipt.pdf` under an "Attachments" section.
+5.  **Download/View**: The user clicks the file name. The browser initiates a download or displays the PDF by calling the `/flow-files/view` endpoint.
 
 ##### 4. Support Multiple Books
-
-This journey enables users to segregate their financial data into different contexts (e.g., personal, work, family) using "Books."
+This journey describes how a user manages separate, independent ledgers within a single account.
 
 ###### Core Interactions
-
-The user wants to manage finances for a new project separately from their personal budget. They navigate to a "Book Management" area and create a new book. This new book acts as a self-contained ledger with its own set of transactions, categories, tags, and payees. The user can easily switch their active context between different books.
+The user creates distinct "Books" for different financial contexts, such as "Personal" and "Business". They can switch their active context to a specific book. All subsequent actions—adding transactions, viewing categories, or running reports—are then scoped to that active book.
 
 ###### Business Requirements
+*   The system must allow users to perform full CRUD (Create, Read, Update, Delete) operations on `Book` entities. [^16]
+*   Each `Book` must belong to a `Group` and have a unique name within that group. [^17]
+*   Key financial entities such as `Category`, `Tag`, and `Payee` must be scoped to a single `Book`. [^18]
+*   All transactions (`BalanceFlow`) must be linked to exactly one `Book`. [^19]
+*   The system must provide functionality to create a new `Book` by copying an existing one or by using a predefined template. [^20]
+*   Users must be able to set a default book for their session, which determines the active context for all operations. [^21]
 
--   **Book Scoping**: The application's data must be partitioned by `Book`. All core data entities, including `BalanceFlow`, `Category`, `Tag`, and `Payee`, must be linked to a single `Book` [^17].
--   **Book Creation**: Users must be able to create new books. Creation can be done in three ways:
-    1.  **From Scratch**: A blank book with only a name and default currency [^18].
-    2.  **From Template**: A new book pre-populated with categories, tags, and payees from a predefined `BookTemplate` (e.g., "Personal Life," "Small Business") [^19].
-    3.  **By Copying**: A new book that duplicates the entire structure (categories, tags, payees) of an existing book [^20].
--   **Default Book**:
-    -   Each `User` has a `defaultBook` which is their active book upon login [^21].
-    -   Each `Group` also has a `defaultBook`, which serves as a fallback [^22].
-    -   Users must be able to change their default book to any other enabled book they have access to [^23].
--   **Data Isolation**: When a user is working within a book, all data entry (new transactions) and reporting are confined to that book's data set.
--   **Data Export**: The system must allow users to export all transaction data from a specific book into an Excel (`.xlsx`) file for external analysis or backup [^24].
-
-###### Example User Flow: Creating and Using a Vacation Book
-
-1.  **Navigate to Book Management**: The user goes to the "Settings" -> "Books" page.
-2.  **Create New Book**: The user clicks "New Book" and chooses the "Copy Existing Book" option. They select their "Personal Finances" book as the source.
-3.  **Enter Details**: They name the new book "Hawaii Vacation 2024" and set the default currency to "USD."
-4.  **API Call**: The frontend sends a `POST` request to `/api/v1/books/copy`.
-5.  **Backend Processing**: `BookService.addByBook()` creates the new book and then systematically copies all categories, tags, and payees from the source book to the new one.
-6.  **Switch Context**: The user now sees "Hawaii Vacation 2024" in their list of books. They click on it to make it their active book.
-7.  **Record Vacation Expense**: The user adds a new expense for "Flight Tickets" for `$1200`. This transaction is now logged exclusively within the "Hawaii Vacation 2024" book and does not appear in their "Personal Finances" book.
-8.  **Export for Review**: After the trip, the user navigates to the book's settings and clicks "Export." This triggers a `GET` request to `/api/v1/books/{id}/export`, and the system generates an Excel file with all vacation-related transactions.
+###### Example User Flow
+1.  **Create New Book**: The user navigates to the "Manage Books" section and clicks "Create Book".
+2.  **Choose Method**: They are prompted to either create a blank book, copy an existing one, or use a template. They select "Use Template" and choose the "Small Business" template.
+3.  **Enter Details**: They name the new book "My Web Agency" and set its default currency to USD.
+4.  **Switch Context**: After creation, they set "My Web Agency" as their active book. The UI updates to show the categories (e.g., "Client Revenue", "Software Subscriptions") and accounts relevant to this new book.
+5.  **Record Transaction**: They add a new income of $2,000 from a client. This transaction is exclusively recorded within the "My Web Agency" book.
 
 ##### 5. Support Multiple Currencies
-
-This journey addresses the need for users to manage finances across different currencies.
+This journey explains how the system handles financial data across different currencies.
 
 ###### Core Interactions
-
-A user who travels or has international dealings needs to manage accounts in multiple currencies, such as USD, EUR, and JPY. They create accounts specifying the currency for each. When recording a transaction that involves a currency conversion (e.g., withdrawing local currency from a foreign ATM), the application prompts them for the converted amount. All high-level reports and dashboards present a unified view by converting all amounts into a single default currency.
+A user creates an account and assigns it a specific currency (e.g., EUR). When recording a transaction with this account in a book whose default currency is different (e.g., USD), the system prompts for a converted amount. For aggregated reports and dashboards, the system automatically converts all values into a single base currency for unified analysis.
 
 ###### Business Requirements
+*   The system must maintain a list of currencies and their exchange rates. It should be able to refresh these rates from an external API. [^22]
+*   Each `Account`, `Book`, and `Group` must have an associated default currency code. [^23]
+*   When a transaction involves currency conversion (e.g., an expense from a EUR account in a USD book), the system must store both the original `amount` and the `convertedAmount`. [^7]
+*   All financial summaries and reports must present data in a single, consistent currency, which is typically the group's default currency. [^2]
+*   The system must provide a utility to calculate the converted value between any two supported currencies. [^24]
 
--   **Currency Data**: The system must maintain a list of world currencies and their exchange rates. These rates are initially loaded from a local `currency.json` file and can be updated from an external API service (`exchangerate-api.com`) [^25] [^26].
--   **Currency Assignment**:
-    -   Each `Account` entity must have a `currencyCode` (e.g., "USD", "CNY") [^27].
-    -   Each `Book` must have a `defaultCurrencyCode` which determines the base currency for its reporting [^28].
--   **Cross-Currency Transaction Handling**:
-    -   For `TRANSFER` transactions between two accounts with different currencies, the system requires both the source `amount` and the `convertedAmount` in the destination currency [^29].
-    -   For `EXPENSE` or `INCOME` transactions recorded in an account whose currency does not match the book's default currency, the system also requires a `convertedAmount` [^29].
--   **Reporting and Aggregation**: All financial reports, especially high-level overviews (`/accounts/overview`) and balance reports (`/reports/balance`), must convert individual transaction and account amounts into the group's single default currency before aggregation [^1] [^3]. This ensures that sums of money in different currencies are compared on a like-for-like basis.
--   **Rate Calculation**: The application must provide a utility endpoint to calculate the converted value between any two currencies for a given amount [^30].
+###### Example User Flow
+1.  **Setup**: A user's group has a default currency of USD. They have an account named "German Bank" with its currency set to EUR.
+2.  **Record Foreign Transaction**: The user is in their "Personal" book (default currency USD) and wants to record a €50 dinner expense from their "German Bank" account.
+3.  **Enter Conversion**: In the "Add Expense" form, they select the "German Bank" account. The system detects the currency mismatch (EUR vs. USD). The user enters:
+    *   **Amount**: 50 (EUR)
+    *   The UI prompts for the equivalent in USD. The user enters:
+    *   **Converted Amount**: 53.50 (USD)
+4.  **System Processing**: The transaction is saved. The balance of the "German Bank" account is reduced by €50.
+5.  **View Report**: Later, when the user runs a monthly expense report, this transaction is included in the totals as an expense of $53.50, aggregated with all other USD-denominated expenses.
 
-###### Example User Flow: Recording a Foreign Currency Expense
+[^1]: Dockerfile: FROM ubuntu:23.04 - Defines the container image for self-hosting.
+[^2]: AccountService.java: overview() - This method converts account balances to the group's default currency before summing them up.
+[^3]: AccountService.java: getAssets() - This method filters for accounts where `enable` and `include` are both true.
+[^4]: AccountController.java: handleOverview() - Exposes the `overview()` functionality via the `/accounts/overview` REST endpoint.
+[^5]: FlowType.java: enum - Defines the four types of balance flows: EXPENSE, INCOME, TRANSFER, ADJUST.
+[^6]: BalanceFlow.java: tags, categories - The entity contains sets for `TagRelation` and `CategoryRelation`, linking them to the transaction.
+[^7]: BalanceFlow.java: amount, convertedAmount - The entity includes fields for both original and converted transaction amounts.
+[^8]: BalanceFlowService.java: confirmBalance() - Contains the logic to modify an account's balance based on the flow type and amount.
+[^9]: BalanceFlowController.java: handleQuery() - The endpoint for querying transactions, supporting pagination and filtering via `BalanceFlowQueryForm`.
+[^10]: BalanceFlowService.java: addFile() - This method handles the logic for associating an uploaded file with a `BalanceFlow` entity.
+[^11]: ValidFile.java: @Constraint(validatedBy = {FileValidator.class}) - Annotation that triggers file validation.
+[^12]: application.properties: spring.servlet.multipart.max-file-size=100MB - Configuration property setting the maximum upload size.
+[^13]: BalanceFlowController.java: handleFiles() - The endpoint to retrieve all files for a given transaction ID.
+[^14]: FlowFileController.java: handleView() - Endpoint that serves the binary data of a `FlowFile`.
+[^15]: FlowFileController.java: handleDelete() - The endpoint for deleting a file attachment by its ID.
+[^16]: BookController.java: - Contains REST endpoints for `POST`, `GET`, `PUT`, and `DELETE` operations on `/books`.
+[^17]: BookService.java: add() - Checks for existing book names within the same group to prevent duplicates.
+[^18]: Category.java: @ManyToOne private Book book; - The `Category`, `Tag`, and `Payee` entities all have a mandatory `ManyToOne` relationship with the `Book` entity.
+[^19]: BalanceFlow.java: @ManyToOne(optional = false) @NotNull private Book book; - The `BalanceFlow` entity requires a non-null `Book`.
+[^20]: BookService.java: addByBook(), addByTemplate() - Methods for creating a new book by copying an existing one or from a template.
+[^21]: UserController.java: handleSetDefaultBook() - Endpoint allowing a user to change their active book for the session.
+[^22]: CurrencyService.java: refreshCurrency() - Method that fetches the latest exchange rates from an external API.
+[^23]: Account.java: currencyCode; Book.java: defaultCurrencyCode; Group.java: defaultCurrencyCode - Each of these core entities has a field to define its currency.
+[^24]: CurrencyService.java: convert() - A utility method that calculates the exchange rate between a `fromCode` and a `toCode`.
 
-1.  **Context**: The user's default book currency is "USD," but they have a "Japanese Yen" credit card account (`currencyCode`: "JPY").
-2.  **Initiate Expense**: The user adds a new expense while on a trip to Japan. They select their "JPY Credit Card" as the account.
-3.  **Enter Transaction Details**:
-    -   They enter the amount as `¥10,000` in a category for "Souvenirs."
-    -   Because the account currency (JPY) differs from the book's default currency (USD), the UI shows an additional field: "Converted Amount (USD)."
-    -   The user enters `$68.50` based on their credit card statement.
-4.  **API Call**: The frontend sends a `POST` to `/api/v1/balance-flows`. The payload includes the category amount of `10000` and the converted amount of `68.50`.
-5.  **Backend Processing**:
-    -   `BalanceFlowService.add()` creates the transaction. It stores `10000` as the `amount` and `68.50` as the `convertedAmount` for the category relation. The total `amount` on the `BalanceFlow` is `10000` and the total `convertedAmount` is `68.50`.
-    -   `confirmBalance()` is called, and the balance of the "JPY Credit Card" is reduced by `¥10,000`.
-6.  **View Report**: Later, when the user views their monthly expense report in USD, the `ReportService` uses the stored `convertedAmount` of `$68.50` for this transaction in its calculations, correctly adding it to the total spending in USD.
-
-[^1]: AccountService.java: overview() - Calculates total assets, debts, and net worth, converting all balances to the group's default currency.
-[^2]: AccountService.java: getAssets(), getDebts() - These methods retrieve accounts based on their type (`CHECKING`, `ASSET`, `CREDIT`, `DEBT`) for financial calculations.
-[^3]: ReportService.java: reportBalance() - Generates data for asset and debt breakdown charts, converting amounts to the default currency.
-[^4]: AccountService.java: statistics() - Calculates summary statistics for a given set of accounts, including currency conversion.
-[^5]: FlowType.java: enum - Defines the supported transaction types: `EXPENSE`, `INCOME`, `TRANSFER`, `ADJUST`.
-[^6]: BalanceFlow.java: class - This entity defines the core attributes of a transaction, including its link to a book, amount, time, and optional fields like payee and tags.
-[^7]: BalanceFlowService.java: confirmBalance() - This method handles the logic for updating account balances based on the transaction type and amount.
-[^8]: CategoryRelationService.java: addRelation() - Manages the creation of relations between a transaction and one or more categories, each with a specific amount.
-[^9]: BalanceFlowService.java: checkBeforeAdd() - Performs validation checks before creating a new transaction, such as ensuring categories are not duplicated.
-[^10]: BalanceFlowController.java: handleAddFile() - Endpoint for uploading a file and associating it with a transaction.
-[^11]: FlowFile.java: class - Entity that stores the uploaded file's binary data and metadata.
-[^12]: BalanceFlowController.java: handleFiles() - Endpoint to retrieve the list of files for a given transaction.
-[^13]: FlowFileService.java: getFile() - Service method that retrieves a file's content after validating the ID and a timestamp for security.
-[^14]: FlowFileController.java: handleDelete() - Endpoint for deleting a file attachment.
-[^15]: application.properties: spring.servlet.multipart.max-file-size - Defines the maximum file size for uploads.
-[^16]: FileValidator.java: isSupportedContentType() - This method checks if the uploaded file's MIME type is one of the allowed formats (pdf, png, jpg, jpeg).
-[^17]: Book.java: class - The `Book` entity has `@OneToMany` relationships with `Category`, `Tag`, and `Payee`, establishing its role as a data container.
-[^18]: BookService.java: add() - The basic method for creating a new, empty book.
-[^19]: BookService.java: addByTemplate() - Logic for creating a new book based on a `BookTemplate` JSON definition.
-[^20]: BookService.java: addByBook() - Logic for creating a new book by copying the structure of an existing one.
-[^21]: User.java: defaultBook - The `User` entity has a direct relationship to their default `Book`.
-[^22]: Group.java: defaultBook - The `Group` entity has a default book, which acts as a fallback.
-[^23]: UserService.java: setDefaultBook() - Allows the current user to change their active default book.
-[^24]: BookService.java: exportFlow() - This method generates a `Workbook` object (Excel file) containing all transactions for a given book.
-[^25]: CurrencyDataLoader.java: run() - Loads initial currency data from `currency.json` at application startup.
-[^26]: CurrencyService.java: refreshCurrency() - Fetches the latest exchange rates from an external API.
-[^27]: Account.java: currencyCode - Each account entity includes a field to specify its currency.
-[^28]: Book.java: defaultCurrencyCode - Each book entity has a default currency used for reporting within that book.
-[^29]: BalanceFlowService.java: add() - This service method contains the core logic that checks for currency differences and requires the `convertedAmount` field when necessary.
-[^30]: CurrencyController.java: handleCalc() - An API endpoint that provides on-the-fly currency conversion calculations.
-
-### Data Layer
-The data layer of the MoneyNote API is built on a relational data model, implemented using **Spring Data JPA** as the Object-Relational Mapping (ORM) framework. It leverages **QueryDSL** for constructing type-safe, dynamic queries, which provides a flexible and powerful way to filter and retrieve data. The application is configured to connect to a **MySQL** database, as specified by the `mysql-connector-j` dependency and the JDBC connection string in the configuration files [^1].
-
-Data persistence is managed through a set of well-defined JPA entities, each corresponding to a table in the database. A custom `BaseRepository` interface, implemented by `BaseRepositoryImpl` [^2], extends the standard JPA repository functionality to include custom query logic, such as `calcSum` for aggregations, which is powered by `JPAQueryFactory` from QueryDSL.
-
-At startup, the application executes a SQL script (`1.sql`) to perform schema migrations, such as updating enum-like integer codes and altering column data types to ensure database consistency with the application logic [^3].
-
-#### Data Model
-
-The database schema is designed around core concepts of personal finance management: users, groups, books, accounts, and transactions (balance flows). Relationships are established to support multi-user, multi-book, and multi-currency bookkeeping. The following tables describe the primary entities and their relationships.
-
-##### `t_user_user`
-Stores user profile information and their default settings.
-
-| Column | Data Type | Constraints & Description |
-| :--- | :--- | :--- |
-| `id` | `INTEGER` | **Primary Key**, Auto-incremented. |
-| `username` | `VARCHAR(16)` | Unique, Nullable. The user's login name. |
-| `nick_name` | `VARCHAR(16)` | The user's display name. |
-| `password` | `VARCHAR(64)` | Hashed password for authentication. |
-| `telephone` | `VARCHAR(16)` | User's phone number. |
-| `email` | `VARCHAR(32)` | User's email address. |
-| `register_ip` | `VARCHAR(128)` | IP address used during registration. |
-| `default_group_id` | `INTEGER` | **Foreign Key** -> `t_user_group(id)`. The user's default group. |
-| `default_book_id` | `INTEGER` | **Foreign Key** -> `t_user_book(id)`. The user's default ledger book. |
-| `enable` | `BOOLEAN` | `NOT NULL`. Flag to enable or disable the user. |
-| `register_time` | `BIGINT` | `NOT NULL`. Timestamp of user registration. |
-| `headimgurl` | `VARCHAR(256)`| URL for the user's profile picture. |
-
-**Entity:** `User.java` [^4]
-
----
-##### `t_user_group`
-Represents a group of users who can share bookkeeping data. Each group has its own settings.
-
-| Column | Data Type | Constraints & Description |
-| :--- | :--- | :--- |
-| `id` | `INTEGER` | **Primary Key**, Auto-incremented. |
-| `name` | `VARCHAR(64)` | `NOT NULL`. The name of the group. |
-| `notes` | `VARCHAR(1024)` | Descriptive notes for the group. |
-| `enable` | `BOOLEAN` | `NOT NULL`. Flag to enable or disable the group. |
-| `creator_id` | `INTEGER` | **Foreign Key** -> `t_user_user(id)`. The user who created the group. |
-| `default_book_id` | `INTEGER` | **Foreign Key** -> `t_user_book(id)`. The group's default ledger book. |
-| `default_currency_code` | `VARCHAR(8)` | `NOT NULL`. The default currency for the group. |
-
-**Entity:** `Group.java` [^5]
-
----
-##### `t_user_user_group_relation`
-A junction table defining the many-to-many relationship between users and groups, including role-based access control.
-
-| Column | Data Type | Constraints & Description |
-| :--- | :--- | :--- |
-| `id` | `INTEGER` | **Primary Key**, Auto-incremented. |
-| `user_id` | `INTEGER` | **Foreign Key** -> `t_user_user(id)`. Part of a composite unique key. |
-| `group_id` | `INTEGER` | **Foreign Key** -> `t_user_group(id)`. Part of a composite unique key. |
-| `role` | `INTEGER` | `NOT NULL`. User's role in the group (e.g., Owner, Operator, Guest). |
-
-**Entity:** `UserGroupRelation.java` [^6]
-
----
-##### `t_user_book`
-Represents a single ledger or "book" for tracking finances. It is associated with a group.
-
-| Column | Data Type | Constraints & Description |
-| :--- | :--- | :--- |
-| `id` | `INTEGER` | **Primary Key**, Auto-incremented. |
-| `name` | `VARCHAR(64)` | `NOT NULL`. The name of the book. |
-| `group_id` | `INTEGER` | `NOT NULL`, **Foreign Key** -> `t_user_group(id)`. The group this book belongs to. |
-| `notes` | `VARCHAR(1024)` | Descriptive notes for the book. |
-| `enable` | `BOOLEAN` | `NOT NULL`. Flag to enable or disable the book. |
-| `default_expense_account_id` | `INTEGER` | **Foreign Key** -> `t_user_account(id)`. Default account for expenses. |
-| `default_income_account_id` | `INTEGER` | **Foreign Key** -> `t_user_account(id)`. Default account for income. |
-| `default_transfer_from_account_id`| `INTEGER` | **Foreign Key** -> `t_user_account(id)`. Default source account for transfers. |
-| `default_transfer_to_account_id`| `INTEGER` | **Foreign Key** -> `t_user_account(id)`. Default destination account for transfers. |
-| `default_expense_category_id` | `INTEGER` | **Foreign Key** -> `t_user_category(id)`. Default category for expenses. |
-| `default_income_category_id` | `INTEGER` | **Foreign Key** -> `t_user_category(id)`. Default category for income. |
-| `default_currency_code` | `VARCHAR(8)` | `NOT NULL`. The default currency for this book. |
-| `export_at` | `BIGINT` | Timestamp of the last data export operation. |
-| `ranking` | `INTEGER` | Used for sorting books. |
-
-**Entity:** `Book.java` [^7]
-
----
-##### `t_user_account`
-Represents a financial account, such as a bank account, credit card, or asset.
-
-| Column | Data Type | Constraints & Description |
-| :--- | :--- | :--- |
-| `id` | `INTEGER` | **Primary Key**, Auto-incremented. |
-| `name` | `VARCHAR(64)` | `NOT NULL`. The name of the account. |
-| `group_id` | `INTEGER` | `NOT NULL`, **Foreign Key** -> `t_user_group(id)`. The group this account belongs to. |
-| `type` | `INTEGER` | `NOT NULL`. Type of account (e.g., Checking, Credit, Asset, Debt). |
-| `notes` | `VARCHAR(1024)` | Descriptive notes for the account. |
-| `enable` | `BOOLEAN` | `NOT NULL`. Flag to enable or disable the account. |
-| `no` | `VARCHAR(32)` | Account number or card number. |
-| `balance` | `DECIMAL(20,2)` | `NOT NULL`. The current balance of the account. |
-| `include` | `BOOLEAN` | `NOT NULL`. Whether to include this account in net worth calculations. |
-| `can_expense` | `BOOLEAN` | `NOT NULL`. Whether this account can be used for expenses. |
-| `can_income` | `BOOLEAN` | `NOT NULL`. Whether this account can receive income. |
-| `can_transfer_from` | `BOOLEAN` | `NOT NULL`. Whether transfers can originate from this account. |
-| `can_transfer_to` | `BOOLEAN` | `NOT NULL`. Whether transfers can be made to this account. |
-| `currency_code` | `VARCHAR(8)` | `NOT NULL`. The currency of the account. |
-| `initial_balance` | `DECIMAL(20,2)` | The balance when the account was created. |
-| `credit_limit` | `DECIMAL(20,2)` | Credit limit for credit-type accounts. |
-| `bill_day` | `INTEGER` | Billing day of the month for credit-type accounts. |
-| `apr` | `DECIMAL(4,4)` | Annual Percentage Rate for credit/debt accounts. |
-| `ranking` | `INTEGER` | Used for sorting accounts. |
-
-**Entity:** `Account.java` [^8]
-
----
-##### `t_user_balance_flow`
-This is the central table for all financial transactions (flows), including expenses, incomes, transfers, and adjustments.
-
-| Column | Data Type | Constraints & Description |
-| :--- | :--- | :--- |
-| `id` | `INTEGER` | **Primary Key**, Auto-incremented. |
-| `book_id` | `INTEGER` | `NOT NULL`, **Foreign Key** -> `t_user_book(id)`. |
-| `type` | `INTEGER` | `NOT NULL`. Type of flow (Expense, Income, Transfer, Adjust). |
-| `amount` | `DECIMAL(15,2)` | `NOT NULL`. The transaction amount. |
-| `converted_amount` | `DECIMAL(15,2)` | Amount converted to the book's default currency. |
-| `account_id` | `INTEGER` | **Foreign Key** -> `t_user_account(id)`. The source account. |
-| `to_id` | `INTEGER` | **Foreign Key** -> `t_user_account(id)`. The destination account (for transfers). |
-| `create_time` | `BIGINT` | `NOT NULL`. Timestamp of the transaction. |
-| `title` | `VARCHAR(32)` | A custom title for the transaction. |
-| `notes` | `VARCHAR(1024)` | Detailed notes. |
-| `creator_id` | `INTEGER` | `NOT NULL`, **Foreign Key** -> `t_user_user(id)`. |
-| `group_id` | `INTEGER` | `NOT NULL`, **Foreign Key** -> `t_user_group(id)`. |
-| `payee_id` | `INTEGER` | **Foreign Key** -> `t_user_payee(id)`. |
-| `confirm` | `BOOLEAN` | `NOT NULL`. Whether the transaction is confirmed and affects balances. |
-| `include` | `BOOLEAN` | Whether to include this transaction in reports. |
-| `insert_at` | `BIGINT` | `NOT NULL`, Not updatable. System timestamp of record creation. |
-
-**Entity:** `BalanceFlow.java` [^9]
-
----
-##### `t_user_category` & `t_user_tag`
-These tables store hierarchical categories and tags for classifying transactions. They share a similar tree structure.
-
-| Column | Data Type | Constraints & Description |
-| :--- | :--- | :--- |
-| `id` | `INTEGER` | **Primary Key**, Auto-incremented. |
-| `name` | `VARCHAR(64)` | `NOT NULL`. Name of the category/tag. |
-| `book_id` | `INTEGER` | `NOT NULL`, **Foreign Key** -> `t_user_book(id)`. |
-| `parent_id` | `INTEGER` | **Foreign Key** -> self-referencing `id`. Establishes the hierarchy. |
-| `level` | `INTEGER` | `NOT NULL`. Depth of the node in the tree. |
-| `notes` | `VARCHAR(4096)` | Descriptive notes. |
-| `enable` | `BOOLEAN` | `NOT NULL`. |
-| `type` (`t_user_category` only) | `INTEGER` | `NOT NULL`. Type of category (Expense or Income). |
-| `can_expense`, `can_income`, `can_transfer` (`t_user_tag` only) | `BOOLEAN` | `NOT NULL`. Flags to control where a tag can be applied. |
-| `ranking` | `INTEGER` | Sort order. |
-
-**Entities:** `Category.java` [^10], `Tag.java` [^11]
-
----
-##### Other Supporting Tables
-
--   **`t_user_payee`**: Stores information about payees (merchants, individuals) associated with transactions. Belongs to a `Book`. (Entity: `Payee.java`)
--   **`t_user_category_relation`**: Junction table for the many-to-many relationship between `BalanceFlow` and `Category`. It stores the amount allocated to each category in a multi-category transaction. (Entity: `CategoryRelation.java`)
--   **`t_user_tag_relation`**: Junction table for the many-to-many relationship between `BalanceFlow` and `Tag`. (Entity: `TagRelation.java`)
--   **`t_flow_file`**: Stores file attachments for `BalanceFlow` records, with a `LONGBLOB` column for the file data. (Entity: `FlowFile.java`)
--   **`t_user_note_day`**: Tracks user-specific recurring events or reminders. (Entity: `NoteDay.java`)
-
-#### Data Access and Transaction Analysis
-
-The application follows a standard service-repository pattern. Service classes are annotated with `@Transactional`, ensuring that public methods run within a database transaction. This provides atomicity for complex operations that involve multiple database writes.
-
-##### Data Access Patterns
-- **Read Operations**: Queries are predominantly handled through `*QueryForm` objects that construct dynamic `Predicate` instances for QueryDSL. This pattern is used across the application for filtering lists of accounts, transactions, categories, etc. For example, `BalanceFlowService.query()` uses `BalanceFlowQueryForm` to filter transactions by date, type, amount, and associated entities [^12].
-- **Write Operations**: New data is created by mapping `*AddForm` DTOs to entities and saving them via the repository (e.g., `AccountService.add()`). Updates follow a "read-modify-write" pattern, where an entity is fetched, modified, and then saved.
-- **Aggregate Operations**: The `ReportService` makes heavy use of aggregate functions to generate financial reports. It leverages the custom `calcSum` method to calculate sums of `convertedAmount` for expenses and incomes, grouped by category, tag, or payee [^13].
-
-##### Transaction Analysis
-Key business operations are managed as atomic transactions to maintain data integrity, especially when multiple entities are involved.
-
-| Transaction Type | Description & Key Operations | Involved Entities / Tables |
-| :--- | :--- | :--- |
-| **Read-Write** | **Add Balance Flow** (`BalanceFlowService.add` [^14]) | - **Write**: Inserts new records into `t_user_balance_flow`, `t_user_category_relation`, and `t_user_tag_relation`. <br>- **Read-Modify-Write**: If confirmed, reads the current balance from `t_user_account`, calculates the new balance, and updates it. For transfers, this happens for two accounts. |
-| **Read-Write** | **Adjust Account Balance** (`AccountService.adjustBalance` [^15]) | - **Read-Modify-Write**: Reads the current balance from `t_user_account`, calculates the difference, and updates the balance to the new value. <br>- **Write**: Inserts a new `ADJUST` type record into `t_user_balance_flow` to log the adjustment. |
-| **Read-Write** | **Update Balance Flow** (`BalanceFlowService.update` [^16]) | - **Complex**: This operation is implemented by deleting the old flow record (which triggers a balance refund) and creating a new one with the updated details. This ensures balance consistency without complex differential logic. Involves `DELETE` and `INSERT` on flow/relation tables and `UPDATE` on `t_user_account`. |
-| **Read-Only** | **Generate Category Report** (`ReportService.reportCategory` [^17]) | - **Read & Aggregate**: Fetches all `CategoryRelation` records matching the query filters. It then processes this data in-memory to group amounts by parent categories and calculates totals and percentages. |
-
-#### Data Flow Between Components
-
-Data flows through the application in a typical three-tier architecture: Controller -> Service -> Repository. DTOs (Data Transfer Objects) are used to transfer data between the web layer and the service layer, while JPA entities are used between the service and data access layers.
-
-| Source | Destination | Operation | Description |
-| :--- | :--- | :--- | :--- |
-| **API**: `POST /balance-flows` (`BalanceFlowController.handleAdd`) | **Database**: `t_user_balance_flow`, `t_user_category_relation`, `t_user_account` | Insert & Update | The JSON payload (`BalanceFlowAddForm`) is passed to `BalanceFlowService.add`. This service creates and saves the `BalanceFlow` and its related entities. It also calls `confirmBalance` to update the balances in the `t_user_account` table. |
-| **Database**: `t_user_account`, `t_user_group` | **API**: `GET /accounts` (`AccountController.handleQuery`) | Read | The `AccountService.query` method uses `AccountQueryForm` to build a query. It fetches a page of `Account` entities, converts them to `AccountDetails` DTOs (including calculating converted balances), and returns them as a JSON response. |
-| **Database**: `t_user_balance_flow`, `t_user_category_relation` | **API**: `GET /reports/expense-category` (`ReportController.handleExpenseCategory`) | Read & Aggregate | `ReportService.reportCategory` fetches all relevant `CategoryRelation` records. It then aggregates the `convertedAmount` for each top-level category and their children to build a `ChartVO` list, which is returned as a JSON response. |
-| **API**: `POST /accounts/{id}/adjust` (`AccountController.handleAdjust`) | **Database**: `t_user_account`, `t_user_balance_flow` | Read-Modify-Write | The `AdjustBalanceAddForm` is processed by `AccountService.adjustBalance`. It updates the balance of the specified account and inserts a new `BalanceFlow` record of type `ADJUST` to document the change. |
-
-[^1]: src/main/resources/application.properties: spring.datasource.url - Defines the JDBC connection string for a MySQL database.
-[^2]: src/main/java/cn/biq/mn/base/BaseRepositoryImpl.java: BaseRepositoryImpl - Implements custom repository logic using JPAQueryFactory for QueryDSL.
-[^3]: src/main/java/cn/biq/mn/SqlScriptRunner.java: run - Executes the `1.sql` script on application startup.
-[^4]: src/main/java/cn/biq/mn/user/User.java: @Entity - Defines the `User` entity, mapped to the `t_user_user` table.
-[^5]: src/main/java/cn/biq/mn/group/Group.java: @Entity - Defines the `Group` entity, mapped to the `t_user_group` table.
-[^6]: src/main/java/cn/biq/mn/user/UserGroupRelation.java: @Entity - Defines the `UserGroupRelation` join entity.
-[^7]: src/main/java/cn/biq/mn/book/Book.java: @Entity - Defines the `Book` entity, mapped to the `t_user_book` table.
-[^8]: src/main/java/cn/biq/mn/account/Account.java: @Entity - Defines the `Account` entity, mapped to the `t_user_account` table.
-[^9]: src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java: @Entity - Defines the `BalanceFlow` entity, mapped to `t_user_balance_flow`.
-[^10]: src/main/java/cn/biq/mn/category/Category.java: @Entity - Defines the `Category` entity, mapped to `t_user_category`.
-[^11]: src/main/java/cn/biq/mn/tag/Tag.java: @Entity - Defines the `Tag` entity, mapped to `t_user_tag`.
-[^12]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowQueryForm.java: buildPredicate - Constructs a dynamic query for filtering balance flows.
-[^13]: src/main/java/cn/biq/mn/report/ReportService.java: reportCategory - Aggregates financial data to generate reports.
-[^14]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: add - Service method for adding a new balance flow transaction.
-[^15]: src/main/java/cn/biq/mn/account/AccountService.java: adjustBalance - Service method for adjusting an account's balance.
-[^16]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: update - Implements the update logic by removing the old flow and adding a new one.
-[^17]: src/main/java/cn/biq/mn/report/ReportService.java: reportCategory - Fetches and aggregates data for category-based reports.
-
-## Assessment Findings
-### Security and Compliance
-This section outlines the primary user journeys and features of the MoneyNote application, framed as a requirements document that could have guided its development. Each journey is detailed from the perspective of a user interacting with the system, followed by the specific business requirements the codebase implements and an example user flow.
-
+### Architecture
 #### User Journeys
+
+This section outlines the core user journeys and functional requirements that the MoneyNote application fulfills. Each journey is broken down into its primary user interactions, the underlying business requirements implemented in the code, and a practical example of the user flow.
 
 ##### 1\. Monitor Financial Situation
 
-This journey describes how a user gains a high-level understanding of their overall financial health by viewing aggregated assets, liabilities, and net worth.
+This journey describes how a user assesses their overall financial health by viewing aggregated data across all their accounts.
 
 ###### Core Interactions
 
-The user navigates to a primary dashboard or overview screen within the application. This action triggers the system to fetch and process data from all relevant financial accounts. The system then presents a consolidated view, showing the user their total assets (what they own), total liabilities (what they owe), and their resulting net worth. This view serves as a financial snapshot, allowing the user to quickly assess their position without delving into individual transaction details.
+The user navigates to a dedicated overview or dashboard section within the application. Here, they are presented with a high-level summary of their total assets, total debts, and resulting net worth. The system automatically fetches data from all included accounts, performs necessary currency conversions, and displays the consolidated figures.
 
 ###### Business Requirements
 
-| Requirement ID | Description | Implemented In |
-| :--- | :--- | :--- |
-| FIN-MON-01 | The system must provide a financial overview that summarizes the user's total assets, total debts, and net worth [^1]. | `AccountService.java`: `overview()` |
-| FIN-MON-02 | Accounts must be categorized to distinguish between assets and liabilities. The system defines `CHECKING` and `ASSET` as asset types, and `CREDIT` and `DEBT` as liability types [^2]. | `AccountType.java`, `AccountService.java`: `getAssets()`, `getDebts()` |
-| FIN-MON-03 | The financial summary must aggregate balances from all accounts that are marked for inclusion in reports. Users must have the ability to exclude specific accounts from this summary view [^3]. | `Account.java`: `include` field; `AccountService.java`: `getAssets()`, `getDebts()` |
-| FIN-MON-04 | All monetary values in the summary must be converted to the user's group-defined default currency to provide a consistent and unified view, regardless of the individual account's currency [^4]. | `AccountService.java`: `overview()`, `CurrencyService.java`: `convert()` |
-| FIN-MON-05 | The system must provide a separate statistics view that calculates total balance, total credit limit, and remaining credit limit across a filtered set of accounts [^5]. | `AccountService.java`: `statistics()` |
+*   **Financial Overview**: The system must provide a consolidated view of the user's financial standing, calculating total assets, total debts, and net worth [^1].
+*   **Account Aggregation**: To calculate the overview, the system must aggregate balances from different types of accounts. Asset calculations include 'Checking' and 'Asset' account types, while debt calculations include 'Credit' and 'Debt' account types [^2].
+*   **Currency Unification**: All account balances must be converted to the user group's default currency to ensure a consistent and accurate summary. The system must fetch the latest exchange rates for this conversion [^3].
+*   **Inclusion Control**: The overview must only include accounts that the user has explicitly marked for inclusion in net worth calculations (`include=true`) [^2].
+*   **Data for Visualization**: The financial overview data should be structured to be easily consumable by frontend components for display in charts or dashboards [^4].
+*   **Credit Statistics**: The system must be ableto calculate and display key credit metrics, including total credit limit, total outstanding balance, and the remaining available credit across all relevant accounts [^5].
 
-###### Example User Flow: Checking Net Worth
+###### Example User Flow: Reviewing Net Worth
 
-1.  **Login and Navigation**: The user, Alex, logs into the MoneyNote application. He lands on the main dashboard.
-2.  **View Overview**: The dashboard automatically displays a "Financial Overview" widget.
-3.  **System Processing**:
-    *   The frontend calls the `/accounts/overview` endpoint.
-    *   The backend `AccountService` invokes the `getAssets()` and `getDebts()` methods [^2]. These methods query for all `Account` entities that are `enabled` and marked with `include=true`.
-    *   The service iterates through the asset and debt accounts, using the `CurrencyService` to convert each account's balance to the user's default group currency (e.g., USD) [^4].
-    *   The `overview()` method calculates the sum of all converted asset balances, the sum of all converted debt balances, and the net worth (Assets - Debts).
-4.  **Display**: The UI displays the following:
-    *   **Total Assets**: $55,000
-    *   **Total Debts**: $15,000
-    *   **Net Worth**: $40,000
-
----
+1.  **User Action**: The user logs into the application and navigates to the "Overview" or "Dashboard" page.
+2.  **System Action**: The frontend sends a request to the `/accounts/overview` endpoint.
+3.  **Backend Process**:
+    *   The `AccountService.overview()` method is invoked [^1].
+    *   It fetches all enabled and included asset accounts (`CHECKING`, `ASSET`) and debt accounts (`CREDIT`, `DEBT`) for the user's current group [^2].
+    *   For each account, it uses the `CurrencyService` to convert its balance to the group's default currency code [^3].
+    *   It sums the converted balances to get a total asset value and a total debt value.
+    *   It calculates the net worth by subtracting the total debt from the total assets.
+    *   The backend returns an array containing three values: Total Assets, Total Debts (as a positive number), and Net Worth.
+4.  **User View**: The user sees a clear display of their total assets, total debts, and their calculated net worth, providing an immediate snapshot of their financial position.
 
 ##### 2\. Track Incomes & Expenses
 
-This journey covers the fundamental user activity of recording, categorizing, and reviewing their daily financial transactions.
+This journey covers the fundamental task of recording financial transactions, including expenditures, earnings, and internal transfers.
 
 ###### Core Interactions
 
-The user initiates the process of adding a new financial transaction. They select the transaction type (e.g., "Expense" or "Income"), input the amount, and choose which account was used. To add context, they can assign one or more categories, add descriptive tags, specify a payee, and write notes. After saving, the transaction appears in a historical log. Users can later browse this log, apply filters to find specific transactions, and view reports based on this data.
+The user initiates the creation of a new transaction. They select the transaction type (Expense, Income, or Transfer), choose the relevant account, and enter the amount. They can add further details such as a title, notes, a payee, and assign one or more categories and tags. For transfers, they select both a "from" and a "to" account. Once saved, the transaction appears in their record list, and the balance of the affected account(s) is updated.
 
 ###### Business Requirements
 
-| Requirement ID | Description | Implemented In |
-| :--- | :--- | :--- |
-| TRACK-TX-01 | The system must allow users to create financial transactions and classify them by `FlowType`: `EXPENSE`, `INCOME`, `TRANSFER`, or `ADJUST` [^6]. | `BalanceFlow.java`, `FlowType.java` |
-| TRACK-TX-02 | Every transaction must be associated with a specific `Book` and have a creation time, amount, and an optional title and notes [^7]. | `BalanceFlow.java`, `BalanceFlowAddForm.java` |
-| TRACK-TX-03 | Income and Expense transactions must be linked to a financial `Account`. The system must update the account's balance upon confirmation of the transaction [^8]. | `BalanceFlowService.java`: `confirmBalance()` |
-| TRACK-TX-04 | Transactions can be enriched with additional data, including associations with one or more `Category` entities, a `Payee`, and a set of `Tag` entities [^9]. | `BalanceFlow.java`, `CategoryRelation.java`, `TagRelation.java` |
-| TRACK-TX-05 | For transactions involving multiple categories, the system must support splitting the total amount across different categories [^10]. | `CategoryRelationForm.java` (list), `BalanceFlowService.java`: `add()` |
-| TRACK-TX-06 | The system must provide a paginated and filterable view of all transactions. Filters must include date range, transaction type, account, category, and tags [^11]. | `BalanceFlowQueryForm.java`, `BalanceFlowService.java`: `query()` |
-| TRACK-TX-07 | Transactions can be marked as "unconfirmed," in which case they will not affect account balances until confirmed by the user [^12]. | `BalanceFlow.java`: `confirm` field; `BalanceFlowService.java`: `confirm()` |
+*   **Transaction Creation**: Users must be able to create financial records of different types: `EXPENSE`, `INCOME`, `TRANSFER`, and `ADJUST` (for balance adjustments) [^6].
+*   **Account Balance Update**: Creating, deleting, or confirming a transaction must trigger an immediate update to the balance of the associated account(s). Expenses decrease the balance, incomes increase it, and transfers move funds between two accounts [^7].
+*   **Categorization**: Transactions (except transfers) must be associated with at least one category. The system supports splitting a single transaction across multiple categories, with a specific amount for each [^8].
+*   **Tagging**: Users can add multiple tags to any transaction for granular filtering and reporting [^9].
+*   **Payee Association**: Expense and Income transactions can be linked to a predefined payee [^10].
+*   **Confirmation Workflow**: Transactions can be created in an unconfirmed state, which does not affect account balances. A separate action is required to confirm the transaction and trigger the balance update [^11].
+*   **CRUD Operations**: The system must support full Create, Read, Update, and Delete (CRUD) operations for all transactions. Updating a transaction is handled by deleting the old record and creating a new one to ensure balance integrity [^12].
+*   **Idempotency Checks**: The system must prevent the creation of transactions with duplicate categories within the same record [^13].
 
-###### Example User Flow: Recording a Grocery Shopping Expense
+###### Example User Flow: Recording a Multi-Category Expense
 
-1.  **Initiate Transaction**: User Priya clicks the "Add New" button and selects "Expense".
-2.  **Enter Details**:
-    *   She enters `75.40` in the amount field.
-    *   She selects her "Chase Debit" `Account`.
-    *   She chooses the `Category`: "Groceries".
-    *   She selects the `Payee`: "Local Supermarket".
-    *   She adds a `Tag`: "#weekly-shop".
-    *   The transaction date defaults to the current day.
-3.  **Save Transaction**: Priya clicks "Save".
-4.  **System Processing**:
-    *   The frontend sends a `POST` request to `/balance-flows` with the data in a `BalanceFlowAddForm` object.
-    *   `BalanceFlowService.add()` is called. It creates a new `BalanceFlow` entity [^7].
-    *   It links the entity to the selected `Book`, `Account`, `Category`, `Payee`, and `Tag`.
-    *   Because the transaction is confirmed, `confirmBalance()` is called, which subtracts `75.40` from the balance of the "Chase Debit" account [^8].
-5.  **Confirmation**: The transaction now appears at the top of Priya's transaction list.
-
----
+1.  **User Action**: The user clicks "Add Transaction" and selects "Expense".
+2.  **User Input**:
+    *   **Account**: Selects "Credit Card".
+    *   **Categories**:
+        *   Adds "Groceries" with an amount of $50.
+        *   Adds "Household Supplies" with an amount of $20.
+    *   **Payee**: Selects "Local Supermarket".
+    *   **Tags**: Adds the "Weekly Shopping" tag.
+    *   **Confirm**: Leaves the "Confirm" checkbox ticked.
+3.  **System Action**: The frontend sends a `POST` request to `/balance-flows` with the form data.
+4.  **Backend Process**:
+    *   `BalanceFlowService.add()` is executed [^8].
+    *   It validates that categories are not empty or duplicated.
+    *   It calculates the total transaction amount by summing the amounts from all category relations ($50 + $20 = $70).
+    *   A new `BalanceFlow` entity is created with `type = EXPENSE` and `amount = 70`.
+    *   `CategoryRelation` and `TagRelation` entities are created and linked to the `BalanceFlow` entity.
+    *   Since the transaction is confirmed, `confirmBalance()` is called [^7].
+    *   The balance of the "Credit Card" account is reduced by $70.
+5.  **User View**: The user sees the new $70 expense record in their transaction history. The balance of their "Credit Card" account is updated to reflect the purchase.
 
 ##### 3\. Finance Record File
 
-This journey allows users to attach digital files, such as receipts or invoices, to their transaction records for archival and reference purposes.
+This journey allows users to attach supporting documents to their transactions and to export their financial data for external analysis or backup.
 
 ###### Core Interactions
 
-When creating or editing a transaction, the user sees an option to "Add Attachment". The user selects a file from their local device (e.g., a photo of a receipt). The file is uploaded to the server and linked to the specific transaction. When viewing the transaction details later, the user can see a list of attached files, view them directly in the browser if they are images, or download them.
+To attach a file, the user selects a transaction and uses an upload interface to add a document (e.g., a receipt image or a PDF invoice). The uploaded file is then linked to the transaction record. To export data, the user navigates to a book's settings and triggers the export function, which downloads a complete transaction history for that book as an Excel file.
 
 ###### Business Requirements
 
-| Requirement ID | Description | Implemented In |
-| :--- | :--- | :--- |
-| FILE-ATTACH-01 | Users must be able to upload and attach one or more files to any `BalanceFlow` transaction record [^13]. | `BalanceFlowController.java`: `handleAddFile()` |
-| FILE-ATTACH-02 | The system must validate uploaded files, restricting them to supported content types such as `application/pdf`, `image/png`, `image/jpg`, and `image/jpeg` [^14]. | `ValidFile.java`, `FileValidator.java` |
-| FILE-ATTACH-03 | File data must be stored securely as a binary large object (`LONGBLOB`) in the database [^15]. | `FlowFile.java`: `data` field with `@Lob` annotation |
-| FILE-ATTACH-04 | The system must store essential metadata for each file, including its original filename, content type, size, and creation time [^16]. | `FlowFile.java` |
-| FILE-ATTACH-05 | Users must be able to retrieve a list of all files attached to a transaction [^17]. | `BalanceFlowController.java`: `handleFiles()` |
-| FILE-ATTACH-06 | The system must provide a secure endpoint to view or download an attached file, using a combination of the file's ID and creation time as a security measure [^18]. | `FlowFileController.java`: `handleView()`, `FlowFileViewForm.java` |
+*   **File Attachment**: Users must be able to upload and attach files (e.g., `image/jpeg`, `image/png`, `application/pdf`) to a specific transaction record (`BalanceFlow`) [^14].
+*   **File Storage**: The system must store the uploaded file's binary data (`LONGBLOB`), content type, size, and original filename in the database [^15].
+*   **Secure File Access**: Access to view or download a file must be secure. The system implements this by requiring both the file ID and its creation timestamp, preventing simple enumeration of file URLs [^16].
+*   **File Deletion**: When a transaction record is deleted, all associated files must also be deleted from the system [^17].
+*   **Data Export**: The system must provide a feature to export all transactions from a specific `Book` into an `.xlsx` file format [^18].
+*   **Export Content**: The exported Excel file must include comprehensive details for each transaction, such as Title, Type, Amount, Time, Account, Category, Tags, Payee, and Notes [^18].
+*   **Timezone-Aware Export**: The timestamp for each transaction in the exported file must be adjusted according to the user's specified timezone offset [^19].
 
-###### Example User Flow: Attaching a Warranty PDF to a Purchase
+###### Example User Flow: Exporting a Book's Transaction History
 
-1.  **Find Transaction**: User John locates the expense transaction for a new laptop he purchased.
-2.  **Upload File**: He clicks on the transaction to open the details view, then clicks "Add Attachment".
-3.  **Select File**: A file dialog opens. He selects `laptop_warranty.pdf` from his computer.
-4.  **System Processing**:
-    *   The file is uploaded via a `POST` request to the `/balance-flows/{id}/addFile` endpoint.
-    *   The `FileValidator` ensures the file type is supported [^14].
-    *   `BalanceFlowService.addFile()` creates a `FlowFile` entity, populates it with the file's binary data and metadata, and links it to the laptop's `BalanceFlow` record [^13].
-5.  **View Attachment**: The transaction details page now lists `laptop_warranty.pdf` as an attachment. John can click on it, which directs him to the `/flow-files/view?id=...&createTime=...` endpoint to open the PDF.
-
----
+1.  **User Action**: The user selects a specific `Book` and clicks the "Export" button.
+2.  **System Action**: The frontend makes a `GET` request to the `/books/{id}/export` endpoint, providing the book's ID and the user's timezone offset as a parameter.
+3.  **Backend Process**:
+    *   The `BookService.exportFlow()` method is invoked [^18].
+    *   It fetches all `BalanceFlow` entities associated with the specified book ID, ordered by creation time.
+    *   It initializes an Apache POI `SXSSFWorkbook` object for efficient memory usage.
+    *   A header row is created with translated column names (e.g., "Title", "Type", "Amount").
+    *   It iterates through each `BalanceFlow` entity, mapping its data to a new row in the spreadsheet.
+    *   The `createTime` timestamp is formatted into a human-readable date string, adjusted for the provided timezone offset [^19].
+    *   The completed `Workbook` object is written to the HTTP response stream.
+4.  **User View**: The browser prompts the user to download an `.xlsx` file (e.g., `book.xlsx`) containing their complete transaction history for the selected book.
 
 ##### 4\. Support Multiple Books
 
-This journey describes how users can maintain separate, parallel sets of financial records for different purposes, such as personal vs. business finances.
+This journey enables users to segregate their finances into different ledgers, such as for personal use, a small business, or a specific project.
 
 ###### Core Interactions
 
-The user decides they need to segregate their finances. They navigate to a "Manage Books" section and create a new "Book". They can create one from scratch, copy an existing book's structure, or use a predefined template. Each book functions as a self-contained ledger with its own default currency, categories, tags, and transaction history. The user can switch their active view between books at any time, and all subsequent actions and views will be scoped to the currently selected book.
+The user can create a new "Book" from scratch, from a template (e.g., "Daily Life," "Restaurant"), or by copying an existing book's structure. Each book has its own isolated set of categories, tags, and payees. The user can switch the active book at any time, and all subsequent transaction entries and views will be scoped to that book.
 
 ###### Business Requirements
 
-| Requirement ID | Description | Implemented In |
-| :--- | :--- | :--- |
-| MULTI-BOOK-01 | The system must allow a user to create, manage, and switch between multiple independent ledgers, known as `Book` entities [^19]. | `Book.java`, `BookController.java` |
-| MULTI-BOOK-02 | Each `Book` must be scoped to a `Group` and have its own set of `Category`, `Tag`, and `Payee` entities, ensuring separation of concerns [^20]. | `Category.java`, `Tag.java`, `Payee.java` (all link to a `Book`) |
-| MULTI-BOOK-03 | All `BalanceFlow` transactions must belong to a single `Book` [^7]. | `BalanceFlow.java`: `book` field |
-| MULTI-BOOK-04 | The application must maintain the user's currently active `Book` in their session, ensuring all data displays and operations are correctly scoped [^21]. | `CurrentSession.java`: `book` field; `AuthInterceptor.java` |
-| MULTI-BOOK-05 | Users must be able to change their default/active `Book` at any time [^22]. | `UserController.java`: `handleSetDefaultBook()` |
-| MULTI-BOOK-06 | The system must facilitate the creation of new books by providing predefined templates (e.g., "Personal Finance," "Restaurant") or by copying the structure of an existing book [^23]. | `BookService.java`: `addByTemplate()`, `addByBook()` |
+*   **Book Isolation**: The system must support the creation of multiple "Books," where each `Book` is a self-contained ledger. `Categories`, `Tags`, and `Payees` are scoped to a specific `Book` [^20].
+*   **Book Creation Methods**: Users must be able to create a new book in one of three ways:
+    1.  **From Scratch**: A blank book with only a name and default currency.
+    2.  **From Template**: A new book pre-populated with categories, tags, and payees from a JSON template file [^21].
+    3.  **By Copying**: A new book that duplicates the categories, tags, and payees of an existing book [^22].
+*   **Group Association**: Every `Book` must belong to a `Group`, which provides a higher-level organizational structure and manages user access [^23].
+*   **Context Switching**: Users must be able to set a "default book." The application's context, managed via `CurrentSession`, is tied to this selection, ensuring all operations apply to the correct ledger [^24].
+*   **Book Management**: Users must have full CRUD capabilities for books, including updating names and default accounts, and deleting books (provided they contain no transactions) [^25].
 
-###### Example User Flow: Creating and Using a Business Book
+###### Example User Flow: Creating a New Business Book from a Template
 
-1.  **Create New Book**: User Sarah, a freelance designer, decides to separate her business finances. She goes to "Settings" -> "Books" and clicks "Create New Book".
-2.  **Use Template**: She chooses to create a book from the "Daily Life" template to get a standard set of categories. She names the new book "Freelance Design".
-3.  **System Processing**:
-    *   The `BookService.addByTemplate()` method is called [^23].
-    *   A new `Book` entity named "Freelance Design" is created.
-    *   The service reads the `book_tpl.json` file, finds the "Daily Life" template, and programmatically creates all associated `Category` and `Tag` entities, linking them to the new "Freelance Design" book.
-4.  **Switch Active Book**: Sarah now has two books: "Personal" and "Freelance Design". She selects "Freelance Design" from a dropdown menu. The application calls `/setDefaultBook/{id}` to update her session.
-5.  **Scoped View**: The dashboard refreshes. All transactions, accounts, and reports shown are now exclusively from the "Freelance Design" book. When she goes to add a new transaction, the category options are the ones created for this new book.
-
----
+1.  **User Action**: The user decides to track their small business expenses separately. They navigate to the "Books" section and choose "Add Book from Template".
+2.  **User Input**: The user selects the "Restaurant" template and gives the new book the name "My Cafe". They set the default currency to "USD".
+3.  **System Action**: The frontend sends a `POST` request to `/books/template`.
+4.  **Backend Process**:
+    *   `BookService.addByTemplate()` is called [^21].
+    *   A new `Book` entity named "My Cafe" is created and saved.
+    *   The service reads the `book_tpl.json` file to find the "Restaurant" template.
+    *   It iterates through the template's predefined categories (e.g., "Raw Materials," "Wages") and creates new `Category` entities associated with the "My Cafe" book.
+    *   It does the same for predefined tags and payees.
+    *   The new book is now fully populated and ready for use.
+5.  **User View**: The user sees "My Cafe" in their list of books. When they switch to it, they can immediately start recording expenses using relevant categories like "Vegetables" or "Rent" without needing to create them manually.
 
 ##### 5\. Support Multiple Currencies
 
-This journey enables users to manage accounts and transactions in different currencies and view consolidated reports in a single, preferred currency.
+This journey describes how the application handles financial data across different global currencies, ensuring accurate tracking and reporting.
 
 ###### Core Interactions
 
-A user with international dealings creates financial accounts in multiple currencies (e.g., a bank account in USD and another in EUR). When recording a transaction in a non-default currency, the system captures both the original amount and its equivalent value in the user's primary currency. All high-level reports and dashboards automatically convert and aggregate these varied currencies into a unified view, providing a clear financial picture without manual calculations.
+A user can create an account in any supported currency (e.g., a "USD" checking account and a "EUR" savings account). When recording a transaction in a foreign currency account, the system prompts for a converted amount if the transaction involves another currency (e.g., a transfer from USD to EUR). All reports and overview dashboards display aggregated totals in the user's single, primary currency.
 
 ###### Business Requirements
 
-| Requirement ID | Description | Implemented In |
+*   **Multi-Currency Accounts**: Each `Account` entity must have a `currencyCode` to define its currency [^26].
+*   **Currency Data Management**: The application must maintain a list of supported currencies, loaded at startup from a local `currency.json` file [^27].
+*   **Automated Rate Updates**: Exchange rates must be refreshed periodically by fetching data from an external API (e.g., `exchangerate-api.com`) [^28].
+*   **Transaction Conversion**: The `BalanceFlow` entity must store both the original `amount` and the `convertedAmount`. The converted amount is mandatory when a transaction involves a currency different from the book's default currency or a transfer between accounts with different currencies [^29].
+*   **Centralized Conversion Logic**: A `CurrencyService` must provide a centralized method for converting an amount from one currency to another, using USD as an intermediary base rate [^30].
+*   **Consistent Reporting**: All reporting and statistical functions must use the `convertedAmount` to ensure that financial summaries are aggregated in a single, consistent currency [^31].
+*   **Configuration**: Database connection details and other configurations are managed through `application.properties`, which supports environment variables for flexibility in deployment [^32].
+
+###### Example User Flow: Transferring Funds Between Different Currency Accounts
+
+1.  **User Setup**: The user has a `Book` with "USD" as the default currency. They have a "US Bank" account (USD) and a "German Bank" account (EUR).
+2.  **User Action**: The user initiates a "Transfer" transaction.
+3.  **User Input**:
+    *   **From Account**: Selects "US Bank" (USD).
+    *   **To Account**: Selects "German Bank" (EUR).
+    *   **Amount**: Enters 100 (implying 100 USD).
+    *   **Converted Amount**: The system fetches the USD-to-EUR rate. Assuming the rate is 0.95, the user is prompted to confirm or enter the converted amount, which is 95 EUR.
+4.  **System Action**: A `POST` request is sent to `/balance-flows` with the transfer details.
+5.  **Backend Process**:
+    *   `BalanceFlowService.add()` is called [^8]. It identifies the transaction as a `TRANSFER`.
+    *   It validates that since the "from" and "to" accounts have different currency codes, the `convertedAmount` is present [^29].
+    *   A `BalanceFlow` entity is created with `amount = 100` and `convertedAmount = 95`.
+    *   `confirmBalance()` is called [^7].
+    *   The balance of "US Bank" is reduced by 100 USD.
+    *   The balance of "German Bank" is increased by 95 EUR.
+6.  **User View**: The user's transaction history shows a transfer of 100 USD. The balances of both their US and German bank accounts are updated correctly in their respective currencies.
+
+[^1]: src/main/java/cn/biq/mn/account/AccountService.java: overview() - Calculates total assets, debts, and net worth.
+[^2]: src/main/java/cn/biq/mn/account/AccountService.java: getAssets(), getDebts() - Fetches accounts based on their type and 'include' flag for financial summaries.
+[^3]: src/main/java/cn/biq/mn/account/AccountService.java: overview() - Uses currencyService.convert to standardize account balances to the group's default currency.
+[^4]: src/main/java/cn/biq/mn/report/ReportService.java: reportBalance() - Prepares asset and debt data into a list of ChartVO objects for visualization.
+[^5]: src/main/java/cn/biq/mn/account/AccountService.java: statistics() - Calculates aggregate financial statistics for a given set of accounts.
+[^6]: src/main/java/cn/biq/mn/balanceflow/FlowType.java: EXPENSE, INCOME, TRANSFER, ADJUST - Defines the types of financial transactions a user can record.
+[^7]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: confirmBalance() - Adjusts account balances based on the transaction type and amount.
+[^8]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: add() - Core logic for adding new transactions, including handling categories and tags.
+[^9]: src/main/java/cn/biq/mn/tagrelation/TagRelationService.java: addRelation() - Associates multiple tags with a single balance flow entity.
+[^10]: src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java: payee - Field in the BalanceFlow entity to link to a Payee.
+[^11]: src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java: confirm - A boolean flag on the transaction entity that dictates whether it affects account balances.
+[^12]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: update() - Implements update by removing the old transaction and adding a new one to maintain data integrity.
+[^13]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: checkBeforeAdd() - Checks for duplicate categories within a single transaction submission.
+[^14]: src/main/java/cn/biq/mn/validation/ValidFile.java: ValidFile - Custom validation annotation to ensure uploaded files are of a supported content type.
+[^15]: src/main/java/cn/biq/mn/flowfile/FlowFile.java: data - Entity for storing file attachments, with a LONGBLOB field for the file content.
+[^16]: src/main/java/cn/biq/mn/flowfile/FlowFileService.java: getFile() - Validates both file ID and creation time to authorize file access.
+[^17]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: remove() - Calls flowFileRepository.deleteByFlow to remove associated files when a transaction is deleted.
+[^18]: src/main/java/cn/biq/mn/book/BookService.java: exportFlow() - Generates an Excel workbook of all transactions for a given book.
+[^19]: src/main/java/cn/biq/mn/book/BookService.java: exportFlow() - Applies a timezone offset to format the `createTime` timestamp in the exported file.
+[^20]: src/main/java/cn/biq/mn/book/Book.java: categories, tags, payees - Entity relationships showing that categories, tags, and payees belong to a single book.
+[^21]: src/main/java/cn/biq/mn/book/BookService.java: addByTemplate() - Creates a new book pre-filled with data from a JSON template.
+[^22]: src/main/java/cn/biq/mn/book/BookService.java: addByBook() - Creates a new book by copying the structure of an existing one.
+[^23]: src/main/java/cn/biq/mn/book/Book.java: group - A many-to-one relationship from Book to Group, indicating every book must be in a group.
+[^24]: src/main/java/cn/biq/mn/user/UserController.java: handleSetDefaultBook() - Endpoint to change the user's active book, which is stored in the session.
+[^25]: src/main/java/cn/biq/mn/book/BookController.java: handleUpdate(), handleDelete() - API endpoints for managing books.
+[^26]: src/main/java/cn/biq/mn/account/Account.java: currencyCode - Field in the Account entity to specify its currency.
+[^27]: src/main/java/cn/biq/mn/currency/CurrencyDataLoader.java: run() - Loads currency definitions from `currency.json` on application startup.
+[^28]: src/main/java/cn/biq/mn/currency/CurrencyService.java: refreshCurrency() - Fetches latest exchange rates from an external API.
+[^29]: src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java: amount, convertedAmount - Fields in the transaction entity to store original and converted values.
+[^30]: src/main/java/cn/biq/mn/currency/CurrencyService.java: convert() - Provides logic to calculate the exchange rate between any two currencies.
+[^31]: src/main/java/cn/biq/mn/report/ReportService.java: reportCategory() - Uses the `convertedAmount` field for generating category-based financial reports.
+[^32]: src/main/resources/application.properties: spring.datasource.password - Database password is configured using an environment variable, here masked as `******`.
+
+### Technology Stack
+#### User Journeys
+
+This section outlines the primary user journeys and features supported by the application, framed as a set of business requirements that the system fulfills. Each journey describes the core user interactions, the underlying business logic, and a typical user flow.
+
+##### 1. Monitor Financial Situation
+
+This journey describes how a user can get a high-level overview of their financial health by viewing aggregated asset, debt, and net worth information.
+
+###### Core Interactions
+
+The user navigates to a dedicated "Overview" or "Dashboard" section within the application. The system presents a real-time summary of their complete financial standing, consolidating data from all their accounts. This view includes total assets, total liabilities, and the resulting net worth. The information is presented in a clear, easily digestible format, often using visual aids like charts to show the breakdown of assets and debts.
+
+###### Business requirements
+
+-   The system must provide a financial overview screen that calculates and displays the user's total assets, total debts, and net worth [^1].
+-   Asset calculation must sum the balances of all accounts designated as "asset" types, such as `CHECKING` and `ASSET` [^2].
+-   Debt calculation must sum the balances of all accounts designated as "debt" types, such as `CREDIT` and `DEBT`. The final figure is presented as a positive value representing total liability [^3].
+-   Net Worth must be calculated as Total Assets minus Total Debts.
+-   All calculations must handle accounts with different currencies by converting их balances to the user's primary reporting currency (the group's default currency) before aggregation [^4].
+-   The overview must only include accounts that are enabled and explicitly marked to be included in net worth calculations, giving users control over the summary [^5].
+-   The system shall provide a more granular statistics view, allowing users to query account data with filters like account type, name, or balance range [^6].
+-   The system should be able to present a breakdown of assets and debts, showing how individual accounts contribute to the totals. This is implemented in the balance report feature [^7].
+
+###### Example user flow
+
+**Viewing the Financial Dashboard**
+
+1.  **Login**: The user logs into the application.
+2.  **Navigate to Overview**: The user clicks on the "Overview" tab in the main navigation menu.
+3.  **View Summary**: The system immediately displays three prominent key performance indicators (KPIs):
+    *   **Total Assets**: e.g., "$15,000.00"
+    *   **Total Debts**: e.g., "$5,500.00"
+    *   **Net Worth**: e.g., "$9,500.00"
+4.  **Analyze Breakdown**: Below the summary KPIs, the user sees two donut charts:
+    *   An "Assets" chart, breaking down the total by accounts like "Checking Account," "Savings," and "Investment Portfolio."
+    *   A "Debts" chart, breaking down the total by accounts like "Credit Card" and "Student Loan."
+5.  **Review Details**: The user hovers over a segment of the "Assets" chart, and a tooltip appears showing the exact balance of the "Investment Portfolio" account, which is in a different currency but displayed in the group's default currency.
+
+##### 2. Track Incomes & Expenses
+
+This journey covers the fundamental activity of bookkeeping: recording, categorizing, and managing financial transactions.
+
+###### Core Interactions
+
+The user creates a new financial record, which can be an expense, income, or transfer. They fill out a form with details such as the date, amount, and the account used. A crucial part of this interaction is categorizing the transaction to enable meaningful reporting later. The user can also add descriptive tags, specify the payee, and attach notes.
+
+###### Business requirements
+
+-   The system must allow users to create financial records, defined as `BalanceFlow` entities [^8].
+-   Each record must be of a specific type: `EXPENSE`, `INCOME`, `TRANSFER`, or `ADJUST` [^9].
+-   All transactions must be associated with a specific `Book` and belong to the user's `Group`.
+-   For expenses and incomes, users must assign one or more `Categories` and specify an amount for each. The system supports multi-category transactions [^10].
+-   Transactions can be marked as `confirmed` or `unconfirmed`. Upon confirmation, the system must automatically update the balance of the associated account(s) [^11].
+-   The system must support the reversal of balance changes when a confirmed transaction is deleted, ensuring data integrity [^12].
+-   Users can optionally associate transactions with a `Payee` and one or more `Tags` for more detailed tracking.
+-   If a transaction is recorded in an account with a currency different from the book's default, the system must store both the original `amount` and a `convertedAmount` [^13].
+-   Users must be able to view, update, and delete their transaction records.
+
+###### Example user flow
+
+**Recording a Multi-Category Expense**
+
+1.  **Navigate**: The user selects their "Personal" book and clicks the "Add Record" button.
+2.  **Select Type**: The user chooses "Expense" from the transaction type options.
+3.  **Enter Details**:
+    *   They select the "Credit Card" `Account`.
+    *   They choose "Supermarket" as the `Payee`.
+    *   They set the date to today.
+4.  **Add Categories**:
+    *   They click "Add Category" and select "Groceries" from the category tree, entering an amount of "$75.50".
+    *   They click "Add Category" again and select "Household Supplies," entering an amount of "$22.00".
+5.  **Add Tags & Notes**: The user adds the tags "weekly-shopping" and "essentials" and writes a note: "Weekly grocery run."
+6.  **Confirm and Save**: The user leaves the "Confirm" checkbox ticked and clicks "Save."
+7.  **System Action**: The system creates the transaction record. Since it's confirmed, the balance of the "Credit Card" account is immediately updated, decreasing by $97.50.
+
+##### 3. Manage Finance Record Files
+
+This journey focuses on enhancing financial records with supplementary documents, such as receipts or invoices, and the ability to export data for external use.
+
+###### Core Interactions
+
+The user uploads a file and attaches it to a specific transaction. This is typically done to keep a digital copy of a receipt. The user can later view a list of all files attached to a transaction and download them. Separately, the user can navigate to a book's settings and initiate an export of all its transactions into a spreadsheet.
+
+###### Business requirements
+
+**File Attachments**
+-   The system must allow users to upload and attach files to any `BalanceFlow` record [^14].
+-   The uploaded file's binary data, content type, size, and original filename must be stored in the database [^15].
+-   File uploads must be validated to ensure they are of a supported content type (e.g., `image/jpeg`, `image/png`, `application/pdf`) [^16].
+-   Users must be ableto view a list of all attached files for a transaction and download or delete them.
+
+**Data Export**
+-   The system must provide functionality to export all transactions from a selected `Book` into an Excel (`.xlsx`) file [^17].
+-   The export mechanism is built using the Apache POI library [^18].
+-   The exported spreadsheet must include comprehensive details for each transaction, including title, type, amount, time, account, category, tags, payee, notes, and status flags (confirm, include) [^17].
+-   The timestamp in the exported file must be adjusted based on the user-provided timezone offset to ensure accuracy.
+-   The system tracks the last export time for each book, which can be used to implement rate-limiting on the export feature [^17].
+
+###### Example user flow
+
+**Attaching a Receipt to a Transaction**
+1.  **Find Transaction**: The user locates a recent expense of "$50" for "Dinner with Client."
+2.  **Open Details**: They click on the transaction to open its detailed view.
+3.  **Upload File**: The user clicks the "Add Attachment" button, which opens a file browser. They select a photo of the dinner receipt, `IMG_20231027.jpg`.
+4.  **Confirm Upload**: The file is uploaded, and its name appears in the "Attachments" section of the transaction details. The user can click the filename to view the image.
+
+**Exporting a Book's History**
+1.  **Navigate to Books**: The user goes to the "Manage Books" page.
+2.  **Select Export**: Next to their "2023 Business" book, they click the "Export" button.
+3.  **Download File**: The browser prompts them to save a file named `book.xlsx`.
+4.  **Review Data**: The user opens the spreadsheet and sees all their business-related transactions for 2023, neatly organized into columns, ready for tax preparation or further analysis.
+
+##### 4. Support Multiple Books
+
+This journey illustrates how users can segregate their finances into different "Books" for different purposes, such as personal vs. business, and manage these books independently.
+
+###### Core Interactions
+
+The user creates a new `Book`, giving it a name and setting its default currency. They can choose to create it from scratch, use a predefined template, or copy an existing book. Once created, the user can switch their active context to the new book to record transactions. All categories, tags, and payees are scoped to the active book, ensuring separation of concerns.
+
+###### Business requirements
+
+-   The system must support multiple `Books`, with each book acting as an independent ledger [^19].
+-   Each `Book` is associated with a `Group` and contains its own set of `Categories`, `Tags`, and `Payees`.
+-   Each `Book` has its own configuration, including a default currency and default accounts for various transaction types (e.g., default expense account).
+-   Users must be able to create a new `Book` from predefined templates. These templates are loaded from a JSON file and pre-populate the book with relevant categories and tags (e.g., "Daily Life" or "Restaurant Business" templates) [^20] [^21].
+-   Users must be able to create a new `Book` by copying an existing one, which duplicates its entire structure (categories, tags, payees) [^22] [^23].
+-   Users can set a personal default `Book`, which is automatically selected upon login [^24].
+-   Users must be able to switch between books to view and manage transactions within that book's context.
+
+###### Example user flow
+
+**Creating a New Book for a Side Business**
+1.  **Start Creation**: In the "Books" section, the user clicks "Create New Book."
+2.  **Choose Method**: They are given options and select "Create from Template."
+3.  **Select Template**: A list of templates appears. The user chooses "Restaurant Business."
+4.  **Configure New Book**: The user names the new book "My Cafe" and sets the default currency to "USD."
+5.  **Finalize**: After saving, the system creates the "My Cafe" book. It is automatically populated with relevant expense categories like "Raw Materials" and "Rent," and income categories like "Dine-in" and "Takeaway."
+6.  **Switch Context**: The user's active context is now "My Cafe." When they go to add a transaction, the categories and payees shown are specific to their new cafe business, not their personal finances.
+
+##### 5. Support Multiple Currencies
+
+This journey explains how the application handles financial data across multiple currencies, ensuring accurate tracking and reporting.
+
+###### Core Interactions
+
+A user sets up accounts with different currencies (e.g., a primary checking account in EUR and a travel savings account in USD). When recording transactions, the system recognizes the currency of the account. For reporting, all balances are converted to a single, user-defined default currency to provide a consolidated financial overview. Exchange rates are fetched from an external source.
+
+###### Business requirements
+
+-   The system must load and manage a list of world currencies and their exchange rates, with USD as the base currency [^25].
+-   The system must periodically attempt to refresh these rates by calling an external API (`api.exchangerate-api.com`) [^26] [^27].
+-   Each `Account`, `Book`, and `Group` must have a configurable currency code (`currencyCode` or `defaultCurrencyCode`) [^28] [^29] [^30].
+-   When a transaction involves currency conversion (e.g., an expense from a foreign currency account or a transfer between multi-currency accounts), the system must store both the original `amount` and the `convertedAmount` [^31].
+-   All aggregated reports and summaries (e.g., the financial overview) must convert amounts from various currencies into the `Group`'s default currency to provide a unified view [^4].
+-   The system must provide an interface for users to see the current exchange rate between any two currencies.
+
+###### Example user flow
+
+**Recording an Expense from a Foreign Currency Account**
+1.  **Setup**: The user's `Group` has a default currency of "EUR". They have a `Book` for "European Vacation" also in "EUR". They have an `Account` named "US Savings" with the currency "USD".
+2.  **Record Transaction**: While on vacation, the user records an expense of $50 for a museum ticket, paid from their "US Savings" account.
+3.  **Enter Conversion**: The form shows that the account is in USD, while the book is in EUR. The application prompts for the converted amount. The user enters "€46" based on their credit card statement.
+4.  **Save Transaction**: The system saves the `BalanceFlow` with `amount` as `50.00` and `convertedAmount` as `46.00`. The "US Savings" account balance decreases by $50.
+5.  **View Report**: When the user later views their vacation expense report, this transaction is displayed as an expense of €46, allowing it to be summed correctly with other expenses made in EUR.
+
+[^1]: AccountService.java: overview() - Calculates total assets, debts, and net worth for a financial summary.
+[^2]: AccountService.java: getAssets() - Retrieves accounts of type CHECKING and ASSET to calculate total assets.
+[^3]: AccountService.java: getDebts() - Retrieves accounts of type CREDIT and DEBT to calculate total liabilities.
+[^4]: CurrencyService.java: convert() - Provides the logic to convert an amount from a source currency to a target currency using stored exchange rates.
+[^5]: Account.java: The `include` boolean field on the Account entity determines if it is used in net worth calculations.
+[^6]: AccountController.java: handleStatistics() - Endpoint that provides aggregated statistics for accounts based on query parameters.
+[^7]: ReportService.java: reportBalance() - Generates data for asset and debt breakdown charts.
+[^8]: BalanceFlowController.java: handleAdd() - The API endpoint for creating a new transaction (`BalanceFlow`).
+[^9]: FlowType.java: An enum that defines the different types of transactions, including EXPENSE, INCOME, TRANSFER, and ADJUST.
+[^10]: CategoryRelation.java: This entity links a transaction to a category and holds the specific amount for that category, enabling multi-category transactions.
+[^11]: BalanceFlowService.java: confirmBalance() - This method is called to adjust the balance of the relevant account(s) when a transaction is confirmed.
+[^12]: BalanceFlowService.java: refundBalance() - This method reverts the balance changes made by a transaction, used when a confirmed transaction is deleted.
+[^13]: BalanceFlow.java: The entity contains both an `amount` field for the original transaction value and a `convertedAmount` field for its value in the book's default currency.
+[^14]: BalanceFlowService.java: addFile() - Implements the logic to associate an uploaded file with a `BalanceFlow` entity.
+[^15]: FlowFile.java: The entity for storing attached files, including a `byte[] data` field for the file content and other metadata.
+[^16]: ValidFile.java: A custom validation annotation that checks if the uploaded file's content type is in a predefined supported list (PDF, JPG, PNG).
+[^17]: BookService.java: exportFlow() - Contains the logic to generate an Excel file of all transactions in a book.
+[^18]: build.gradle: The file lists `org.apache.poi:poi-ooxml` as a dependency, which is used for creating `.xlsx` files.
+[^19]: Book.java: The entity class for a book, which is linked to a `Group` and serves as a container for transactions, categories, tags, and payees.
+[^20]: BookController.java: handleAddByTemplate() - The API endpoint that initiates the creation of a new book from a template.
+[^21]: book_tpl.json: A resource file containing JSON definitions for various book templates, including their default categories, tags, and payees.
+[^22]: BookController.java: handleAddByBook() - The API endpoint for duplicating an existing book.
+[^23]: BookService.java: addByBook() - The service method that handles the logic of copying categories, tags, and payees from a source book to a new book.
+[^24]: UserController.java: handleSetDefaultBook() - Endpoint allowing a user to update their default book preference.
+[^25]: CurrencyDataLoader.java: This class loads a list of currencies and initial exchange rates from `currency.json` on application startup.
+[^26]: CurrencyRemoteDataLoader.java: This class triggers the currency rate refresh process after the initial data is loaded.
+[^27]: CurrencyService.java: refreshCurrency() - This method fetches the latest exchange rates from the external service `api.exchangerate-api.com`.
+[^28]: Account.java: Contains the `currencyCode` field, defining the currency for an individual account.
+[^29]: Book.java: Contains the `defaultCurrencyCode` field, setting the default currency for a specific book.
+[^30]: Group.java: Contains the `defaultCurrencyCode` field, which acts as the main reporting currency for the group.
+[^31]: BalanceFlow.java: `amount` and `convertedAmount` - These fields in the transaction entity store the original amount and its value after conversion, respectively.
+
+### APIs and Endpoints
+This section provides a comprehensive overview of the MoneyNote application's APIs and endpoints. It includes a summary table for quick reference and a detailed OpenAPI 3.0 specification for technical integration and testing.
+
+#### API Endpoint Summary
+
+The following table summarizes the primary RESTful endpoints exposed by the application, detailing their purpose and the controllers that manage them.
+
+| Endpoint Path | HTTP Method(s) | Description | Controller |
+| :--- | :--- | :--- | :--- |
+| `/accounts` | `GET`, `POST` | Manage financial accounts, including creation and querying. | `AccountController` |
+| `/accounts/all` | `GET` | Retrieve all enabled accounts for the current group. | `AccountController` |
+| `/accounts/overview` | `GET` | Get a financial overview of assets and debts. | `AccountController` |
+| `/accounts/statistics` | `GET` | Get statistical data for accounts based on a query. | `AccountController` |
+| `/accounts/{id}` | `GET`, `PUT`, `DELETE` | Retrieve, update, or delete a specific account. | `AccountController` |
+| `/accounts/{id}/adjust` | `POST`, `PUT` | Create or update a balance adjustment transaction for an account. | `AccountController` |
+| `/accounts/{id}/toggle...` | `PATCH` | Toggle boolean properties of an account \(e.g., `enable`, `include`\). | `AccountController` |
+| `/balance-flows` | `GET`, `POST` | Manage balance flows \(transactions\), including creation and querying. | `BalanceFlowController` |
+| `/balance-flows/{id}` | `GET`, `PUT`, `DELETE` | Retrieve, update, or delete a specific balance flow. | `BalanceFlowController` |
+| `/balance-flows/{id}/addFile` | `POST` | Upload and attach a file to a balance flow. | `BalanceFlowController` |
+| `/balance-flows/{id}/confirm` | `PATCH` | Confirm a pending balance flow, updating account balances. | `BalanceFlowController` |
+| `/balance-flows/{id}/files` | `GET` | Retrieve all files attached to a specific balance flow. | `BalanceFlowController` |
+| `/balance-flows/statistics` | `GET` | Get statistical data for balance flows based on a query. | `BalanceFlowController` |
+| `/book-templates` | `GET` | Retrieve a list of available book templates based on locale. | `BookTemplateController` |
+| `/book-templates/all` | `GET` | Retrieve a simplified list of all available book templates. | `BookTemplateController` |
+| `/books` | `GET`, `POST` | Manage books, including creation and querying. | `BookController` |
+| `/books/all` | `GET` | Retrieve all enabled books for the current group. | `BookController` |
+| `/books/copy` | `POST` | Create a new book by copying an existing one. | `BookController` |
+| `/books/template` | `POST` | Create a new book from a pre-defined template. | `BookController` |
+| `/books/{id}` | `GET`, `PUT`, `DELETE` | Retrieve, update, or delete a specific book. | `BookController` |
+| `/books/{id}/export` | `GET` | Export all transactions from a book to an XLSX file. | `BookController` |
+| `/books/{id}/toggle` | `PATCH` | Toggle the `enable` status of a book. | `BookController` |
+| `/categories` | `GET`, `POST` | Manage categories, including creation and querying. | `CategoryController` |
+| `/categories/all` | `GET` | Retrieve all enabled categories for a specific book. | `CategoryController` |
+| `/categories/{id}` | `PUT`, `DELETE` | Update or delete a specific category. | `CategoryController` |
+| `/categories/{id}/toggle` | `PATCH` | Toggle the `enable` status of a category. | `CategoryController` |
+| `/currencies` | `GET` | Query currencies and their exchange rates. | `CurrencyController` |
+| `/currencies/all` | `GET` | Retrieve all supported currencies. | `CurrencyController` |
+| `/currencies/calc` | `GET` | Calculate the converted value between two currencies for a given amount. | `CurrencyController` |
+| `/currencies/rate` | `GET` | Get the exchange rate between two currencies. | `CurrencyController` |
+| `/currencies/refresh` | `POST` | Refresh currency exchange rates from an external API. | `CurrencyController` |
+| `/currencies/{id}/rate` | `PUT` | Manually update the exchange rate for a specific currency. | `CurrencyController` |
+| `/flow-files/{id}` | `DELETE` | Delete a file attached to a balance flow. | `FlowFileController` |
+| `/flow-files/view` | `GET` | View a file attached to a balance flow. | `FlowFileController` |
+| `/groups` | `GET`, `POST` | Manage user groups, including creation and querying. | `GroupController` |
+| `/groups/{id}` | `PUT`, `DELETE` | Update or delete a specific group. | `GroupController` |
+| `/groups/{id}/...` | `POST` | Manage group members \(invite, remove, accept/reject invitations\). | `GroupController` |
+| `/note-days` | `GET`, `POST` | Manage recurring reminder "note days". | `NoteDayController` |
+| `/note-days/{id}` | `PUT`, `DELETE` | Update or delete a specific "note day". | `NoteDayController` |
+| `/note-days/{id}/...` | `PATCH` | Manage the state of a "note day" \(run, recall\). | `NoteDayController` |
+| `/payees` | `GET`, `POST` | Manage payees, including creation and querying. | `PayeeController` |
+| `/payees/all` | `GET` | Retrieve all enabled payees for a book. | `PayeeController` |
+| `/payees/{id}` | `PUT`, `DELETE` | Update or delete a specific payee. | `PayeeController` |
+| `/payees/{id}/toggle...` | `PATCH` | Toggle boolean properties of a payee. | `PayeeController` |
+| `/reports/...` | `GET` | Generate various financial reports \(by category, tag, payee, etc.\). | `ReportController` |
+| `/tags` | `GET`, `POST` | Manage tags, including creation and querying. | `TagController` |
+| `/tags/all` | `GET` | Retrieve all enabled tags for a book. | `TagController` |
+| `/tags/{id}` | `PUT`, `DELETE` | Update or delete a specific tag. | `TagController` |
+| `/tags/{id}/toggle...` | `PATCH` | Toggle boolean properties of a tag. | `TagController` |
+| `/login` | `POST` | Authenticate a user and return a JWT. | `UserController` |
+| `/register` | `POST` | Register a new user. | `UserController` |
+| `/logout` | `POST` | Invalidate the user's session. | `UserController` |
+| `/initState` | `GET` | Retrieve the initial state for the authenticated user. | `UserController` |
+| `/changePassword` | `PATCH` | Change the password for the authenticated user. | `UserController` |
+| `/setDefaultBook/{id}` | `PATCH` | Set the default book for the authenticated user. | `UserController` |
+| `/setDefaultGroup/{id}`| `PATCH` | Set the default group for the authenticated user. | `UserController` |
+| `/version` | `GET` | Retrieve the current application version. | `TestController` |
+
+#### OpenAPI 3.0 Specification
+
+The following is a complete OpenAPI 3.0 specification for the MoneyNote API. It can be used with tools like Swagger UI or Postman to interact with and test the API.
+
+```yaml
+openapi: 3.0.0
+info:
+  title: MoneyNote API
+  version: 1.0.0
+  description: API for the MoneyNote personal finance application. It provides endpoints for managing accounts, transactions (balance flows), books, categories, and user authentication.
+servers:
+  - url: /api/v1
+tags:
+  - name: Account
+    description: Operations related to financial accounts.
+  - name: BalanceFlow
+    description: Operations related to financial transactions (expenses, incomes, transfers).
+  - name: Book
+    description: Operations related to ledgers or books.
+  - name: BookTemplate
+    description: Operations to retrieve book templates.
+  - name: Category
+    description: Operations related to transaction categories.
+  - name: Currency
+    description: Operations to manage and query currencies and exchange rates.
+  - name: FlowFile
+    description: Operations for files attached to transactions.
+  - name: Group
+    description: Operations for managing user groups and members.
+  - name: NoteDay
+    description: Operations for managing recurring reminder "note days".
+  - name: Payee
+    description: Operations for managing payees.
+  - name: Report
+    description: Endpoints for generating financial reports.
+  - name: Tag
+    description: Operations related to transaction tags.
+  - name: User
+    description: User authentication and profile management.
+  - name: Version
+    description: Application version endpoint.
+paths:
+  /version:
+    get:
+      tags:
+        - Version
+      summary: Get Application Version
+      description: Returns the current version of the application.
+      operationId: handleVersion
+      security: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseString'
+  /login:
+    post:
+      tags:
+        - User
+      summary: User Login
+      description: Authenticates a user and returns a session token.
+      operationId: handleLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginForm'
+      responses:
+        '200':
+          description: Login successful, returns access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataMessageResponseLogin'
+        '400':
+          description: Invalid input.
+  /register:
+    post:
+      tags:
+        - User
+      summary: User Registration
+      description: Registers a new user account.
+      operationId: handleRegister
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterForm'
+      responses:
+        '200':
+          description: Registration successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+        '400':
+          description: Invalid input or user already exists.
+  /logout:
+    post:
+      tags:
+        - User
+      summary: User Logout
+      description: Logs out the current user and invalidates the session.
+      operationId: handleLogout
+      responses:
+        '200':
+          description: Logout successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /bind:
+    put:
+      tags:
+        - User
+      summary: Bind Username and Password
+      description: Binds a username and password to an existing account (e.g., social login).
+      operationId: handleBind
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterForm'
+      responses:
+        '200':
+          description: Binding successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataMessageResponseBoolean'
+  /initState:
+    get:
+      tags:
+        - User
+      summary: Get Initial State
+      description: Retrieves the initial application state for the logged-in user, including user info, default book, and default group.
+      operationId: handleInitState
+      responses:
+        '200':
+          description: Successful retrieval of initial state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseInitState'
+  /setDefaultBook/{id}:
+    patch:
+      tags:
+        - User
+      summary: Set Default Book
+      description: Sets the default book for the current user.
+      operationId: handleSetDefaultBook
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Default book set successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /setDefaultGroup/{id}:
+    patch:
+      tags:
+        - User
+      summary: Set Default Group
+      description: Sets the default group for the current user.
+      operationId: handleSetDefaultGroup
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Default group set successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /setDefaultGroupAndBook/{id}:
+    patch:
+      tags:
+        - User
+      summary: Set Default Group and Book
+      description: Sets the default group and book for the user based on a combined ID string 'groupId-bookId'.
+      operationId: handleSetDefaultGroupAndBook
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "1-1"
+      responses:
+        '200':
+          description: Default group and book set successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /changePassword:
+    patch:
+      tags:
+        - User
+      summary: Change Password
+      description: Allows the logged-in user to change their password.
+      operationId: handleChangePassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password changed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /bookSelect/all:
+    get:
+      tags:
+        - User
+      summary: Get All Books for Selection
+      description: Retrieves a flattened list of all accessible books formatted for a selection UI.
+      operationId: handleBooksSelect
+      responses:
+        '200':
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SelectVo'
+  /accounts:
+    get:
+      tags:
+        - Account
+      summary: Query Accounts
+      description: Retrieves a paginated list of accounts based on query filters.
+      operationId: handleQueryAccounts
+      parameters:
+        - $ref: '#/components/parameters/PageCurrent'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageSort'
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/AccountType'
+        - name: enable
+          in: query
+          schema:
+            type: boolean
+        - name: name
+          in: query
+          schema:
+            type: string
+        - name: minBalance
+          in: query
+          schema:
+            type: number
+        - name: maxBalance
+          in: query
+          schema:
+            type: number
+        - name: no
+          in: query
+          schema:
+            type: string
+        - name: include
+          in: query
+          schema:
+            type: boolean
+        - name: canExpense
+          in: query
+          schema:
+            type: boolean
+        - name: canIncome
+          in: query
+          schema:
+            type: boolean
+        - name: canTransferFrom
+          in: query
+          schema:
+            type: boolean
+        - name: canTransferTo
+          in: query
+          schema:
+            type: boolean
+        - name: currencyCode
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A paginated list of accounts.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseAccountDetails'
+    post:
+      tags:
+        - Account
+      summary: Add Account
+      description: Creates a new financial account.
+      operationId: handleAddAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountAddForm'
+      responses:
+        '200':
+          description: Account created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /accounts/all:
+    get:
+      tags:
+        - Account
+      summary: Get All Accounts
+      description: Retrieves a non-paginated list of all enabled accounts.
+      operationId: handleAllAccounts
+      parameters:
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/AccountType'
+        - name: canExpense
+          in: query
+          schema:
+            type: boolean
+        - name: canIncome
+          in: query
+          schema:
+            type: boolean
+        - name: canTransferFrom
+          in: query
+          schema:
+            type: boolean
+        - name: canTransferTo
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: A list of all enabled accounts.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseAccountDetailsList'
+  /accounts/statistics:
+    get:
+      tags:
+        - Account
+      summary: Get Account Statistics
+      description: Calculates statistics for accounts matching the filter criteria.
+      operationId: handleStatistics
+      parameters:
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/AccountType'
+      responses:
+        '200':
+          description: Account statistics.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: number
+                  format: bigdecimal
+  /accounts/overview:
+    get:
+      tags:
+        - Account
+      summary: Get Financial Overview
+      description: Provides an overview of total assets, debts, and net worth.
+      operationId: handleOverview
+      responses:
+        '200':
+          description: Financial overview data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseBigDecimalArray'
+  /accounts/{id}:
+    get:
+      tags:
+        - Account
+      summary: Get Account by ID
+      description: Retrieves details of a specific account.
+      operationId: handleGetAccount
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Account details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseAccountDetails'
+    put:
+      tags:
+        - Account
+      summary: Update Account
+      description: Updates an existing financial account.
+      operationId: handleUpdateAccount
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountUpdateForm'
+      responses:
+        '200':
+          description: Account updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+    delete:
+      tags:
+        - Account
+      summary: Remove Account
+      description: Deletes a financial account if it has no associated transactions.
+      operationId: handleRemoveAccount
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Account removed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /accounts/{id}/toggle:
+    patch:
+      tags:
+        - Account
+      summary: Toggle Account Status
+      description: Toggles the `enable` status of an account.
+      operationId: handleToggleAccount
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status toggled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /accounts/{id}/toggleInclude:
+    patch:
+      tags:
+        - Account
+      summary: Toggle Account Include Status
+      description: Toggles whether an account is included in net worth calculations.
+      operationId: handleToggleInclude
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Include status toggled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /accounts/{id}/toggleCanExpense:
+    patch:
+      tags:
+        - Account
+      summary: Toggle Account 'Can Expense'
+      description: Toggles if an account can be used for expenses.
+      operationId: handleToggleCanExpense
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status toggled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /accounts/{id}/toggleCanIncome:
+    patch:
+      tags:
+        - Account
+      summary: Toggle Account 'Can Income'
+      description: Toggles if an account can be used for income.
+      operationId: handleToggleCanIncome
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status toggled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /accounts/{id}/toggleCanTransferFrom:
+    patch:
+      tags:
+        - Account
+      summary: Toggle Account 'Can Transfer From'
+      description: Toggles if an account can be used as a source for transfers.
+      operationId: handleToggleCanTransferFrom
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status toggled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /accounts/{id}/toggleCanTransferTo:
+    patch:
+      tags:
+        - Account
+      summary: Toggle Account 'Can Transfer To'
+      description: Toggles if an account can be used as a destination for transfers.
+      operationId: handleToggleCanTransferTo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status toggled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /accounts/{id}/adjust:
+    post:
+      tags:
+        - Account
+      summary: Adjust Account Balance
+      description: Creates a balance adjustment transaction for an account.
+      operationId: handleAdjust
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdjustBalanceAddForm'
+      responses:
+        '200':
+          description: Balance adjusted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+    put:
+      tags:
+        - Account
+      summary: Update Balance Adjustment
+      description: Updates an existing balance adjustment transaction.
+      operationId: handleUpdateAdjust
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdjustBalanceUpdateForm'
+      responses:
+        '200':
+          description: Adjustment updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /accounts/{id}/updateNotes:
+    put:
+      tags:
+        - Account
+      summary: Update Account Notes
+      description: Updates the notes for a specific account.
+      operationId: handleUpdateNotes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountUpdateNotesForm'
+      responses:
+        '200':
+          description: Notes updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /balance-flows:
+    get:
+      tags:
+        - BalanceFlow
+      summary: Query Balance Flows
+      description: Retrieves a paginated list of transactions based on filters.
+      operationId: handleQueryBalanceFlows
+      parameters:
+        - $ref: '#/components/parameters/PageCurrent'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageSort'
+        - name: book
+          in: query
+          schema:
+            type: integer
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/FlowType'
+        - name: title
+          in: query
+          schema:
+            type: string
+        - name: minAmount
+          in: query
+          schema:
+            type: number
+        - name: maxAmount
+          in: query
+          schema:
+            type: number
+        - name: minTime
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: maxTime
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: account
+          in: query
+          schema:
+            type: integer
+        - name: payees
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: categories
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: tags
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: confirm
+          in: query
+          schema:
+            type: boolean
+        - name: include
+          in: query
+          schema:
+            type: boolean
+        - name: notes
+          in: query
+          schema:
+            type: string
+        - name: hasFile
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: A paginated list of transactions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseBalanceFlowDetails'
+    post:
+      tags:
+        - BalanceFlow
+      summary: Add Balance Flow
+      description: Creates a new transaction (expense, income, or transfer).
+      operationId: handleAddBalanceFlow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BalanceFlowAddForm'
+      responses:
+        '200':
+          description: Transaction created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /balance-flows/statistics:
+    get:
+      tags:
+        - BalanceFlow
+      summary: Get Balance Flow Statistics
+      description: Calculates expense, income, and total statistics for transactions.
+      operationId: handleBalanceFlowStatistics
+      parameters:
+        - name: book
+          in: query
+          schema:
+            type: integer
+        - name: minTime
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: maxTime
+          in: query
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Transaction statistics.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseBigDecimalArray'
+  /balance-flows/{id}:
+    get:
+      tags:
+        - BalanceFlow
+      summary: Get Balance Flow by ID
+      description: Retrieves details of a specific transaction.
+      operationId: handleGetBalanceFlow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Transaction details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseBalanceFlowDetails'
+    put:
+      tags:
+        - BalanceFlow
+      summary: Update Balance Flow
+      description: Updates an existing transaction.
+      operationId: handleUpdateBalanceFlow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BalanceFlowAddForm'
+      responses:
+        '200':
+          description: Transaction updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseInteger'
+    delete:
+      tags:
+        - BalanceFlow
+      summary: Delete Balance Flow
+      description: Deletes a transaction and reverts associated balance changes.
+      operationId: handleDeleteBalanceFlow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Transaction deleted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /balance-flows/{id}/confirm:
+    patch:
+      tags:
+        - BalanceFlow
+      summary: Confirm Balance Flow
+      description: Confirms a pending transaction, updating account balances.
+      operationId: handleConfirm
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Transaction confirmed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /balance-flows/{id}/addFile:
+    post:
+      tags:
+        - BalanceFlow
+      summary: Add File to Balance Flow
+      description: Uploads and attaches a file (e.g., receipt) to a transaction.
+      operationId: handleAddFile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: File uploaded successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseFlowFileDetails'
+  /balance-flows/{id}/files:
+    get:
+      tags:
+        - BalanceFlow
+      summary: Get Files for Balance Flow
+      description: Retrieves metadata for all files attached to a transaction.
+      operationId: handleFiles
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A list of file details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseFlowFileDetailsList'
+  /book-templates:
+    get:
+      tags:
+        - BookTemplate
+      summary: Get Book Templates
+      description: Retrieves a list of available book templates based on the user's locale.
+      operationId: handleBookTemplates
+      security: []
+      responses:
+        '200':
+          description: A list of book templates.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BookTemplate'
+  /book-templates/all:
+    get:
+      tags:
+        - BookTemplate
+      summary: Get All Book Templates (Simplified)
+      description: Retrieves a simplified list of all book templates for selection UIs.
+      operationId: handleAllBookTemplates
+      security: []
+      responses:
+        '200':
+          description: A simplified list of book templates.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IdAndNameDetails'
+  /books:
+    get:
+      tags:
+        - Book
+      summary: Query Books
+      description: Retrieves a paginated list of books for the current group.
+      operationId: handleQueryBooks
+      parameters:
+        - $ref: '#/components/parameters/PageCurrent'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageSort'
+        - name: enable
+          in: query
+          schema:
+            type: boolean
+        - name: name
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A paginated list of books.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseBookDetails'
+    post:
+      tags:
+        - Book
+      summary: Add Book
+      description: Creates a new book.
+      operationId: handleAddBook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookAddForm'
+      responses:
+        '200':
+          description: Book created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /books/all:
+    get:
+      tags:
+        - Book
+      summary: Get All Books
+      description: Retrieves a non-paginated list of all enabled books.
+      operationId: handleAllBooks
+      responses:
+        '200':
+          description: A list of all enabled books.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseBookDetailsList'
+  /books/template:
+    post:
+      tags:
+        - Book
+      summary: Add Book from Template
+      description: Creates a new book using a predefined template.
+      operationId: handleAddByTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookAddByTemplateForm'
+      responses:
+        '200':
+          description: Book created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /books/copy:
+    post:
+      tags:
+        - Book
+      summary: Copy Book
+      description: Creates a new book by copying an existing book's structure.
+      operationId: handleAddByBook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookAddByBookForm'
+      responses:
+        '200':
+          description: Book copied successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /books/{id}:
+    get:
+      tags:
+        - Book
+      summary: Get Book by ID
+      description: Retrieves details of a specific book.
+      operationId: handleGetBook
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Book details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseBookDetails'
+    put:
+      tags:
+        - Book
+      summary: Update Book
+      description: Updates an existing book.
+      operationId: handleUpdateBook
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookUpdateForm'
+      responses:
+        '200':
+          description: Book updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+    delete:
+      tags:
+        - Book
+      summary: Delete Book
+      description: Deletes a book if it contains no transactions.
+      operationId: handleDeleteBook
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Book deleted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /books/{id}/toggle:
+    patch:
+      tags:
+        - Book
+      summary: Toggle Book Status
+      description: Toggles the `enable` status of a book.
+      operationId: handleToggleBook
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status toggled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /books/{id}/export:
+    get:
+      tags:
+        - Book
+      summary: Export Book Transactions
+      description: Exports all transactions from a book to an XLSX file.
+      operationId: handleExport
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: timeZoneOffset
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: An XLSX file containing transaction data.
+          content:
+            application/vnd.ms-excel:
+              schema:
+                type: string
+                format: binary
+  /categories:
+    get:
+      tags:
+        - Category
+      summary: Query Categories
+      description: Retrieves a hierarchical list of categories for a book.
+      operationId: handleQueryCategories
+      parameters:
+        - name: bookId
+          in: query
+          schema:
+            type: integer
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/CategoryType'
+        - name: name
+          in: query
+          schema:
+            type: string
+        - name: enable
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: A tree structure of categories.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseCategoryDetailsList'
+    post:
+      tags:
+        - Category
+      summary: Add Category
+      description: Creates a new category.
+      operationId: handleAddCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryAddForm'
+      responses:
+        '200':
+          description: Category created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /categories/all:
+    get:
+      tags:
+        - Category
+      summary: Get All Categories
+      description: Retrieves all enabled categories in a hierarchical list.
+      operationId: handleAllCategories
+      parameters:
+        - name: bookId
+          in: query
+          schema:
+            type: integer
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/CategoryType'
+      responses:
+        '200':
+          description: A tree structure of all enabled categories.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseCategoryDetailsList'
+  /categories/{id}:
+    put:
+      tags:
+        - Category
+      summary: Update Category
+      description: Updates an existing category.
+      operationId: handleUpdateCategory
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryUpdateForm'
+      responses:
+        '200':
+          description: Category updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+    delete:
+      tags:
+        - Category
+      summary: Delete Category
+      description: Deletes a category if it's not associated with any transactions.
+      operationId: handleDeleteCategory
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Category deleted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /categories/{id}/toggle:
+    patch:
+      tags:
+        - Category
+      summary: Toggle Category Status
+      description: Toggles the `enable` status of a category.
+      operationId: handleToggleCategory
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status toggled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /currencies:
+    get:
+      tags:
+        - Currency
+      summary: Query Currencies
+      description: Retrieves a paginated list of currencies and their rates.
+      operationId: handleQueryCurrencies
+      parameters:
+        - $ref: '#/components/parameters/PageCurrent'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageSort'
+        - name: base
+          in: query
+          schema:
+            type: string
+        - name: name
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A paginated list of currencies.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseCurrencyDetails'
+  /currencies/all:
+    get:
+      tags:
+        - Currency
+      summary: Get All Currencies
+      description: Retrieves a list of all supported currencies.
+      operationId: handleAllCurrencies
+      responses:
+        '200':
+          description: A list of all currencies.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseCurrencyDetailsList'
+  /currencies/refresh:
+    post:
+      tags:
+        - Currency
+      summary: Refresh Currency Rates
+      description: Fetches and updates the latest currency exchange rates from an external service.
+      operationId: handleRefresh
+      responses:
+        '200':
+          description: Currency rates refreshed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseBoolean'
+  /currencies/rate:
+    get:
+      tags:
+        - Currency
+      summary: Get Exchange Rate
+      description: Calculates the exchange rate between two currencies.
+      operationId: handleRate
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The exchange rate.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseBigDecimal'
+  /currencies/calc:
+    get:
+      tags:
+        - Currency
+      summary: Calculate Currency Conversion
+      description: Converts an amount from one currency to another.
+      operationId: handleCalc
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: amount
+          in: query
+          required: true
+          schema:
+            type: number
+            format: bigdecimal
+      responses:
+        '200':
+          description: The converted amount.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseBigDecimal'
+  /currencies/{id}/rate:
+    put:
+      tags:
+        - Currency
+      summary: Update Currency Rate
+      description: Manually updates the exchange rate of a currency against a base currency.
+      operationId: handleUpdateRate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeRateForm'
+      responses:
+        '200':
+          description: Rate updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /flow-files/view:
+    get:
+      tags:
+        - FlowFile
+      summary: View Flow File
+      description: Retrieves the binary content of a file attached to a transaction.
+      operationId: handleView
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: createTime
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: The file content.
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+  /flow-files/{id}:
+    delete:
+      tags:
+        - FlowFile
+      summary: Delete Flow File
+      description: Deletes a file attached to a transaction.
+      operationId: handleDeleteFlowFile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: File deleted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /groups:
+    get:
+      tags:
+        - Group
+      summary: Query Groups
+      description: Retrieves a paginated list of groups the user is a member of.
+      operationId: handleQueryGroups
+      parameters:
+        - $ref: '#/components/parameters/PageCurrent'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: A paginated list of groups.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseGroupDetails'
+    post:
+      tags:
+        - Group
+      summary: Add Group
+      description: Creates a new group and a default book within it.
+      operationId: handleAddGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupAddForm'
+      responses:
+        '200':
+          description: Group created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /groups/{id}:
+    put:
+      tags:
+        - Group
+      summary: Update Group
+      description: Updates an existing group's details.
+      operationId: handleUpdateGroup
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupUpdateForm'
+      responses:
+        '200':
+          description: Group updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+    delete:
+      tags:
+        - Group
+      summary: Delete Group
+      description: Deletes a group if it has no transactions.
+      operationId: handleDeleteGroup
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Group deleted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /groups/{id}/inviteUser:
+    post:
+      tags:
+        - Group
+      summary: Invite User to Group
+      description: Sends an invitation to a user to join a group.
+      operationId: handleInviteUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteUserForm'
+      responses:
+        '200':
+          description: Invitation sent successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /groups/{id}/removeUser:
+    post:
+      tags:
+        - Group
+      summary: Remove User from Group
+      description: Removes a user from a group.
+      operationId: handleRemoveUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveUserForm'
+      responses:
+        '200':
+          description: User removed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /groups/{id}/agree:
+    post:
+      tags:
+        - Group
+      summary: Agree to Group Invitation
+      description: Accepts an invitation to join a group.
+      operationId: handleInviteAgree
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Invitation accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /groups/{id}/reject:
+    post:
+      tags:
+        - Group
+      summary: Reject Group Invitation
+      description: Declines an invitation to join a group.
+      operationId: handleInviteReject
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Invitation rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /groups/{id}/users:
+    get:
+      tags:
+        - Group
+      summary: Get Group Users
+      description: Retrieves a list of all users in a group.
+      operationId: handleGetUsers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A list of users in the group.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseGroupUserDetailsList'
+  /note-days:
+    get:
+      tags:
+        - NoteDay
+      summary: Query Note Days
+      description: Retrieves a paginated list of note days (reminders).
+      operationId: handleQueryNoteDays
+      parameters:
+        - $ref: '#/components/parameters/PageCurrent'
+        - $ref: '#/components/parameters/PageSize'
+        - name: title
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A paginated list of note days.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseNoteDayDetails'
+    post:
+      tags:
+        - NoteDay
+      summary: Add Note Day
+      description: Creates a new note day (reminder).
+      operationId: handleAddNoteDay
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteDayAddForm'
+      responses:
+        '200':
+          description: Note day created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /note-days/{id}:
+    put:
+      tags:
+        - NoteDay
+      summary: Update Note Day
+      description: Updates an existing note day.
+      operationId: handleUpdateNoteDay
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteDayUpdateForm'
+      responses:
+        '200':
+          description: Note day updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+    delete:
+      tags:
+        - NoteDay
+      summary: Delete Note Day
+      description: Deletes a note day.
+      operationId: handleDeleteNoteDay
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Note day deleted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /note-days/{id}/run:
+    patch:
+      tags:
+        - NoteDay
+      summary: Run Note Day
+      description: Marks a recurring note day as 'run' and advances its next date.
+      operationId: handleRun
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Operation successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /note-days/{id}/recall:
+    patch:
+      tags:
+        - NoteDay
+      summary: Recall Note Day Run
+      description: Reverts a 'run' action on a note day.
+      operationId: handleRecall
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Operation successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /payees:
+    get:
+      tags:
+        - Payee
+      summary: Query Payees
+      description: Retrieves a paginated list of payees.
+      operationId: handleQueryPayees
+      parameters:
+        - $ref: '#/components/parameters/PageCurrent'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageSort'
+        - name: bookId
+          in: query
+          schema:
+            type: integer
+        - name: name
+          in: query
+          schema:
+            type: string
+        - name: enable
+          in: query
+          schema:
+            type: boolean
+        - name: canExpense
+          in: query
+          schema:
+            type: boolean
+        - name: canIncome
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: A paginated list of payees.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponsePayeeDetails'
+    post:
+      tags:
+        - Payee
+      summary: Add Payee
+      description: Creates a new payee.
+      operationId: handleAddPayee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayeeAddForm'
+      responses:
+        '200':
+          description: Payee created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseBoolean'
+  /payees/all:
+    get:
+      tags:
+        - Payee
+      summary: Get All Payees
+      description: Retrieves a list of all enabled payees for a book.
+      operationId: handleAllPayees
+      parameters:
+        - name: bookId
+          in: query
+          schema:
+            type: integer
+        - name: canExpense
+          in: query
+          schema:
+            type: boolean
+        - name: canIncome
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: A list of payees.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponsePayeeDetailsList'
+  /payees/{id}:
+    put:
+      tags:
+        - Payee
+      summary: Update Payee
+      description: Updates an existing payee.
+      operationId: handleUpdatePayee
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayeeUpdateForm'
+      responses:
+        '200':
+          description: Payee updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+    delete:
+      tags:
+        - Payee
+      summary: Delete Payee
+      description: Deletes a payee if it has no associated transactions.
+      operationId: handleDeletePayee
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Payee deleted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /payees/{id}/toggle:
+    patch:
+      tags:
+        - Payee
+      summary: Toggle Payee Status
+      description: Toggles the `enable` status of a payee.
+      operationId: handleTogglePayee
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status toggled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /payees/{id}/toggleCanExpense:
+    patch:
+      tags:
+        - Payee
+      summary: Toggle Payee 'Can Expense'
+      description: Toggles if the payee can be used for expenses.
+      operationId: handleTogglePayeeCanExpense
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status toggled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /payees/{id}/toggleCanIncome:
+    patch:
+      tags:
+        - Payee
+      summary: Toggle Payee 'Can Income'
+      description: Toggles if the payee can be used for income.
+      operationId: handleTogglePayeeCanIncome
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status toggled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /reports/expense-category:
+    get:
+      tags:
+        - Report
+      summary: Expense by Category Report
+      description: Generates a report of expenses grouped by category.
+      operationId: handleExpenseCategory
+      parameters:
+        - name: book
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: minTime
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: maxTime
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: categories
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+      responses:
+        '200':
+          description: Report data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseChartVoList'
+  /reports/income-category:
+    get:
+      tags:
+        - Report
+      summary: Income by Category Report
+      description: Generates a report of income grouped by category.
+      operationId: handleIncomeCategory
+      parameters:
+        - name: book
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: minTime
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: maxTime
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: categories
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+      responses:
+        '200':
+          description: Report data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseChartVoList'
+  /reports/expense-tag:
+    get:
+      tags:
+        - Report
+      summary: Expense by Tag Report
+      description: Generates a report of expenses grouped by tag.
+      operationId: handleExpenseTag
+      parameters:
+        - name: book
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: minTime
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: maxTime
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: tags
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+      responses:
+        '200':
+          description: Report data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseChartVoList'
+  /reports/income-tag:
+    get:
+      tags:
+        - Report
+      summary: Income by Tag Report
+      description: Generates a report of income grouped by tag.
+      operationId: handleIncomeTag
+      parameters:
+        - name: book
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: minTime
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: maxTime
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: tags
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+      responses:
+        '200':
+          description: Report data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseChartVoList'
+  /reports/expense-payee:
+    get:
+      tags:
+        - Report
+      summary: Expense by Payee Report
+      description: Generates a report of expenses grouped by payee.
+      operationId: handleExpensePayee
+      parameters:
+        - name: book
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: minTime
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: maxTime
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: payees
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+      responses:
+        '200':
+          description: Report data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseChartVoList'
+  /reports/income-payee:
+    get:
+      tags:
+        - Report
+      summary: Income by Payee Report
+      description: Generates a report of income grouped by payee.
+      operationId: handleIncomePayee
+      parameters:
+        - name: book
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: minTime
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: maxTime
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: payees
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+      responses:
+        '200':
+          description: Report data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseChartVoList'
+  /reports/balance:
+    get:
+      tags:
+        - Report
+      summary: Balance Report
+      description: Generates a report of assets and debts grouped by account.
+      operationId: handleBalance
+      responses:
+        '200':
+          description: Report data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseChartVoListList'
+  /tags:
+    get:
+      tags:
+        - Tag
+      summary: Query Tags
+      description: Retrieves a hierarchical list of tags for a book.
+      operationId: handleQueryTags
+      parameters:
+        - $ref: '#/components/parameters/PageCurrent'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageSort'
+        - name: bookId
+          in: query
+          schema:
+            type: integer
+        - name: name
+          in: query
+          schema:
+            type: string
+        - name: enable
+          in: query
+          schema:
+            type: boolean
+        - name: canExpense
+          in: query
+          schema:
+            type: boolean
+        - name: canIncome
+          in: query
+          schema:
+            type: boolean
+        - name: canTransfer
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: A tree structure of tags.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseTagDetailsList'
+    post:
+      tags:
+        - Tag
+      summary: Add Tag
+      description: Creates a new tag.
+      operationId: handleAddTag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagAddForm'
+      responses:
+        '200':
+          description: Tag created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /tags/all:
+    get:
+      tags:
+        - Tag
+      summary: Get All Tags
+      description: Retrieves all enabled tags for a book in a hierarchical list.
+      operationId: handleAllTags
+      parameters:
+        - name: bookId
+          in: query
+          schema:
+            type: integer
+        - name: canExpense
+          in: query
+          schema:
+            type: boolean
+        - name: canIncome
+          in: query
+          schema:
+            type: boolean
+        - name: canTransfer
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: A tree structure of all enabled tags.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseTagDetailsList'
+  /tags/{id}:
+    put:
+      tags:
+        - Tag
+      summary: Update Tag
+      description: Updates an existing tag.
+      operationId: handleUpdateTag
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagUpdateForm'
+      responses:
+        '200':
+          description: Tag updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+    delete:
+      tags:
+        - Tag
+      summary: Delete Tag
+      description: Deletes a tag if it's not associated with any transactions.
+      operationId: handleDeleteTag
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tag deleted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /tags/{id}/toggle:
+    patch:
+      tags:
+        - Tag
+      summary: Toggle Tag Status
+      description: Toggles the `enable` status of a tag.
+      operationId: handleToggleTag
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status toggled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /tags/{id}/toggleCanExpense:
+    patch:
+      tags:
+        - Tag
+      summary: Toggle Tag 'Can Expense'
+      description: Toggles if the tag can be used for expenses.
+      operationId: handleToggleCanExpenseTag
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status toggled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /tags/{id}/toggleCanIncome:
+    patch:
+      tags:
+        - Tag
+      summary: Toggle Tag 'Can Income'
+      description: Toggles if the tag can be used for income.
+      operationId: handleToggleCanIncomeTag
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status toggled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /tags/{id}/toggleCanTransfer:
+    patch:
+      tags:
+        - Tag
+      summary: Toggle Tag 'Can Transfer'
+      description: Toggles if the tag can be used for transfers.
+      operationId: handleToggleCanTransferTag
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status toggled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    PageCurrent:
+      name: current
+      in: query
+      description: Page number, 1-indexed.
+      schema:
+        type: integer
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      description: Number of items per page.
+      schema:
+        type: integer
+        default: 10
+    PageSort:
+      name: sort
+      in: query
+      description: Sorting criteria in the format 'property,direction'.
+      schema:
+        type: string
+  schemas:
+    BaseResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+    DataResponseString:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: string
+    DataResponseInteger:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: integer
+    DataResponseBoolean:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: boolean
+    DataResponseBigDecimal:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: number
+              format: bigdecimal
+    DataResponseBigDecimalArray:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: number
+                format: bigdecimal
+    IdAndNameDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        label:
+          type: string
+          readOnly: true
+        value:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+    SelectVo:
+      type: object
+      properties:
+        value:
+          type: string
+        label:
+          type: string
+        title:
+          type: string
+          readOnly: true
+    TreeNode:
+      type: object
+      properties:
+        pId:
+          type: integer
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/TreeNode'
+        parent:
+          $ref: '#/components/schemas/IdAndNameDetails'
+    LoginForm:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+        remember:
+          type: boolean
+          default: false
+    RegisterForm:
+      type: object
+      required:
+        - username
+        - password
+        - inviteCode
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+        inviteCode:
+          type: string
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        username:
+          type: string
+        remember:
+          type: boolean
+    DataMessageResponseLogin:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/LoginResponse'
+            message:
+              type: string
+            showType:
+              type: integer
+    DataMessageResponseBoolean:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: boolean
+            message:
+              type: string
+            showType:
+              type: integer
+    UserSessionVo:
+      allOf:
+        - $ref: '#/components/schemas/IdAndNameDetails'
+        - type: object
+          properties:
+            username:
+              type: string
+            name:
+              type: string
+            headimgurl:
+              type: string
+    BookSessionVo:
+      allOf:
+        - $ref: '#/components/schemas/IdAndNameDetails'
+        - type: object
+          properties:
+            defaultCurrencyCode:
+              type: string
+            defaultExpenseAccount:
+              $ref: '#/components/schemas/AccountDetails'
+            defaultIncomeAccount:
+              $ref: '#/components/schemas/AccountDetails'
+            defaultTransferFromAccount:
+              $ref: '#/components/schemas/AccountDetails'
+            defaultTransferToAccount:
+              $ref: '#/components/schemas/AccountDetails'
+            defaultExpenseCategory:
+              $ref: '#/components/schemas/CategoryDetails'
+            defaultIncomeCategory:
+              $ref: '#/components/schemas/CategoryDetails'
+    GroupSessionVo:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        defaultCurrencyCode:
+          type: string
+    InitStateResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/UserSessionVo'
+        book:
+          $ref: '#/components/schemas/BookSessionVo'
+        group:
+          $ref: '#/components/schemas/GroupSessionVo'
+    DataResponseInitState:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/InitStateResponse'
+    ChangePasswordRequest:
+      type: object
+      properties:
+        oldPassword:
+          type: string
+          format: password
+        newPassword:
+          type: string
+          format: password
+    AccountType:
+      type: string
+      enum: [CHECKING, CREDIT, ASSET, DEBT]
+    AccountAddForm:
+      type: object
+      required: [type, name, balance, include, canTransferFrom, canTransferTo, canExpense, canIncome, currencyCode]
+      properties:
+        type:
+          $ref: '#/components/schemas/AccountType'
+        name:
+          type: string
+        no:
+          type: string
+        balance:
+          type: number
+          format: bigdecimal
+        include:
+          type: boolean
+        canTransferFrom:
+          type: boolean
+        canTransferTo:
+          type: boolean
+        canExpense:
+          type: boolean
+        canIncome:
+          type: boolean
+        notes:
+          type: string
+        currencyCode:
+          type: string
+        creditLimit:
+          type: number
+          format: bigdecimal
+        billDay:
+          type: integer
+        apr:
+          type: number
+          format: bigdecimal
+        sort:
+          type: integer
+    AccountUpdateForm:
+      type: object
+      properties:
+        name:
+          type: string
+        no:
+          type: string
+        notes:
+          type: string
+        creditLimit:
+          type: number
+          format: bigdecimal
+        billDay:
+          type: integer
+        include:
+          type: boolean
+        canTransferFrom:
+          type: boolean
+        canTransferTo:
+          type: boolean
+        canExpense:
+          type: boolean
+        canIncome:
+          type: boolean
+        apr:
+          type: number
+          format: bigdecimal
+        sort:
+          type: integer
+    AccountUpdateNotesForm:
+      type: object
+      properties:
+        notes:
+          type: string
+    AdjustBalanceAddForm:
+      type: object
+      required: [book, createTime, balance]
+      properties:
+        book:
+          type: integer
+        createTime:
+          type: integer
+          format: int64
+        title:
+          type: string
+        notes:
+          type: string
+        balance:
+          type: number
+          format: bigdecimal
+    AdjustBalanceUpdateForm:
+      type: object
+      required: [createTime]
+      properties:
+        book:
+          type: integer
+        createTime:
+          type: integer
+          format: int64
+        title:
+          type: string
+        notes:
+          type: string
+    AccountDetails:
+      allOf:
+        - $ref: '#/components/schemas/IdAndNameDetails'
+        - type: object
+          properties:
+            type:
+              $ref: '#/components/schemas/AccountType'
+            typeName:
+              type: string
+            no:
+              type: string
+            balance:
+              type: number
+              format: bigdecimal
+            convertedBalance:
+              type: number
+              format: bigdecimal
+            rate:
+              type: number
+              format: bigdecimal
+            enable:
+              type: boolean
+            include:
+              type: boolean
+            canExpense:
+              type: boolean
+            canIncome:
+              type: boolean
+            canTransferFrom:
+              type: boolean
+            canTransferTo:
+              type: boolean
+            notes:
+              type: string
+            currencyCode:
+              type: string
+            creditLimit:
+              type: number
+              format: bigdecimal
+            billDay:
+              type: integer
+            apr:
+              type: number
+              format: bigdecimal
+            asOfDate:
+              type: integer
+              format: int64
+            sort:
+              type: integer
+            remainLimit:
+              type: number
+              format: bigdecimal
+              readOnly: true
+    PageResponseAccountDetails:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/AccountDetails'
+            current:
+              type: integer
+            pageSize:
+              type: integer
+            total:
+              type: integer
+              format: int64
+    DataResponseAccountDetails:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AccountDetails'
+    DataResponseAccountDetailsList:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/AccountDetails'
+    FlowType:
+      type: string
+      enum: [EXPENSE, INCOME, TRANSFER, ADJUST]
+    CategoryRelationForm:
+      type: object
+      required: [category, amount]
+      properties:
+        category:
+          type: integer
+        amount:
+          type: number
+          format: bigdecimal
+        convertedAmount:
+          type: number
+          format: bigdecimal
+    BalanceFlowAddForm:
+      type: object
+      required: [book, type, createTime, confirm, include]
+      properties:
+        book:
+          type: integer
+        type:
+          $ref: '#/components/schemas/FlowType'
+        title:
+          type: string
+        createTime:
+          type: integer
+          format: int64
+        account:
+          type: integer
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryRelationForm'
+        payee:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: integer
+        to:
+          type: integer
+        amount:
+          type: number
+          format: bigdecimal
+        convertedAmount:
+          type: number
+          format: bigdecimal
+        notes:
+          type: string
+        confirm:
+          type: boolean
+        include:
+          type: boolean
+    BookForFlow:
+      allOf:
+        - $ref: '#/components/schemas/IdAndNameDetails'
+        - type: object
+          properties:
+            defaultCurrencyCode:
+              type: string
+    AccountForFlow:
+      allOf:
+        - $ref: '#/components/schemas/IdAndNameDetails'
+        - type: object
+          properties:
+            currencyCode:
+              type: string
+    CategoryRelationDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+        category:
+          $ref: '#/components/schemas/IdAndNameDetails'
+        amount:
+          type: number
+          format: bigdecimal
+        convertedAmount:
+          type: number
+          format: bigdecimal
+    TagRelationDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+        tag:
+          $ref: '#/components/schemas/IdAndNameDetails'
+        amount:
+          type: number
+          format: bigdecimal
+        convertedAmount:
+          type: number
+          format: bigdecimal
+    BalanceFlowDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+        book:
+          $ref: '#/components/schemas/BookForFlow'
+        type:
+          $ref: '#/components/schemas/FlowType'
+        typeName:
+          type: string
+        title:
+          type: string
+        notes:
+          type: string
+        createTime:
+          type: integer
+          format: int64
+        amount:
+          type: number
+          format: bigdecimal
+        convertedAmount:
+          type: number
+          format: bigdecimal
+        account:
+          $ref: '#/components/schemas/AccountForFlow'
+        confirm:
+          type: boolean
+        include:
+          type: boolean
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryRelationDetails'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagRelationDetails'
+        accountName:
+          type: string
+        categoryName:
+          type: string
+        to:
+          $ref: '#/components/schemas/AccountDetails'
+        payee:
+          $ref: '#/components/schemas/IdAndNameDetails'
+    PageResponseBalanceFlowDetails:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/BalanceFlowDetails'
+            current:
+              type: integer
+            pageSize:
+              type: integer
+            total:
+              type: integer
+              format: int64
+    DataResponseBalanceFlowDetails:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BalanceFlowDetails'
+    FlowFileDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+        createTime:
+          type: integer
+          format: int64
+        contentType:
+          type: string
+        size:
+          type: integer
+          format: int64
+        originalName:
+          type: string
+    DataResponseFlowFileDetails:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/FlowFileDetails'
+    DataResponseFlowFileDetailsList:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/FlowFileDetails'
+    BookTemplate:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        notes:
+          type: string
+        previewUrl:
+          type: string
+        lang:
+          type: string
+    BookAddForm:
+      type: object
+      required: [name, defaultCurrencyCode]
+      properties:
+        name:
+          type: string
+        defaultCurrencyCode:
+          type: string
+        defaultExpenseAccountId:
+          type: integer
+        defaultIncomeAccountId:
+          type: integer
+        defaultTransferFromAccountId:
+          type: integer
+        defaultTransferToAccountId:
+          type: integer
+        notes:
+          type: string
+        sort:
+          type: integer
+    BookAddByTemplateForm:
+      type: object
+      required: [templateId, book]
+      properties:
+        templateId:
+          type: integer
+        book:
+          $ref: '#/components/schemas/BookAddForm'
+    BookAddByBookForm:
+      type: object
+      required: [bookId, book]
+      properties:
+        bookId:
+          type: integer
+        book:
+          $ref: '#/components/schemas/BookAddForm'
+    BookUpdateForm:
+      type: object
+      properties:
+        name:
+          type: string
+        defaultExpenseAccountId:
+          type: integer
+        defaultIncomeAccountId:
+          type: integer
+        defaultTransferFromAccountId:
+          type: integer
+        defaultTransferToAccountId:
+          type: integer
+        defaultExpenseCategoryId:
+          type: integer
+        defaultIncomeCategoryId:
+          type: integer
+        notes:
+          type: string
+        sort:
+          type: integer
+    BookDetails:
+      allOf:
+        - $ref: '#/components/schemas/IdAndNameDetails'
+        - type: object
+          properties:
+            group:
+              $ref: '#/components/schemas/IdAndNameDetails'
+            notes:
+              type: string
+            enable:
+              type: boolean
+            defaultCurrencyCode:
+              type: string
+            defaultExpenseAccount:
+              $ref: '#/components/schemas/AccountDetails'
+            defaultIncomeAccount:
+              $ref: '#/components/schemas/AccountDetails'
+            defaultTransferFromAccount:
+              $ref: '#/components/schemas/AccountDetails'
+            defaultTransferToAccount:
+              $ref: '#/components/schemas/AccountDetails'
+            defaultExpenseCategory:
+              $ref: '#/components/schemas/CategoryDetails'
+            defaultIncomeCategory:
+              $ref: '#/components/schemas/CategoryDetails'
+            current:
+              type: boolean
+            groupDefault:
+              type: boolean
+            sort:
+              type: integer
+    PageResponseBookDetails:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/BookDetails'
+            current:
+              type: integer
+            pageSize:
+              type: integer
+            total:
+              type: integer
+              format: int64
+    DataResponseBookDetails:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BookDetails'
+    DataResponseBookDetailsList:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/BookDetails'
+    CategoryType:
+      type: string
+      enum: [EXPENSE, INCOME, TRANSFER]
+    CategoryAddForm:
+      type: object
+      required: [type, name]
+      properties:
+        type:
+          $ref: '#/components/schemas/CategoryType'
+        name:
+          type: string
+        notes:
+          type: string
+        pId:
+          type: integer
+        sort:
+          type: integer
+    CategoryUpdateForm:
+      type: object
+      properties:
+        name:
+          type: string
+        notes:
+          type: string
+        pId:
+          type: integer
+        sort:
+          type: integer
+    CategoryDetails:
+      allOf:
+        - $ref: '#/components/schemas/IdAndNameDetails'
+        - $ref: '#/components/schemas/TreeNode'
+        - type: object
+          properties:
+            type:
+              $ref: '#/components/schemas/CategoryType'
+            notes:
+              type: string
+            enable:
+              type: boolean
+            canExpense:
+              type: boolean
+            canIncome:
+              type: boolean
+            level:
+              type: integer
+            sort:
+              type: integer
+    DataResponseCategoryDetailsList:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/CategoryDetails'
+    CurrencyDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        rate:
+          type: number
+          format: double
+        rate2:
+          type: number
+          format: double
+    PageResponseCurrencyDetails:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/CurrencyDetails'
+            current:
+              type: integer
+            pageSize:
+              type: integer
+            total:
+              type: integer
+              format: int64
+    DataResponseCurrencyDetailsList:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/CurrencyDetails'
+    ChangeRateForm:
+      type: object
+      properties:
+        base:
+          type: string
+        rate:
+          type: number
+          format: bigdecimal
+    GroupAddForm:
+      type: object
+      required: [name, defaultCurrencyCode, templateId]
+      properties:
+        name:
+          type: string
+        defaultCurrencyCode:
+          type: string
+        notes:
+          type: string
+        templateId:
+          type: integer
+    GroupUpdateForm:
+      type: object
+      required: [name, defaultCurrencyCode, defaultBookId]
+      properties:
+        name:
+          type: string
+        notes:
+          type: string
+        defaultCurrencyCode:
+          type: string
+        defaultBookId:
+          type: integer
+    InviteUserForm:
+      type: object
+      required: [username]
+      properties:
+        username:
+          type: string
+    RemoveUserForm:
+      type: object
+      required: [userId]
+      properties:
+        userId:
+          type: integer
+    GroupDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        notes:
+          type: string
+        enable:
+          type: boolean
+        defaultCurrencyCode:
+          type: string
+        role:
+          type: string
+        current:
+          type: boolean
+        roleId:
+          type: integer
+        defaultBook:
+          $ref: '#/components/schemas/IdAndNameDetails'
+    PageResponseGroupDetails:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/GroupDetails'
+            current:
+              type: integer
+            pageSize:
+              type: integer
+            total:
+              type: integer
+              format: int64
+    GroupUserDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        nickName:
+          type: string
+        role:
+          type: string
+        roleId:
+          type: integer
+    DataResponseGroupUserDetailsList:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/GroupUserDetails'
+    NoteDayAddForm:
+      type: object
+      required: [title, startDate, repeatType]
+      properties:
+        title:
+          type: string
+        notes:
+          type: string
+        startDate:
+          type: integer
+          format: int64
+        endDate:
+          type: integer
+          format: int64
+        repeatType:
+          type: integer
+        interval:
+          type: integer
+    NoteDayUpdateForm:
+      type: object
+      properties:
+        title:
+          type: string
+        notes:
+          type: string
+        startDate:
+          type: integer
+          format: int64
+        endDate:
+          type: integer
+          format: int64
+        repeatType:
+          type: integer
+        interval:
+          type: integer
+    NoteDayDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        notes:
+          type: string
+        startDate:
+          type: integer
+          format: int64
+        endDate:
+          type: integer
+          format: int64
+        repeatType:
+          type: integer
+        interval:
+          type: integer
+        repeatDescription:
+          type: string
+        countDown:
+          type: integer
+          format: int64
+        nextDate:
+          type: integer
+          format: int64
+        totalCount:
+          type: integer
+        runCount:
+          type: integer
+        remainCount:
+          type: integer
+    PageResponseNoteDayDetails:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/NoteDayDetails'
+            current:
+              type: integer
+            pageSize:
+              type: integer
+            total:
+              type: integer
+              format: int64
+    PayeeAddForm:
+      type: object
+      required: [name, canExpense, canIncome]
+      properties:
+        name:
+          type: string
+        notes:
+          type: string
+        canExpense:
+          type: boolean
+        canIncome:
+          type: boolean
+        sort:
+          type: integer
+    PayeeUpdateForm:
+      type: object
+      properties:
+        name:
+          type: string
+        notes:
+          type: string
+        canExpense:
+          type: boolean
+        canIncome:
+          type: boolean
+        sort:
+          type: integer
+    PayeeDetails:
+      allOf:
+        - $ref: '#/components/schemas/IdAndNameDetails'
+        - type: object
+          properties:
+            notes:
+              type: string
+            enable:
+              type: boolean
+            canExpense:
+              type: boolean
+            canIncome:
+              type: boolean
+            sort:
+              type: integer
+    PageResponsePayeeDetails:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/PayeeDetails'
+            current:
+              type: integer
+            pageSize:
+              type: integer
+            total:
+              type: integer
+              format: int64
+    DataResponsePayeeDetailsList:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/PayeeDetails'
+    ChartVO:
+      type: object
+      properties:
+        x:
+          type: string
+        y:
+          type: number
+          format: bigdecimal
+        percent:
+          type: number
+          format: bigdecimal
+    DataResponseChartVoList:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ChartVO'
+    DataResponseChartVoListList:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChartVO'
+    TagAddForm:
+      type: object
+      required: [name, canExpense, canIncome, canTransfer]
+      properties:
+        name:
+          type: string
+        notes:
+          type: string
+        pId:
+          type: integer
+        canExpense:
+          type: boolean
+        canIncome:
+          type: boolean
+        canTransfer:
+          type: boolean
+        sort:
+          type: integer
+    TagUpdateForm:
+      type: object
+      properties:
+        name:
+          type: string
+        notes:
+          type: string
+        pId:
+          type: integer
+        canExpense:
+          type: boolean
+        canIncome:
+          type: boolean
+        canTransfer:
+          type: boolean
+        sort:
+          type: integer
+    TagDetails:
+      allOf:
+        - $ref: '#/components/schemas/IdAndNameDetails'
+        - $ref: '#/components/schemas/TreeNode'
+        - type: object
+          properties:
+            notes:
+              type: string
+            enable:
+              type: boolean
+            canExpense:
+              type: boolean
+            canIncome:
+              type: boolean
+            canTransfer:
+              type: boolean
+            level:
+              type: integer
+            sort:
+              type: integer
+    DataResponseTagDetailsList:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/TagDetails'
+security:
+  - bearerAuth: []
+
+```
+
+### Data Layer
+#### Data Layer Overview
+
+The application's data layer is built on a modern Java stack, utilizing **Spring Data JPA** as the primary data access framework with Hibernate as the underlying persistence provider. This facilitates an Object-Relational Mapping (ORM) approach, where database tables are abstracted into Java entity classes. For dynamic and type-safe query construction, the application leverages **QueryDSL**, which integrates seamlessly with Spring Data JPA.
+
+The database of choice is **MySQL**, as indicated by the JDBC driver and connection string in the configuration [^1]. The application uses HikariCP for efficient connection pooling, which is the default in Spring Boot 2.x and later.
+
+Data access logic is encapsulated within repository interfaces (e.g., `AccountRepository`) that extend a custom `BaseRepository`. This base interface provides standard CRUD operations via `JpaRepository` and advanced search capabilities through `QuerydslPredicateExecutor`[^2]. A custom implementation, `BaseRepositoryImpl`, extends this functionality with custom methods like `calcSum` for performing aggregate calculations using JPAQueryFactory [^3].
+
+##### Objective-Relational Mapping (ORM)
+
+The ORM strategy centers around Jakarta Persistence API (JPA) annotations. Plain Old Java Objects (POJOs) are mapped to database tables using annotations like `@Entity`, `@Table`, `@Id`, `@Column`, and relationship annotations (`@ManyToOne`, `@OneToMany`). This allows developers to interact with the database using object-oriented paradigms, reducing the need for boilerplate SQL.
+
+A notable feature is the use of `AttributeConverter` implementations, such as `AccountTypeAttributeConverter`[^4] and `FlowTypeAttributeConverter`[^5]. These converters automatically translate enum types (e.g., `AccountType.CREDIT`) in the Java code to corresponding integer codes in the database, promoting type safety in the application logic while maintaining a simple data type in the database schema.
+
+##### Data Model
+
+The data model is designed to support a multi-user, multi-bookkeeping environment. It revolves around core concepts of `Users`, `Groups`, `Books`, `Accounts`, and financial `Flows` (transactions). The schema is normalized, with relationships established through foreign keys to maintain data integrity.
+
+Below is a detailed breakdown of the main entities and their corresponding database tables.
+
+###### Core Entities
+
+| Table Name | Entity Class | Description |
 | :--- | :--- | :--- |
-| MULTI-CUR-01 | The system must allow each `Account` to be associated with a specific currency code (e.g., "USD", "EUR") [^24]. | `Account.java`: `currencyCode` field |
-| MULTI-CUR-02 | Each `Book` must define a `defaultCurrencyCode` that serves as the base for all consolidated reporting [^25]. | `Book.java`: `defaultCurrencyCode` field |
-| MULTI-CUR-03 | For transactions where the account currency differs from the book's default currency, the system must store both the original `amount` and a `convertedAmount` in the book's default currency [^26]. | `BalanceFlow.java`: `amount`, `convertedAmount` fields |
-| MULTI-CUR-04 | The system must automatically handle currency conversion when transferring funds between two accounts with different currencies [^27]. | `BalanceFlowService.java`: `confirmBalance()` logic for `TRANSFER` type |
-| MULTI-CUR-05 | The system must be capable of fetching the latest exchange rates from an external API to ensure conversion accuracy. It also ships with a static list of currencies as a fallback [^28]. | `CurrencyService.java`: `refreshCurrency()`; `currency.json` |
-| MULTI-CUR-06 | All financial reports and summaries (e.g., financial overview, expense reports) must aggregate data by converting all transaction amounts to the book's or group's default currency [^4]. | `AccountService.java`: `overview()`; `ReportService.java` |
+| `t_user_user` | `User` | Stores user profile information, credentials, and default settings. |
+| `t_user_group` | `Group` | Represents a collaborative workspace or "group" that owns books and accounts. |
+| `t_user_user_group_relation` | `UserGroupRelation` | A join table managing the many-to-many relationship between users and groups, including roles. |
+| `t_user_book` | `Book` | Represents a ledger or "book" for recording transactions. Belongs to a single group. |
+| `t_user_account` | `Account` | Represents financial accounts (e.g., bank, credit card). Belongs to a single group. |
+| `t_user_balance_flow` | `BalanceFlow` | The central table for all financial transactions (expense, income, transfer, adjustment). |
 
-###### Example User Flow: Recording an Expense in a Foreign Currency Account
+###### Supporting Entities
 
-1.  **Context**: User David's main `Book` has a default currency of `USD`. He has an `Account` named "German Bank" with the currency `EUR`.
-2.  **Record Transaction**: While on a trip in Berlin, David buys a train ticket for €10. He records this as an expense from his "German Bank" account.
-3.  **Enter Details**: He enters `10` as the amount for the new transaction.
-4.  **System Processing**:
-    *   The `BalanceFlowService` detects that the account's currency (`EUR`) is different from the book's default currency (`USD`).
-    *   It calls `CurrencyService.convert("EUR", "USD")` to get the current exchange rate (e.g., 1.08).
-    *   The service calculates the `convertedAmount` as `10 * 1.08 = 10.80`.
-    *   It saves the `BalanceFlow` with `amount` = 10 and `convertedAmount` = 10.80 [^26].
-    *   The balance of the "German Bank" account is reduced by €10.
-5.  **View Report**: Later, when David views his monthly expense report, this transaction is included as `$10.80` in the "Transportation" category, seamlessly integrated with his other USD-based expenses.
+| Table Name | Entity Class | Description |
+| :--- | :--- | :--- |
+| `t_user_category` | `Category` | Defines hierarchical categories for transactions (e.g., Food, Transport). |
+| `t_user_tag` | `Tag` | Defines hierarchical tags for transactions (e.g., Project A, Vacation). |
+| `t_user_payee` | `Payee` | Represents transaction counterparties (e.g., stores, individuals). |
+| `t_user_category_relation` | `CategoryRelation` | Links a transaction (`BalanceFlow`) to one or more categories with specific amounts. |
+| `t_user_tag_relation` | `TagRelation` | Links a transaction (`BalanceFlow`) to one or more tags. |
+| `t_flow_file` | `FlowFile` | Stores file attachments (e.g., receipts) associated with transactions. |
+| `t_user_note_day` | `NoteDay` | A feature for creating recurring reminders or "note days". |
 
-[^1]: AccountService.java: `overview()` - Calculates and returns an array containing total assets, total debts, and net worth.
-[^2]: AccountService.java: `getAssets()`, `getDebts()` - These methods retrieve accounts based on their `AccountType` (CHECKING/ASSET for assets, CREDIT/DEBT for debts).
-[^3]: Account.java: `include` - A boolean field on the `Account` entity that determines if it is included in summary calculations.
-[^4]: AccountService.java: `overview()` - This method iterates through accounts and uses `currencyService.convert()` to normalize all balances to the group's default currency before summing them up.
-[^5]: AccountService.java: `statistics()` - Calculates total balance, total credit limit, and remaining credit across a given set of accounts, converting currencies as needed.
-[^6]: BalanceFlow.java: `type` - An enum field of type `FlowType` that classifies the transaction.
-[^7]: BalanceFlow.java: This entity serves as the core model for all financial transactions, containing fields for amount, time, book, and more.
-[^8]: BalanceFlowService.java: `confirmBalance()` - This private method contains the logic to update account balances based on the transaction type and amount.
-[^9]: BalanceFlow.java: `categories`, `tags`, `payee` - Fields that establish relationships with `Category`, `Tag`, and `Payee` entities to provide detailed transaction context.
-[^10]: CategoryRelationForm.java: Used within `BalanceFlowAddForm` as a list, allowing a single transaction to be associated with multiple categories, each with its own amount.
-[^11]: BalanceFlowQueryForm.java: `buildPredicate()` - Constructs a dynamic QueryDSL predicate based on various filter criteria to search for transactions.
-[^12]: BalanceFlow.java: `confirm` - A boolean field indicating whether the transaction is finalized and should impact account balances.
-[^13]: BalanceFlowService.java: `addFile()` - Handles the logic for processing a `MultipartFile`, creating a `FlowFile` entity, and associating it with a `BalanceFlow`.
-[^14]: FileValidator.java: `isSupportedContentType()` - A validator that checks the `contentType` of an uploaded file against a list of allowed MIME types.
-[^15]: FlowFile.java: `data` - A `byte[]` field annotated with `@Lob` and `columnDefinition = "LONGBLOB"` to store the file's binary content in the database.
-[^16]: FlowFile.java: Contains fields like `originalName`, `contentType`, and `size` to store file metadata.
-[^17]: BalanceFlowController.java: `handleFiles()` - An endpoint that retrieves all `FlowFile` records associated with a given `BalanceFlow` ID.
-[^18]: FlowFileController.java: `handleView()` - An endpoint that serves the file content. It requires the file ID and `createTime` in the request, adding a layer of security to prevent simple enumeration of file IDs.
-[^19]: BookController.java: Provides REST endpoints for CRUD operations on `Book` entities.
-[^20]: Category.java, Tag.java, Payee.java: Each of these entities contains a mandatory `ManyToOne` relationship to the `Book` entity.
-[^21]: CurrentSession.java: A session-scoped bean that holds the current user's active `Book` object.
-[^22]: UserController.java: `handleSetDefaultBook()` - An endpoint that allows the user to change their active book, which is then persisted on the `User` entity and updated in the session.
-[^23]: BookService.java: `addByTemplate()`, `addByBook()` - Methods that create a new book and populate its categories, tags, and payees based on a JSON template or an existing book.
-[^24]: Account.java: `currencyCode` - A string field on the `Account` entity to store the currency code (e.g., 'USD').
-[^25]: Book.java: `defaultCurrencyCode` - A string field on the `Book` entity that sets the reporting currency for that ledger.
-[^26]: BalanceFlow.java: `amount` and `convertedAmount` - Two `BigDecimal` fields to store the transaction value in its original currency and in the book's default currency.
-[^27]: BalanceFlowService.java: `confirmBalance()` - When a `TRANSFER` `FlowType` is processed, this method handles debiting the 'from' account by `amount` and crediting the 'to' account by `convertedAmount`.
-[^28]: CurrencyService.java: `refreshCurrency()` - Method that makes an HTTP GET request to an external exchange rate API (`https://api.exchangerate-api.com/v4/latest/USD`) and updates the in-memory currency rates.
+###### Entity Relationship Details
+
+**t\_user\_user**
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `Integer` | **Primary Key** | Unique identifier for the user. |
+| `username` | `VARCHAR(16)` | Unique | User's login name. |
+| `nick_name` | `VARCHAR(16)` | | User's display name. |
+| `password` | `VARCHAR(64)` | | Hashed password. |
+| `default_group_id` | `Integer` | Foreign Key (t\_user\_group) | The user's default group. |
+| `default_book_id` | `Integer` | Foreign Key (t\_user\_book) | The user's default book. |
+| `enable` | `Boolean` | Not Null | Flag to enable/disable the user. |
+
+**t\_user\_group**
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `Integer` | **Primary Key** | Unique identifier for the group. |
+| `name` | `VARCHAR(64)`| Not Null | Name of the group. |
+| `creator_id` | `Integer` | Foreign Key (t\_user\_user) | The user who created the group. |
+| `default_book_id` | `Integer` | Foreign Key (t\_user\_book) | The group's default book. |
+| `default_currency_code` |`VARCHAR(8)` | Not Null | Default currency for the group. |
+
+**t\_user\_user\_group\_relation**
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `Integer` | **Primary Key** | Unique identifier for the relation. |
+| `user_id` | `Integer` | **Foreign Key (t\_user\_user)**, Unique with group\_id | The user in the relationship. |
+| `group_id` | `Integer` | **Foreign Key (t\_user\_group)**, Unique with user\_id | The group in the relationship. |
+| `role` | `Integer` | Not Null | User's role within the group (e.g., owner, member). |
+
+**t\_user\_book**
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `Integer` | **Primary Key** | Unique identifier for the book. |
+| `name`| `VARCHAR(64)`| Not Null | Name of the book. |
+| `group_id` | `Integer` | Not Null, **Foreign Key (t\_user\_group)** | The group this book belongs to. |
+| `default_currency_code`|`VARCHAR(8)` | Not Null | Default currency for this book. |
+| `default_expense_account_id`| `Integer` | Foreign Key (t\_user\_account) | Default account for expenses. |
+| `default_income_account_id`| `Integer` | Foreign Key (t\_user\_account) | Default account for income. |
+
+**t\_user\_account**
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `Integer` | **Primary Key** | Unique identifier for the account. |
+| `name`| `VARCHAR(64)`| Not Null | Name of the account. |
+| `group_id` | `Integer` | Not Null, **Foreign Key (t\_user\_group)** | The group this account belongs to. |
+| `type` | `Integer` | Not Null | Type of account (Checking, Credit, etc.). |
+| `balance` | `DECIMAL(20,2)` | Not Null | Current balance of the account. |
+| `currency_code` | `VARCHAR(8)` | Not Null | Currency of the account. |
+| `credit_limit`| `DECIMAL(20,2)`| | Credit limit for credit accounts. |
+
+**t\_user\_balance\_flow**
+
+| Column | Type | Constraints | Description |
+| :---| :--- | :--- | :--- |
+| `id` | `Integer` | **Primary Key** | Unique identifier for the transaction. |
+| `book_id` | `Integer` | Not Null, **Foreign Key (t\_user\_book)** | The book where the transaction is recorded. |
+| `group_id` | `Integer` | Not Null, **Foreign Key (t\_user\_group)** | The group this transaction belongs to. |
+| `creator_id` | `Integer` | Not Null, **Foreign Key (t\_user\_user)** | The user who created the transaction. |
+| `type` | `Integer` | Not Null | Type of flow (Expense, Income, Transfer, Adjust). |
+| `amount` | `DECIMAL(15,2)`| Not Null | The transaction amount. |
+| `converted_amount` | `DECIMAL(15,2)`| | The amount converted to the book's default currency. |
+| `account_id` | `Integer` | Foreign Key (t\_user\_account) | The source account for the transaction. |
+| `to_id` | `Integer` | Foreign Key (t\_user\_account) | The destination account (for transfers). |
+| `payee_id` | `Integer` | Foreign Key (t\_user\_payee) | The payee involved in the transaction. |
+
+#### Data Access and Transaction Analysis
+
+Data access is uniformly handled through Spring Data repositories. Complex filtering and searching are implemented using QueryDSL predicate builders, which are found in `*QueryForm` classes like `AccountQueryForm` and `BalanceFlowQueryForm`[^6]. These forms dynamically construct `Predicate` objects based on user-supplied filter criteria.
+
+##### Transaction Management
+
+The application employs declarative transaction management using Spring's `@Transactional` annotation. Most business logic is encapsulated within service classes (e.g., `AccountService`, `BalanceFlowService`), which are annotated at the class level with `@Transactional`[^7]. This ensures that all public methods within these services run inside a database transaction by default.
+
+Read-only operations, such as queries and reports, are often optimized by specifying `@Transactional(readOnly = true)`[^8]. This signals to the persistence provider that the transaction will not modify data, allowing for potential performance improvements.
+
+The table below outlines key transactions, their characteristics, and the components involved.
+
+| Transaction / Operation | API Endpoint / Method | Type | Involved Entities / Tables | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **Add Transaction** | `POST /balance-flows` (`BalanceFlowService.add`) [^9] | Read-Write | `BalanceFlow`, `Account`, `Book`, `User`, `Group`, `Category`, `CategoryRelation`, `Tag`, `TagRelation`, `Payee` | Creates a new transaction, updates account balances, and creates relations to categories/tags. This is a complex transaction involving multiple writes and reads. |
+| **Adjust Account Balance** | `POST /accounts/{id}/adjust` (`AccountService.adjustBalance`) [^10] | Read-Write | `Account`, `BalanceFlow`, `Book`, `User`, `Group` | Adjusts an account's balance to a new value and creates an `ADJUST` type `BalanceFlow` record to log the change. |
+| **Remove Account** | `DELETE /accounts/{id}` (`AccountService.remove`) [^11] | Read-Write | `Account`, `BalanceFlow`, `Book` | Deletes an account after checking for dependencies like associated transactions or if it's a default account for a book. |
+| **Create Group and Book** | `POST /groups` (`GroupService.add`) [^12] | Read-Write | `Group`, `User`, `Book`, `UserGroupRelation`, `Category`, `Tag`, `Payee` | A multi-step process to create a new group, automatically generate a default book from a template, and establish the user's ownership relation. |
+| **Query Accounts** | `GET /accounts` (`AccountService.query`) [^8] | Read-Only | `Account`, `Group` | Fetches a paginated list of accounts based on filter criteria, converting balances to the group's default currency. |
+| **Generate Category Report**| `GET /reports/expense-category` (`ReportService.reportCategory`) [^13]| Read-Only | `CategoryRelation`, `BalanceFlow`, `Category`, `Book` | Aggregates transaction data to generate a report on spending by category, involving complex joins and calculations. |
+
+#### Data Flow Between Components
+
+Data flows through a standard three-tier architecture: Controller -> Service -> Repository. DTOs (`*Form` classes) are used for input from the API, while other DTOs (`*Details` classes) are used for output. Mappers (`*Mapper` classes) are responsible for converting between DTOs and JPA entities.
+
+| Source | Destination | Operation | Description |
+| :--- | :--- | :--- | :--- |
+| API: `POST /accounts` (`AccountController`, `AccountAddForm`) [^14] | Database: `t_user_account` | Insert | The `AccountAddForm` DTO is received by the controller, passed to `AccountService`, converted to an `Account` entity by `AccountMapper`, and saved to the database via `AccountRepository`. |
+| Database: `t_user_account` | API: `GET /accounts` (`AccountController`, `AccountDetails`) [^15] | Read | `AccountService` calls `AccountRepository` to fetch `Account` entities. These are converted by `AccountMapper` to `AccountDetails` DTOs, which are then returned by the API. |
+| API: `POST /balance-flows` (`BalanceFlowController`, `BalanceFlowAddForm`) [^9] | Database: `t_user_balance_flow`, `t_user_account` | Read-Modify-Write | The service reads the associated `Account`, `Book`, etc. It then creates a new `BalanceFlow` record and updates the balance in the `t_user_account` table within the same transaction. |
+| Database: `t_user_balance_flow`, `t_user_category_relation` | API: `GET /reports/expense-category` (`ReportController`) [^13] | Read/Aggregate | `ReportService` queries multiple tables, including `BalanceFlow` and `CategoryRelation`, to aggregate spending data by category and returns the summarized results. |
+| `application.properties` [^1] & `src/main/resources/1.sql` [^16] | Database: `moneynote` schema | Write/Update | On startup, Spring Boot uses the connection properties to connect to the MySQL database. `SqlScriptRunner` executes `1.sql` to perform schema migrations or data updates. |
+
+[^1]: application.properties: `spring.datasource.url` - Defines the JDBC connection string for a MySQL database.
+[^2]: BaseRepository.java: `BaseRepository<T extends BaseEntity> extends JpaRepository<T, Integer>, QuerydslPredicateExecutor<T>` - Custom base repository combining JPA and QueryDSL functionalities.
+[^3]: BaseRepositoryImpl.java: `calcSum` - Custom method implementation using JPAQueryFactory to calculate sums on specified columns.
+[^4] : AccountTypeAttributeConverter.java: `convertToDatabaseColumn` - Converts the `AccountType` enum to an Integer for database storage.
+[^5]: FlowTypeAttributeConverter.java: `convertToDatabaseColumn` - Converts the `FlowType` enum to an Integer for database storage.
+[^6]: BalanceFlowQueryForm.java: `buildPredicate` - Constructs a QueryDSL predicate for filtering `BalanceFlow` records.
+[^7]: AccountService.java: `@Transactional` - Annotation at the class level to enable transactions for all public methods.
+[^8]: AccountService.java: `query` - Method marked as `@Transactional(readOnly = true)` for optimized read operations.
+[^9]: BalanceFlowService.java: `add` - Handles the creation of a new balance flow, including updating account balances and creating relations.
+[^10]: AccountService.java: `adjustBalance` - Manages the process of adjusting an account's balance and logging it as a transaction.
+[^11]: AccountService.java: `remove` - Contains logic to safely delete an account by checking for existing dependencies.
+[^12]: GroupService.java: `add` - Orchestrates the creation of a new user group, a default book, and ownership relations.
+[^13]: ReportService.java: `reportCategory` - Gathers and processes data from multiple tables to generate financial reports.
+[^14]: AccountController.java: `handleAdd` - API endpoint for creating a new account.
+[^15]: AccountController.java: `handleQuery` - API endpoint for querying accounts.
+[^16]: SqlScriptRunner.java: `run` - A component that executes a SQL script (`1.sql`) on application startup.
+
+## Assessment Findings
+### Security and Compliance
+This section outlines the core user journeys and their corresponding business requirements as implemented in the codebase. It serves as a functional requirements document reverse-engineered from the application's logic.
+
+#### Tracking Incomes & Expenses
+
+This journey describes how a user records their daily financial transactions, such as expenses and income, which is the fundamental feature of the application.
+
+##### Core Interactions
+
+1.  **Initiate Transaction Entry**: The user starts from a primary dashboard or a book-specific view and selects an option to add a new transaction.
+2.  **Select Transaction Type**: The user chooses the type of transaction, primarily "Expense" or "Income". The system also supports "Transfer" and "Balance Adjustment" as distinct flows.
+3.  **Enter Transaction Details**: The user provides essential information for the transaction:
+    *   A descriptive title (e.g., "Groceries", "Monthly Salary").
+    *   The date and time of the transaction.
+    *   The source or destination `Account` for the funds.
+    *   One or more `Categories` to classify the transaction, including the amount for each category. The system sums these amounts to determine the total transaction value.
+    *   An optional `Payee` (e.g., "Walmart", "Client Inc.").
+    *   Optional `Tags` for further classification (e.g., "work", "holiday").
+    *   A text `note` for additional context.
+4.  **Handle Currency Conversion**: If the selected account's currency is different from the book's default currency, the system requires the user to input the converted amount, ensuring all transactions can be aggregated in a single currency for reporting.
+5.  **Confirm and Save**: The user saves the transaction. The system validates the input and, if the transaction is marked as 'confirmed', immediately updates the balance of the associated account [^1].
+
+##### Business Requirements
+
+*   **Transaction Typing**: All financial records must be classified with a `FlowType`, which includes `EXPENSE`, `INCOME`, `TRANSFER`, and `ADJUST` [^2].
+*   **Book Association**: Every transaction must be associated with a specific `Book`, which acts as a ledger [^3].
+*   **Categorization**:
+    *   Expense and income transactions must be assigned to at least one `Category` [^4].
+    *   The system supports split-categorization, where a single transaction can be divided across multiple categories, each with a specific amount [^5].
+    *   The total transaction `amount` is automatically calculated as the sum of all amounts assigned to its categories [^6].
+*   **Balance Updates**: When a confirmed transaction is created, the system must automatically adjust the balance of the associated `Account`. The balance is decreased for an `EXPENSE` and increased for an `INCOME` [^1].
+*   **Data Integrity on Updates**: Updating a transaction is handled by deleting the original record and creating a new one. This ensures that all balance calculations and associations are correctly re-applied, maintaining financial data integrity [^7].
+*   **Field Validations**: All user-provided fields such as name, notes, and amounts are subject to validation rules, such as maximum length and format constraints [^8].
+
+##### Example User Flow
+
+1.  **User Action**: Sarah logs into the MoneyNote app to record her morning coffee purchase.
+2.  **Navigation**: She is on the main dashboard and taps the `+` button to add a new record.
+3.  **Form Filling**:
+    *   She selects **Expense** as the transaction type.
+    *   She chooses her "Debit Card" from the `Account` dropdown.
+    *   In the `Category` field, she selects "Food" and enters `$3.50`.
+    *   She selects "Local Coffee Shop" as the `Payee`.
+    *   She adds the tag "morning_ritual".
+    *   She taps **Save**.
+4.  **System Response**: The system validates the entry, creates a new `BalanceFlow` record, and deducts $3.50 from her "Debit Card" account balance. The transaction immediately appears in her list of recent activities.
+
+#### Monitoring Financial Situation
+
+This journey allows the user to get a high-level overview of their financial health and dive into detailed reports to understand their spending and earning patterns.
+
+##### Core Interactions
+
+1.  **Access Overview**: The user navigates to a dashboard or an "Overview" screen.
+2.  **View Key Metrics**: The system presents a real-time summary of the user's financial position, including:
+    *   Total Assets.
+    *   Total Debts.
+    *   Net Worth (calculated as Assets minus Debts).
+3.  **Navigate to Reports**: The user moves to the "Reports" section to conduct a more detailed analysis.
+4.  **Generate a Report**: The user selects the parameters for the report:
+    *   **Report Type**: Breakdown by Category, Tag, or Payee.
+    *   **Data Set**: Choose between analyzing expenses or income.
+    *   **Filters**: Apply filters such as a specific date range, book, or account.
+5.  **Analyze Visualization**: The system generates and displays a visual report, typically a pie chart or bar chart, showing the requested data breakdown with corresponding percentages. The user can interact with the chart to drill down into sub-categories or view underlying transaction data.
+
+##### Business Requirements
+
+*   **Financial Overview Calculation**:
+    *   The system must provide an overview by calculating total assets, total debts, and the resulting net worth [^9].
+    *   Assets are defined as the sum of balances from accounts of type `CHECKING` and `ASSET` [^10].
+    *   Debts are defined as the sum of balances from accounts of type `CREDIT` and `DEBT` [^11].
+    *   All overview calculations must be converted to the user's group-level default currency to ensure consistency [^12].
+*   **Reporting Engine**:
+    *   The system must support the generation of reports that aggregate financial data by `Category`, `Tag`, and `Payee` [^13].
+    *   Reports must only consider transactions that are marked as `confirm` and `include` to ensure statistical accuracy [^14].
+    *   The reporting feature must allow filtering by various dimensions, including `book`, `time range`, `account`, and `payees` [^15].
+*   **Data Presentation**:
+    *   Reports must present data with both absolute values and the percentage relative to the total, providing clear insights into financial distributions [^16].
+    *   The system must support hierarchical (tree-structured) reports for categories and tags, allowing users to see both parent-level summaries and drill down into child-level details [^17].
+
+##### Example User Flow
+
+1.  **User Action**: At the end of the month, David wants to review his spending habits.
+2.  **Navigation**: He opens the app and navigates to the "Reports" section.
+3.  **Report Configuration**:
+    *   He selects **Expense by Category** for his "Personal" book.
+    *   He sets the date filter to the "Last 30 Days".
+4.  **System Response**: The app displays a pie chart. David sees that "Housing" makes up 40% of his spending, "Food" is 25%, and "Transportation" is 15%.
+5.  **Drill-Down**: He taps on the "Housing" slice. The chart updates to show the sub-categories within Housing: "Rent" (80%) and "Utilities" (20%). This gives him a clear picture of his biggest monthly expenses.
+
+#### Managing Finance Record Files
+
+This journey enables users to attach digital files, such as receipts or invoices, to their transaction records for documentation and future reference.
+
+##### Core Interactions
+
+1.  **Initiate File Attachment**: While creating or editing a transaction, the user selects an "Attach File" or similar option.
+2.  **Select and Upload File**: The user chooses a file from their device's storage. The application supports common formats like images (JPEG, PNG) and documents (PDF).
+3.  **Upload and Link**: The system uploads the file and creates a permanent association with the `BalanceFlow` (transaction) record.
+4.  **View and Manage Attachments**: After saving, the user can see an indicator of attached files on the transaction summary. By opening the transaction details, they can view a list of attached files, preview them, or download them.
+
+##### Business Requirements
+
+*   **File Association**: The system must allow one or more files to be associated with a single `BalanceFlow` entity [^18].
+*   **File Storage**: Uploaded files must be stored securely. The current implementation stores the file content as a `LONGBLOB` directly in the `t_flow_file` database table [^19].
+*   **Metadata Storage**: For each uploaded file, the system must store its `contentType`, `size`, `originalName`, the `creator`, and the creation timestamp [^20].
+*   **File Type Validation**: The system must validate uploaded files to ensure they conform to a predefined list of allowed content types, including `application/pdf`, `image/png`, and `image/jpeg` [^21].
+*   **Secure Access**: File access must be secure. The endpoint for viewing a file requires both the file `id` and its `createTime` as query parameters, which acts as a simple mechanism to prevent unauthorized enumeration and direct access [^22].
+*   **Lifecycle Management**: When a parent transaction is deleted, all associated file records must also be deleted. If a transaction is updated, file associations must be transferred to the new transaction record [^7].
+
+##### Example User Flow
+
+1.  **User Action**: Emily buys a new monitor for her home office and wants to save the receipt for her tax records.
+2.  **Transaction Entry**: She creates a new expense in MoneyNote for the purchase, categorizing it under "Office Equipment".
+3.  **File Attachment**: Before saving, she taps the paperclip icon, selects "Take Photo," and takes a picture of the physical receipt.
+4.  **System Response**: The image is uploaded and appears as a thumbnail in the transaction entry form.
+5.  **Confirmation**: Emily saves the transaction.
+6.  **Later Retrieval**: Months later, during tax season, she filters her transactions for the "Office Equipment" category, finds the monitor purchase, and downloads the attached receipt image to include in her tax filings.
+
+#### Supporting Multiple Books
+
+This journey allows users to maintain separate ledgers (Books) for different financial purposes, such as personal, family, or business finances, within a single account.
+
+##### Core Interactions
+
+1.  **Create a Book**: The user navigates to the book management area and creates a new book. They can:
+    *   Create a blank book from scratch.
+    *   Use a predefined template (e.g., "Personal Life", "Business") that comes with a set of default categories and tags [^23].
+    *   Duplicate the structure (categories, tags, payees) of an existing book [^24].
+2.  **Set Book Properties**: When creating a book, the user provides a name and sets its `default currency`.
+3.  **Switch Between Books**: The user selects the active book from a dropdown or menu. All subsequent actions (adding transactions, viewing reports) are performed within the context of the selected book.
+4.  **Set Default Book**: The user can designate one book as their default, which is automatically selected upon login.
+5.  **Manage Books**: Users can edit book properties (like name or default accounts) or delete books that are no longer needed.
+
+##### Business Requirements
+
+*   **Book as a Container**: A `Book` must serve as the primary container for a set of related `BalanceFlow` records, `Categories`, `Tags`, and `Payees` [^25].
+*   **Group Organization**: All books must belong to a `Group`, which allows for multi-user collaboration (though the focus here is on multi-book support for a single user) [^26].
+*   **Creation Flexibility**:
+    *   The system must support creating a `Book` from pre-defined templates loaded from a JSON configuration file [^27].
+    *   The system must support copying the entire setup (categories, tags, payees) from an existing `Book` to a new one [^24].
+*   **Book-Specific Context**: Each `Book` must have its own `defaultCurrencyCode`, which is the base currency for all its financial reports and balance conversions [^28].
+*   **User-Level Default**: Each `User` has a `defaultBook` setting, which determines the active book upon logging in [^29].
+*   **Deletion Constraint**: A `Book` cannot be deleted if it contains any `BalanceFlow` records, preventing accidental data loss [^30].
+
+##### Example User Flow
+
+1.  **User Action**: Alex is starting a freelance side-business and wants to track its finances separately from his personal budget.
+2.  **Book Creation**: He goes to "Manage Books" and taps "Add Book". He chooses the "Create from Template" option and selects a "Small Business" template. He names it "Alex's Consulting" and sets the default currency to USD.
+3.  **System Response**: The new book is created with pre-populated categories like "Client Revenue," "Software Subscriptions," and "Marketing Expenses."
+4.  **Usage**:
+    *   When he receives a payment from a client, he first switches to the "Alex's Consulting" book and records it as `Income`.
+    *   When he buys groceries, he switches back to his "Personal" book and records it there.
+5.  **Reporting**: At the end of the quarter, he generates a profit-and-loss report by selecting only the "Alex's Consulting" book, giving him a clear view of his business's performance.
+
+#### Supporting Multiple Currencies
+
+This journey enables users to manage accounts and transactions in different currencies, which is essential for users who travel, work internationally, or hold foreign currency accounts.
+
+##### Core Interactions
+
+1.  **Create a Foreign Currency Account**: The user creates a new `Account` (e.g., a bank account or credit card) and specifies a currency different from their book's default, such as EUR or JPY.
+2.  **Record a Transaction**: When the user records a transaction using this foreign currency account, the system recognizes the currency mismatch with the book's default currency.
+3.  **Provide Converted Value**: The user is prompted to enter the `convertedAmount`—the value of the transaction in the book's default currency. This ensures that the transaction's impact on overall financial reports is accurately captured.
+4.  **View Balances**: The user views their list of accounts. For foreign currency accounts, the system displays the balance in its native currency alongside its calculated value in the book's default currency.
+5.  **Manage Exchange Rates**: The system automatically fetches exchange rates from an external service. Advanced users could potentially access a screen to manually override these rates if needed.
+
+##### Business Requirements
+
+*   **Currency Association**: Every `Account` must have a `currencyCode` (e.g., "USD", "EUR") [^31].
+*   **Conversion Logic**:
+    *   For any transaction where the `Account` currency does not match the `Book`'s default currency, both the original `amount` and the `convertedAmount` must be stored [^32].
+    *   For transfers between accounts with different currencies, the `amount` is debited from the source account, and the `convertedAmount` is credited to the destination account [^33].
+*   **Exchange Rate Management**:
+    *   The system must fetch and cache exchange rates relative to a base currency (USD) from an external API (`api.exchangerate-api.com`) [^34].
+    *   The system must provide a mechanism for manually adjusting an exchange rate for a specific currency [^35].
+*   **Consistent Reporting**: All high-level financial reports and overview metrics must convert amounts from various currencies into a single, consistent currency (the group's default) to allow for meaningful aggregation and comparison [^12].
+
+##### Example User Flow
+
+1.  **User Action**: Maria is planning a trip to Japan and opens a JPY-denominated travel card account.
+2.  **Account Setup**: In MoneyNote, she creates a new `Account` named "Travel Card (JPY)", setting its currency to `JPY`. Her main book's currency is `USD`.
+3.  **Transaction in Japan**: She buys a souvenir for ¥5,000 and records it in the app using her "Travel Card (JPY)" account.
+4.  **System Prompt**: The app detects that the account is in JPY while the book is in USD. It displays the ¥5,000 amount and provides a field for the USD equivalent. Based on the current exchange rate, it suggests `$35.00`. Maria confirms this value.
+5.  **System Response**: The transaction is saved with an amount of 5000 (JPY) and a converted amount of 35.00 (USD).
+6.  **Reporting**: When she later runs her monthly expense report, the $35.00 from this purchase is added to her total spending, allowing her to see its impact on her overall USD-based budget.
+
+[^1]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: confirmBalance() - This method updates the account balance based on the flow type (expense, income, transfer) if the transaction is confirmed.
+[^2]: src/main/java/cn/biq/mn/balanceflow/FlowType.java: EXPENSE, INCOME, TRANSFER, ADJUST - Defines the possible types for a financial transaction.
+[^3]: src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java: book - The `BalanceFlow` entity has a mandatory `ManyToOne` relationship with the `Book` entity.
+[^4]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: checkBeforeAdd() - This method validates that expense/income transactions have a non-empty list of categories.
+[^5]: src-main-java-cn-biq-mn-categoryrelation-CategoryRelationForm.java: CategoryRelationForm - Represents the form for associating a category and an amount within a single transaction.
+[^6]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: add() - This method calculates the total `amount` by summing the amounts from the `categories` list in the form.
+[^7]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: update() - Logic for updating a transaction involves removing the old one, creating a new one, and re-associating any attached files.
+[^8]: src/main/java/cn/biq/mn/validation/NameField.java: @Size, @NotStartsWithSpace, @NotEndsWithSpace - Custom validation annotations applied to many entity and form fields.
+[^9]: src/main/java/cn/biq/mn/account/AccountService.java: overview() - Calculates and returns an array containing total assets, total debts, and net worth.
+[^10]: src/main/java/cn/biq/mn/account/AccountService.java: getAssets() - This method retrieves all accounts of type `CHECKING` and `ASSET` that are enabled and included in statistics.
+[^11]: src/main/java/cn/biq/mn/account/AccountService.java: getDebts() - This method retrieves all accounts of type `CREDIT` and `DEBT` that are enabled and included in statistics.
+[^12]: src/main/java/cn/biq/mn/account/AccountService.java: overview() - Iterates through asset and debt accounts, converting each balance to the group's default currency code using `currencyService.convert`.
+[^13]: src/main/java/cn/biq/mn/report/ReportService.java: reportCategory(), reportTag(), reportPayee() - These methods are the core of the reporting engine, aggregating data based on different entities.
+[^14]: src/main/java/cn/biq/mn/report/CategoryReportQueryForm.java: buildCategoryPredicate() - Predicate builder ensures that only flows where `confirm.eq(true)` and `include.eq(true)` are included in reports.
+[^15]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowQueryForm.java: buildPredicate() - This method constructs a QueryDSL predicate based on various filter criteria from the form.
+[^16]: src/main/java/cn/biq/mn/report/ReportService.java: reportCategory() - After calculating the total, this method calculates the percentage for each `ChartVO` item.
+[^17]: src/main/java/cn/biq/mn/report/ReportService.java: reportCategory() - Logic here demonstrates traversing the category tree to aggregate amounts from child categories into their parents for hierarchical reporting.
+[^18]: src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java: files - A `OneToMany` relationship from `BalanceFlow` to `FlowFile` allows multiple files per transaction.
+[^19]: src/main/java/cn/biq/mn/flowfile/FlowFile.java: data - The `data` field is annotated with `@Lob` and `@Column(columnDefinition = "LONGBLOB")`, indicating direct binary storage in the database.
+[^20]: src/main/java/cn/biq/mn/flowfile/FlowFile.java: contentType, size, originalName, creator, createTime - Fields in the `FlowFile` entity that store metadata about the uploaded file.
+[^21]: src/main/java/cn/biq/mn/validation/FileValidator.java: isSupportedContentType() - This private method checks if the file's content type is one of the allowed types (pdf, png, jpg, jpeg).
+[^22]: src/main/java/cn/biq/mn/flowfile/FlowFileService.java: getFile() - This method retrieves a file only if both the ID and the `createTime` match the request, making the URL harder to guess.
+[^23]: src/main/java/cn/biq/mn/book/BookService.java: addByTemplate() - Handles the creation of a book from a predefined template.
+[^24]: src/main/java/cn/biq/mn/book/BookService.java: addByBook() - Implements the logic to copy categories, tags, and payees from a source book to a new book.
+[^25]: src/main/java/cn/biq/mn/book/Book.java: categories, tags, payees - `OneToMany` mappings from the `Book` entity to its child entities.
+[^26]: src/main.java/cn/biq/mn/book/Book.java: group - A `ManyToOne` relationship defines that a Book must belong to a Group.
+[^27]: src/main/java/cn/biq/mn/book/tpl/BookTplDataLoader.java: run() - This class loads book templates from `book_tpl.json` into the `ApplicationScopeBean` on startup.
+[^28]: src/main/java/cn/biq/mn/book/Book.java: defaultCurrencyCode - A required field in the `Book` entity that defines its base currency.
+[^29]: src/main/java/cn/biq/mn/user/User.java: defaultBook - A `ManyToOne` relationship from the `User` entity to the `Book` entity.
+[^30]: src/main/java/cn/biq/mn/book/BookService.java: remove() - Checks if a book has any associated flows using `balanceFlowRepository.existsByBook()` before allowing deletion.
+[^31]: src/main/java/cn/biq/mn/account/Account.java: currencyCode - A mandatory, non-blank field in the `Account` entity.
+[^32]: src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java: amount, convertedAmount - Fields in the `BalanceFlow` entity to store the original and converted transaction values.
+[^33]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: confirmBalance() - For a `TRANSFER`, this method subtracts the `amount` from the source account and adds the `convertedAmount` to the destination account.
+[^34]: src/main/java/cn/biq/mn/currency/CurrencyService.java: refreshCurrency() - This method makes a GET request to `https://api.exchangerate-api.com` to fetch the latest rates.
+[^35]: src/main/java/cn/biq/mn/currency/CurrencyService.java: changeRate() - Allows for updating the rate of a currency based on a new rate relative to a specified base currency.
 
 ### Modernization Challenges
 #### User Journeys
 
-This section outlines the primary user journeys that the MoneyNote application supports. By analyzing the application's code, we can reverse-engineer the intended functionality and distill it into a set of business requirements and user flows. This serves as a foundational requirements document, detailing what the system currently does from a user's perspective.
-
-##### 1\. Monitor Financial Situation
-
-This journey describes how a user gains a high-level understanding of their overall financial health by viewing aggregated assets, debts, and net worth.
-
-###### Core Interactions
-
-The user interacts with dashboard or reporting sections of the application to see a consolidated view of their finances. The system aggregates data from various accounts, performs necessary currency conversions, and presents the information in a summarized and graphical format. This provides an at-a-glance overview without needing to inspect individual accounts.
-
-###### Business requirements
-
-The system implements the following business rules to provide a financial overview:
-
-| Requirement ID | Description | Implemented In |
-| :--- | :--- | :--- |
-| REQ-FIN-01 | The system must calculate the total value of all assets. Assets are defined as accounts of type `CHECKING` and `ASSET` that are marked as `enabled` and `included` in statistics. [^1] | `AccountService.java: getAssets()` |
-| REQ-FIN-02 | The system must calculate the total value of all debts. Debts are defined as accounts of type `CREDIT` and `DEBT` that are marked as `enabled` and `included` in statistics. [^2] | `AccountService.java: getDebts()` |
-| REQ-FIN-03 | The system must calculate the user's net worth by subtracting total debts from total assets. [^3] | `AccountService.java: overview()` |
-| REQ-FIN-04 | All financial totals (assets, debts, net worth) must be presented in the user's active group's default currency. The system must perform currency conversions for accounts with different currencies. [^4] | `AccountService.java: overview()` |
-| REQ-FIN-05 | The system must provide data for generating charts that break down total assets and total debts by individual accounts, showing the contribution of each account to the total. [^5] | `ReportService.java: reportBalance()` |
-| REQ-FIN-06 | When calculating report totals, the system must use the appropriate currency conversion rate to ensure all values are comparable in the group's default currency. [^6] | `ReportService.java: reportBalance()` |
-
-###### Example user flow
-
-**User Goal:** To quickly check their current net worth.
-
-1.  **Login:** The user logs into the MoneyNote application.
-2.  **Navigate to Dashboard:** The user accesses the main dashboard or "Overview" page.
-3.  **API Call:** The frontend makes a request to the `/accounts/overview` endpoint.
-4.  **System Processing:**
-    *   The `AccountService` fetches all `ASSET` and `CHECKING` accounts.
-    *   It then fetches all `CREDIT` and `DEBT` accounts.
-    *   It iterates through each list, converting each account's balance to the group's default currency.
-    *   It sums the converted values to get a total asset value and a total debt value.
-    *   It calculates the net worth.
-5.  **Display Information:** The UI displays three prominent figures: "Total Assets," "Total Debts," and "Net Worth."
-
-##### 2\. Track Incomes & Expenses
-
-This journey covers the fundamental task of recording financial transactions, including expenditures and earnings, and classifying them for reporting and analysis.
-
-###### Core Interactions
-
-The user creates a new transaction by filling out a form. They specify the transaction type (income or expense), associate it with an account and a book, assign it to one or more categories, and enter the amount. They can also add optional details like tags, a payee, and notes. Once saved, the transaction is logged, and the corresponding account balance is updated.
-
-###### Business requirements
-
-The system implements the following business rules for tracking transactions:
-
-| Requirement ID | Description | Implemented In |
-| :--- | :--- | :- |
-| REQ-TRK-01 | Users must be able to create financial transactions of type `EXPENSE` and `INCOME`. [^7] | `FlowType.java` |
-| REQ-TRK-02 | Every transaction must belong to a specific `Book` and be associated with a `Group`. [^8] | `BalanceFlow.java` |
-| REQ-TRK-03 | A transaction must be linked to a source/destination `Account`. [^9] | `BalanceFlowAddForm.java` |
-| REQ-TRK-04 | Transactions must be classifiable using at least one `Category`. The system supports splitting a single transaction across multiple categories, each with its own amount. [^10] | `BalanceFlowAddForm.java`, `CategoryRelation.java` |
-| REQ-TRK-05 | The total amount of an expense or income transaction is calculated as the sum of all its category amounts. [^11] | `BalanceFlowService.java: add()` |
-| REQ-TRK-06 | Users can optionally add multiple `Tags` to a transaction for further classification. [^12] | `BalanceFlowAddForm.java` |
-| REQ-TRK-07 | Users can optionally associate a `Payee` with an income or expense transaction. [^13] | `BalanceFlowAddForm.java` |
-| RE-TRK-08 | When a transaction is marked as 'confirmed', the system must automatically update the balance of the associated account. The balance is decreased for an expense and increased for an income. [^14] | `BalanceFlowService.java: confirmBalance()` |
-| REQ-TRK-09 | The system must provide full CRUD (Create, Read, Update, Delete) operations for all transactions. [^15] | `BalanceFlowController.java` |
-
-###### Example user flow
-
-**User Goal:** To record a grocery shopping expense.
-
-1.  **Initiate Transaction:** The user clicks the "Add Transaction" button from their current book view.
-2.  **Fill Form:**
-    *   Selects **Type**: `EXPENSE`.
-    *   Selects **Account**: "My Checking Account".
-    *   Selects **Category**: "Food" and enters an **Amount**: 50.75.
-    *   (Optional) Adds a second category split: "Household" and **Amount**: 12.50.
-    *   (Optional) Adds **Tag**: "Weekly Shopping".
-    *   (Optional) Selects **Payee**: "Local Supermarket".
-    *   (Optional) Adds **Notes**: "Weekly groceries and cleaning supplies".
-    *   Sets the **Date**.
-3.  **Confirm and Save:** The user saves the transaction.
-4.  **API Call:** The frontend sends a `POST` request to `/balance-flows` with the form data.
-5.  **System Processing:**
-    *   `BalanceFlowService` validates the input.
-    *   It calculates the total amount: 50.75 + 12.50 = 63.25.
-    *   It creates a new `BalanceFlow` entity and associated `CategoryRelation` entities.
-    *   The `confirmBalance` method is called, which subtracts 63.25 from the balance of "My Checking Account".
-6.  **Confirmation:** The transaction appears in the user's transaction list.
-
-##### 3\. Attach Financial Record Files
-
-This journey allows users to attach digital files, such as receipts or invoices, to their transaction records for archival and proof-of-purchase.
-
-###### Core Interactions
-
-Within the context of a specific transaction, the user selects an option to upload a file. They choose a file from their local device, and the application uploads and links it to the transaction. The user can later view a list of attachments for that transaction and download or view them.
-
-###### Business requirements
-
-The system implements the following business rules for file attachments:
-
-| Requirement ID | Description | Implemented In |
-| :--- | :--- | :--- |
-| REQ-FILE-01 | The system must allow users to attach files to an existing `BalanceFlow` (transaction) record. [^16] | `FlowFileController.java: handleAddFile()` |
-| REQ-FILE-02 | The system must validate uploaded files and only accept specific content types: `application/pdf`, `image/png`, `image/jpg`, and `image/jpeg`. [^17] | `FileValidator.java` |
-| REQ-FILE-03 | For each uploaded file, the system must store its binary data, original filename, content type, and size. [^18] | `FlowFile.java` |
-| REQ-FILE-04 | Each file record (`FlowFile`) must be associated with the user who uploaded it and the specific transaction (`BalanceFlow`) it belongs to. [^19] | `FlowFile.java` |
-| REQ-FILE-05 | The system must provide a secure endpoint for viewing and downloading attached files. Access is granted based on the file ID and its creation timestamp to prevent simple enumeration. [^20] | `FlowFileController.java: handleView()` |
-| REQ-FILE-06 | Users must be able to delete previously attached files from a transaction. [^21] | `FlowFileService.java: remove()` |
-
-###### Example user flow
-
-**User Goal:** To attach a PDF invoice to a business expense.
-
-1.  **Navigate to Transaction:** The user finds and opens the details of a transaction, for example, "Software License Renewal".
-2.  **Upload File:** The user clicks an "Attach File" or "Upload Receipt" button.
-3.  **Select File:** A file browser opens, and the user selects `invoice-2023.pdf` from their computer.
-4.  **API Call:** The frontend sends a multipart `POST` request to `/balance-flows/{id}/addFile` with the selected file.
-5.  **System Processing:**
-    *   The `FileValidator` checks if the content type is `application/pdf`.
-    *   `FlowFileService` reads the file's bytes and metadata.
-    *   It creates a new `FlowFile` entity, links it to the "Software License Renewal" transaction, and saves it to the database.
-6.  **Confirmation:** The transaction detail view is updated to show a link to `invoice-2023.pdf` in its list of attachments.
-
-##### 4\. Support Multiple Books
-
-This journey enables users to maintain separate, self-contained ledgers (called "Books") to segregate different areas of their financial life, such as personal, family, or business finances.
-
-###### Core Interactions
-
-A user can create new Books, either from scratch, by copying an existing Book, or from a predefined template. Each Book acts as an independent container with its own default currency and its own set of categories, tags, and payees. The user can switch their active context to a different Book to record and view transactions relevant only to that ledger.
-
-###### Business requirements
-
-The system implements the following business rules for managing Books:
-
-| Requirement ID | Description | Implemented In |
-| :--- | :--- | :--- |
-| REQ-BOOK-01 | Users must be able to create and manage multiple `Books` to organize transactions. [^22] | `BookController.java: handleAdd()` |
-| REQ-BOOK-02 | Each `Book` is an isolated container for its own `Categories`, `Tags`, and `Payees`. [^23] | `Book.java` |
-| REQ-BOOK-03 | Each `Book` must have a `defaultCurrencyCode` which serves as the base currency for its transactions and reports. [^24] | `Book.java` |
-| REQ-BOOK-04 | The system must provide a mechanism for users to create a new `Book` based on a predefined `BookTemplate`, which pre-populates categories and tags. [^25] | `BookService.java: addByTemplate()` |
-| REQ-BOOK-05 | The system must allow a user to create a new `Book` by copying the structure (categories, tags, payees) of an existing `Book`. [^26] | `BookService.java: addByBook()` |
-| REQ-BOOK-06 | A user must be able to set a specific `Book` as their default/active book for the current session. All subsequent actions will be performed within the context of this book. [^27] | `UserService.java: setDefaultBook()` |
-| REQ-BOOK-07 | A `Book` cannot be deleted if it contains any transaction records (`BalanceFlow`). [^28] | `BookService.java: remove()` |
-
-###### Example user flow
-
-**User Goal:** To create a new book to track expenses for a vacation.
-
-1.  **Navigate to Book Management:** The user goes to the "Settings" or "Manage Books" area of the application.
-2.  **Create New Book:** The user clicks "Add New Book."
-3.  **Choose Creation Method:** The user is presented with options and chooses "Create from Template."
-4.  **Select Template:** The user selects a "Travel/Vacation" template from a list.
-5.  **Configure Book:**
-    *   Enters **Name**: "Europe Trip 2024".
-    *   Sets **Default Currency**: "EUR".
-6.  **API Call:** The frontend sends a `POST` request to `/books/template`.
-7.  **System Processing:**
-    *   `BookService` creates a new `Book` entity named "Europe Trip 2024".
-    *   It loads the "Travel/Vacation" `BookTemplate` and programmatically creates all associated categories (e.g., "Flights," "Hotels," "Tours") and tags for the new book.
-8.  **Confirmation:** The "Europe Trip 2024" book is created. The user can now switch to this book to log trip-related expenses.
-
-##### 5\. Support Multiple Currencies
-
-This journey describes the system's capability to handle accounts and transactions in different currencies, perform conversions, and provide consolidated reporting.
-
-###### Core Interactions
-
-Users can create accounts in various currencies (e.g., USD, EUR, CNY). When recording transactions between accounts with different currencies, the system prompts for or calculates the converted amount. In reports and dashboards, all financial data is converted to a single, user-defined base currency for consistent analysis.
-
-###### Business requirements
-
-The system implements the following business rules for multi-currency support:
-
-| Requirement ID | Description | Implemented In |
-| :--- | :--- | :--- |
-| REQ-CUR-01 | The system must maintain a list of supported world currencies and their exchange rates relative to a base currency (USD). [^29] | `currency.json`, `CurrencyService.java` |
-| REQ-CUR-02 | The system must be able to refresh its exchange rate data by querying an external API. [^30] | `CurrencyService.java: refreshCurrency()` |
-| REQ-CUR-03 | Each `Account` entity must be assigned a specific `currencyCode`. [^31] | `Account.java` |
-| REQ-CUR-04 | For expense or income transactions involving an account whose currency differs from the Book's default currency, the system must store both the original `amount` and the `convertedAmount`. [^32] | `BalanceFlow.java`, `BalanceFlowService.java: add()` |
-| REQ-CUR-05 | For transfer transactions between two accounts with different currencies, the system must store the `amount` sent from the source account and the `convertedAmount` received in the destination account. [^33] | `BalanceFlowService.java: add()` |
-| REQ-CUR-06 | All high-level financial reports and overview statistics must convert amounts from all currencies into the group's single default currency for accurate aggregation. [^34] | `AccountService.java: statistics()`, `ReportService.java: reportBalance()` |
-
-###### Example user flow
-
-**User Goal:** To record a salary payment of €3,000 into a EUR-denominated account, while the main book currency is USD.
-
-1.  **User Setup:**
-    *   User has a `Book` with default currency USD.
-    *   User has an `Account` named "German Bank Account" with currency EUR.
-2.  **Initiate Transaction:** The user starts to add a new `INCOME` transaction.
-3.  **Fill Form:**
-    *   **Account**: Selects "German Bank Account (EUR)".
-    *   **Category**: Selects "Salary" and enters **Amount**: 3000.
-4.  **Handle Conversion:**
-    *   The system detects that the account currency (EUR) is different from the book's default currency (USD).
-    *   The UI calls the `/currencies/rate?from=EUR&to=USD` endpoint to get the exchange rate (e.g., 1.08).
-    *   The UI displays the calculated converted amount: 3000 \* 1.08 = $3,240. It allows the user to override this value if needed.
-5.  **Save Transaction:** The user confirms and saves.
-6.  **API Call:** The frontend sends a `POST` request to `/balance-flows`, including the `amount` (3000) and `convertedAmount` (3240).
-7.  **System Processing:**
-    *   A `BalanceFlow` entity is created.
-    *   `confirmBalance` is called, and the balance of the "German Bank Account" is increased by €3,000.
-    *   When the user later views a report in their USD-default book, this transaction contributes $3,240 to their total income.
-
-[^1]: AccountService.java: getAssets() - This method retrieves all accounts of type `CHECKING` and `ASSET` that are enabled and included in statistical calculations, defining what constitutes an asset.
-[^2]: AccountService.java: getDebts() - This method retrieves all accounts of type `CREDIT` and `DEBT` that are enabled and included, defining what constitutes a debt.
-[^3]: AccountService.java: overview() - This method orchestrates the calculation of total assets, total debts, and subtracts debts from assets to determine the net worth.
-[^4]: AccountService.java: overview() - Within this method, it iterates through asset and debt accounts, calling `currencyService.convert` to standardize all balances to the group's default currency before summation.
-[^5]: ReportService.java: reportBalance() - This method generates the data structure for balance charts by creating `ChartVO` objects for each asset and debt account, including their converted balance and percentage of the total.
-[^6]: ReportService.java: reportBalance() - This method explicitly calls `currencyService.convert` for each account to ensure all values are in the group's default currency before being added to the report.
-[^7]: FlowType.java: EXPENSE, INCOME - This enum defines the possible types for a financial flow, including `EXPENSE` and `INCOME`, which forms the basis of transaction tracking.
-[^8]: BalanceFlow.java: book, group - The `BalanceFlow` entity contains mandatory (`@NotNull`) fields for `Book` and `Group`, enforcing that every transaction belongs to both.
-[^9]: BalanceFlowAddForm.java: account - The form for adding a new transaction includes an `account` field, linking the flow to a specific financial account.
-[^10]: BalanceFlowAddForm.java: categories - The form accepts a list of `CategoryRelationForm` objects, allowing a single transaction to be split across multiple categories.
-[^11]: BalanceFlowService.java: add() - This method calculates the total transaction amount by summing the `amount` field from each `CategoryRelationForm` in the input list.
-[^12]: BalanceFlowAddForm.java: tags - The form for a new transaction accepts a `Set<Integer>` of tag IDs, enabling multi-tag classification.
-[^13]: BalanceFlowAddForm.java: payee - The transaction creation form includes an optional `payee` field to associate the transaction with a specific person or business.
-[^14]: BalanceFlowService.java: confirmBalance() - This method contains the logic to update an account's balance. It subtracts for expenses and adds for income.
-[^15]: BalanceFlowController.java: handleAdd, handleQuery, handleUpdate, handleDelete - This controller exposes REST endpoints for creating, reading, updating, and deleting `BalanceFlow` entities.
-[^16]: FlowFileController.java: handleAddFile() - This endpoint accepts a `MultipartFile` and an `id` to associate an uploaded file with a specific transaction.
-[^17]: FileValidator.java: isSupportedContentType() - This validation class checks the content type of an uploaded file against a hardcoded list of allowed types (pdf, png, jpg, jpeg).
-[^18]: FlowFile.java: - This entity defines the database schema for storing file attachments, including fields for `data`, `originalName`, `contentType`, and `size`.
-[^19]: FlowFile.java: creator, flow - The entity includes `@ManyToOne` relationships to the `User` who uploaded the file and the `BalanceFlow` it's attached to.
-[^20]: FlowFileController.java: handleView() - This endpoint requires both the file `id` and its `createTime` as query parameters to authorize access, making it harder to guess valid URLs.
-[^21]: FlowFileService.java: remove() - This service method handles the logic for deleting a `FlowFile` entity from the database.
-[^22]: BookController.java: handleAdd() - This endpoint allows for the creation of new `Book` entities.
-[^23]: Book.java: categories, tags, payees - The `Book` entity has `@OneToMany` relationships to its own sets of `Category`, `Tag`, and `Payee` entities, indicating they are scoped to the book.
-[^24]: Book.java: defaultCurrencyCode - The `Book` entity has a `@NotNull` field for `defaultCurrencyCode`, making it a mandatory attribute.
-[^25]: BookService.java: addByTemplate() - This method takes a template ID, loads a `BookTemplate` from a JSON file, and uses it to create a new `Book` with pre-filled categories and tags.
-[^26]: BookService.java: addByBook() - This method copies the categories, tags, and payees from a source `Book` to a newly created `Book`.
-[^27]: UserService.java: setDefaultBook() - This method updates the `defaultBook` field on the current `User` entity, changing their active context.
-[^28]: BookService.java: remove() - This method checks if any `BalanceFlow` records exist for a book before allowing its deletion, preventing data loss.
-[^29]: currency.json: - This resource file contains a predefined list of world currencies and their default exchange rates against USD.
-[^30]: CurrencyService.java: refreshCurrency() - This method makes an HTTP GET request to an external exchange rate API (`api.exchangerate-api.com`) and updates the in-memory currency rates.
-[^31]: Account.java: currencyCode - The `Account` entity contains a non-nullable `currencyCode` field, ensuring every account is tied to a specific currency.
-[^32]: BalanceFlow.java: amount, convertedAmount - The transaction entity has fields for both the original `amount` and the `convertedAmount`, used when the transaction currency differs from a base currency.
-[^33]: BalanceFlowService.java: add() - The logic for `FlowType.TRANSFER` handles cases where the source and destination account currencies differ, storing the sent amount in `amount` and the received amount in `convertedAmount`.
-[^34]: AccountService.java: statistics() - This service method explicitly calls `currencyService.convert` to standardize all account balances to the group's default currency before aggregation.
-
-### Modernization Opportunities
-#### User Journeys
-
-This section deconstructs the application's functionality into distinct user journeys. Each journey represents a core task a user would perform, outlining the interactions, the underlying business requirements implemented in the code, and a practical user flow example. This analysis serves as a reverse-engineered requirements document based on the provided codebase.
-
-##### 1. Tracking Income and Expenses
-
-This journey describes the fundamental process of recording financial transactions. It is the primary data entry point for the user and the foundation for all financial tracking and reporting.
-
-###### Core Interactions
-
-1.  **Initiate Transaction**: The user starts by selecting the option to add a new transaction from the main interface.
-2.  **Select Transaction Type**: The user chooses the type of transaction, which is typically 'Expense' or 'Income' [^1].
-3.  **Enter Core Details**: The user inputs the fundamental details of the transaction, such as the date, the account to be used, and the total amount.
-4.  **Categorize the Transaction**: The user assigns one or more spending or income categories to the transaction. The system supports splitting the transaction amount across multiple categories [^5].
-5.  **Add Optional Details**: The user can enrich the transaction with optional information, including a descriptive title, a payee (merchant or source of funds), descriptive tags, and detailed notes [^3].
-6.  **Handle Currency**: If the selected account's currency differs from the book's default currency, the user provides the converted amount to ensure accurate reporting [^9].
-7.  **Confirm and Save**: The user saves the transaction. The system can be configured to save the transaction as 'confirmed' or 'unconfirmed'. A confirmed transaction immediately impacts the associated account's balance [^11].
-
-###### Business Requirements
-
-| Requirement ID | Description | Implemented In |
-| :--- | :--- | :--- |
-| REQ-TRACK-01 | The system must allow users to record transactions classified as **Expense**, **Income**, **Transfer**, or **Adjust** [^1]. | `FlowType.java`, `BalanceFlowAddForm.java` |
-| REQ-TRACK-02 | Every transaction (`BalanceFlow`) must be associated with a specific `Book` and belong to the user's active `Group` [^2]. | `BalanceFlow.java` |
-| REQ-TRACK-03 | A transaction must include a creation time (`createTime`) and can have an optional `title` and `notes` [^3]. | `BalanceFlow.java` |
-| REQ-TRACK-04 | Expense and Income transactions must be associated with at least one `Category` and cannot be saved without it [^4]. | `BalanceFlowService.java`: `checkBeforeAdd()` |
-| REQ-TRACK-05 | The system must support splitting a single transaction across multiple categories, with a specific amount for each category `CategoryRelationForm` [^5]. | `BalanceFlowAddForm.java`, `CategoryRelation.java` |
-| REQ-TRACK-06 | The total amount of an Expense or Income transaction is automatically calculated as the sum of amounts from all its associated categories [^6]. | `BalanceFlowService.java`: `add()` |
-| REQ-TRACK-07 | A transaction can be optionally linked to a `Payee` from a predefined list within the book [^7]. | `BalanceFlow.java` |
-| REQ-TRACK-08 | A transaction can be optionally linked to multiple `Tags` for granular filtering and reporting [^8]. | `BalanceFlow.java`, `TagRelation.java` |
-| REQ-TRACK-09 | If an account's currency differs from the book's default currency, the system must capture a `convertedAmount` for the transaction [^9]. | `BalanceFlowService.java`: `add()` logic |
-| REQ-TRACK-10 | Transactions can be saved in a `confirm=false` state and confirmed later. This allows for pending or scheduled transactions [^10]. | `BalanceFlowAddForm.java` |
-| REQ-TRACK-11 | Upon confirmation (`confirm=true`), the system must update the balance of the associated `Account`. Expenses decrease the balance, while incomes increase it [^11]. | `BalanceFlowService.java`: `confirmBalance()` |
-| REQ-TRACK-12 | Users can delete existing transactions. Deleting a confirmed transaction must reverse the corresponding balance adjustment on the account [^12]. | `BalanceFlowService.java`: `remove()`, `refundBalance()` |
-
-###### Example User Flow: Recording a Shared Dinner Expense
-
-1.  **User `Alice` logs into the MoneyNote app.** Her default book, "Personal Finances," is active.
-2.  She taps the "Add Transaction" button.
-3.  She selects **"Expense"** as the transaction type.
-4.  She chooses her "Credit Card" account, which is in USD. Her book's default currency is also USD.
-5.  She enters the date and sets "Dinner with friends" as the `title`.
-6.  The total bill was $50. She paid for everyone. She needs to categorize it.
-    *   She adds the category **"Food -> Restaurants"** with an amount of **$20** (her share).
-    *   She adds another category **"Social -> Lending"** with an amount of **$30** (to track money her friends owe her).
-7.  She selects "City Diner" from her list of `Payees`.
-8.  She adds the `tag` "friends" to the transaction.
-9.  She leaves the "Confirm" option checked and saves the transaction.
-10. The system creates a new `BalanceFlow` record with a total amount of $50 and two `CategoryRelation` entries. The balance of her "Credit Card" account is immediately decreased by $50.
-
-##### 2. Monitoring Financial Situation
-
-This journey focuses on how users review and analyze their financial data to understand their financial health, track assets and liabilities, and analyze spending patterns.
-
-###### Core Interactions
-
-1.  **View Dashboard Overview**: The user navigates to the main dashboard or overview page.
-2.  **Analyze Net Worth**: The user views a high-level summary of their total assets, total debts, and overall net worth, all converted to a single default currency [^13].
-3.  **Review Accounts**: The user navigates to the account list to see a detailed breakdown of all their financial accounts (e.g., bank accounts, credit cards, loans).
-4.  **Filter and Sort Accounts**: The user can filter the account list by type (e.g., `CHECKING`, `CREDIT`), status, or name to focus on specific information [^14].
-5.  **Generate Reports**: The user moves to the reporting section to create analytical charts and tables.
-6.  **Customize and Drill Down**: The user customizes a report by selecting a date range and filtering by categories or tags. The system generates a visual chart, and the user can click on segments to drill down into sub-categories or view the underlying transactions [^15].
-
-###### Business Requirements
-
-| Requirement ID | Description | Implemented In |
-| :--- | :--- | :--- |
-| REQ-MONITOR-01 | The system must provide a financial overview by calculating and displaying total assets, total debts, and net worth (assets - debts) [^13]. | `AccountService.java`: `overview()` |
-| REQ-MONITOR-02 | Total assets must be calculated by summing the balances of all active and included accounts of type `CHECKING` and `ASSET` [^16]. | `AccountService.java`: `getAssets()` |
-| REQ-MONITOR-03 | Total debts must be calculated by summing the balances of all active and included accounts of type `CREDIT` and `DEBT` [^17]. | `AccountService.java`: `getDebts()` |
-| REQ-MONITOR-04 | All overview and report calculations must convert account balances to the user's group default currency for consistent comparison [^13]. | `AccountService.java`: `overview()`, `CurrencyService.java` |
-| REQ-MONITOR-05 | The system must provide a comprehensive list of all user accounts, showing details such as name, type, current balance, currency, and enabled status [^18]. | `AccountController.java`: `handleQuery()` |
-| REQ-MONITOR-06 | The account list must be filterable by parameters including `type`, `enable` status, `name`, balance range, and `currencyCode` [^14]. | `AccountQueryForm.java`: `buildPredicate()` |
-| REQ-MONITOR-07 | The system must offer reporting tools to analyze financial data aggregated by `Category`, `Tag`, and `Payee` [^19]. | `ReportController.java` |
-| REQ-MONITOR-08 | Reports must be filterable by a date range, specific book, account, and other transaction attributes [^20]. | `CategoryReportQueryForm.java` |
-| REQ-MONITOR-09 | Report visualizations must show the total amount for each item (e.g., category) and its percentage of the grand total [^15]. | `ReportService.java`: `reportCategory()` |
-| REQ-MONITOR-10 | A balance report must be available to visualize the breakdown of assets and debts across individual accounts [^21]. | `ReportService.java`: `reportBalance()` |
-
-###### Example User Flow: Analyzing Monthly Spending
-
-1.  **User `Bob` wants to understand his spending habits for the last month.** He opens the MoneyNote app and navigates to the "Reports" section.
-2.  He selects the **"Expense by Category"** report type.
-3.  He uses the date picker to set the range from the 1st to the 31st of the previous month.
-4.  He ensures his "Daily Life" book is selected.
-5.  He clicks **"Generate Report."**
-6.  The application displays a pie chart. He quickly sees that "Food & Dining" constitutes 40% of his spending.
-7.  He clicks on the "Food & Dining" slice of the chart.
-8.  The report view drills down, displaying a new chart for the sub-categories within "Food & Dining." He discovers that "Restaurants" make up 75% of this spending, while "Groceries" are only 25%. This insight helps him decide to cook more at home.
-
-##### 3. Managing Finances in Multiple Currencies
-
-This journey addresses the need for users who deal with more than one currency, such as travelers, expatriates, or those with international investments.
-
-###### Core Interactions
-
-1.  **Create a Foreign Currency Account**: The user creates a new account (e.g., for a European bank) and explicitly sets its currency to "EUR" [^32].
-2.  **Record Foreign Transaction**: The user records an expense in the EUR account. Because the account's currency is different from the book's default (e.g., USD), the system prompts for the `convertedAmount` in USD [^9].
-3.  **Perform Cross-Currency Transfer**: The user initiates a transfer from their USD account to their EUR account. The form requires them to enter both the source amount (in USD) and the final received amount in the destination currency (EUR), effectively capturing the exchange rate of the transaction [^33].
-4.  **View Consolidated Reports**: The user views their net worth summary. The system automatically converts the balance of the EUR account to USD using the latest exchange rates, presenting a unified financial picture [^13].
-
-###### Business Requirements
-
-| Requirement ID | Description | Implemented In |
-| :--- | :--- | :--- |
-| REQ-CUR-01 | The system must support a predefined list of world currencies, loaded from a configuration file (`currency.json`) [^34]. | `CurrencyDataLoader.java` |
-| REQ-CUR-02 | The application must attempt to refresh currency exchange rates periodically from an external API service (`exchangerate-api.com`) [^35]. | `CurrencyService.java`: `refreshCurrency()` |
-| REQ-CUR-03 | Each `Account` entity must have a `currencyCode` attribute to define its currency [^32]. | `Account.java` |
-| REQ-CUR-04 | Each `Book` must have a `defaultCurrencyCode` which serves as the base for reporting and consolidation [^23]. | `Book.java` |
-| REQ-CUR-05 | When recording an Expense or Income in an account with a currency different from the book's default, the system must store both the original `amount` and the `convertedAmount` [^9]. | `BalanceFlowService.java`: `add()` |
-| REQ-CUR-06 | For `TRANSFER` transactions between accounts of different currencies, the system must store the `amount` in the source currency and the `convertedAmount` in the destination currency [^33]. | `BalanceFlowService.java`: `add()` and `confirmBalance()` |
-| REQ-CUR-07 | All aggregated financial reports and summaries (e.g., Net Worth Overview) must present data in the group's default currency by converting all amounts as needed [^13]. | `AccountService.java`: `overview()`, `statistics()` |
-| REQ-CUR-08 | The system must provide a utility endpoint to calculate the converted value between any two currencies for a given amount [^36]. | `CurrencyController.java`: `handleCalc()` |
-
-###### Example User Flow: Transferring Funds for an International Trip
-
-1.  **User `Diana` is preparing for a trip to Europe.** She has a "US Checking" account in USD and has already created a "Travel Card" account in EUR.
-2.  She needs to load her travel card. She navigates to the "Transfer" screen.
-3.  In the 'From' field, she selects "US Checking (USD)".
-4.  In the 'To' field, she selects "Travel Card (EUR)".
-5.  She enters `500` in the amount field for the source account.
-6.  The UI, recognizing the currency difference, displays a `convertedAmount` field. She checks her bank statement and sees that $500 resulted in €475 being credited. She enters `475` into the `convertedAmount` field.
-7.  She confirms the transfer.
-8.  The system correctly deducts $500 from her "US Checking" account and adds €475 to her "Travel Card" account. When she views her financial overview, the €475 balance is converted back to its USD equivalent for the net worth calculation.
-
-##### 4. Managing Multiple "Books"
-
-This journey outlines how users can segregate different areas of their financial life (e.g., personal, family, small business) into separate containers known as "Books."
-
-###### Core Interactions
-
-1.  **Navigate to Book Management**: The user goes to the "Manage Books" section of the application.
-2.  **Create a New Book**: The user clicks "Add Book" and chooses to either create a blank book, copy an existing book, or use a predefined template (e.g., "Daily Life," "Small Business") [^22].
-3.  **Configure the New Book**: The user provides a name and sets a default currency for the new book [^23]. If created from a template, it comes pre-populated with relevant categories and tags.
-4.  **Switch Active Book**: From a dropdown or menu, the user selects a different book to make it active. The entire application context (transactions, reports, accounts shown) switches to that of the selected book [^24].
-5.  **Export Book Data**: The user selects a book and chooses the "Export" option. The system generates and downloads an Excel file containing all transactions for that book [^26].
-
-###### Business Requirements
-
-| Requirement ID | Description | Implemented In |
-| :--- | :--- | :--- |
-| REQ-BOOK-01 | The system must support multiple `Books` within a user's `Group`, allowing financial segregation [^27]. | `Book.java` |
-| REQ-BOOK-02 | Each `Book` must have a unique `name` within its group and a `defaultCurrencyCode` [^23]. | `BookAddForm.java` |
-| REQ-BOOK-03 | Users must be able to create new books from predefined `BookTemplate`s, which auto-populate `Category`, `Tag`, and `Payee` data [^28]. | `BookService.java`: `addByTemplate()` |
-| REQ-BOOK-04 | Users must be able to duplicate an existing book, which copies its entire structure (categories, tags, payees) to a new book [^29]. | `BookService.java`: `addByBook()` |
-| REQ-BOOK-05 | Each user must have a `defaultBook` assigned, which is automatically loaded upon login [^30]. | `User.java` |
-| REQ-BOOK-06 | Users must have the ability to switch their active book during a session, changing the context for all financial operations [^24]. | `UserController.java`: `handleSetDefaultBook()` |
-| REQ-BOOK-07 | Core data entities (`BalanceFlow`, `Category`, `Tag`, `Payee`) must be strictly scoped to a single `Book` [^31]. | `Category.java`, `Tag.java`, `Payee.java` |
-| REQ-BOOK-08 | A `Book` can be configured with default accounts and categories for different transaction types to speed up data entry [^25]. | `BookUpdateForm.java`, `Book.java` |
-| REQ-BOOK-09 | The system must provide a feature to export all transactions of a book into an `.xlsx` spreadsheet [^26]. | `BookService.java`: `exportFlow()` |
-
-###### Example User Flow: Creating and Using a Business Book
-
-1.  **User `Charlie`, a freelance designer, decides to track his business finances separately.** He navigates to "Manage Books."
-2.  He clicks "Add Book" and chooses the "Create from Template" option. He selects the "Restaurant Business" template.
-3.  He names the new book "Design Business" and sets "USD" as the default currency.
-4.  The book is created and pre-filled with business-centric categories like "Client Revenue," "Software Licenses," and "Contractor Payments."
-5.  He makes "Design Business" his active book.
-6.  He navigates to the "Add Transaction" screen and logs a $5,000 payment from a client as "Income" in his "Client Revenue" category. This transaction is now stored exclusively within the "Design Business" book and does not mix with his personal finances.
-
-##### 5. Attaching Files to Financial Records
-
-This journey enables users to associate digital documents like receipts, invoices, or warranties with their transactions for record-keeping and proof-of-purchase.
-
-###### Core Interactions
-
-1.  **Locate Transaction**: The user finds and opens the details of an existing transaction.
-2.  **Upload File**: The user clicks an "Attach File" button, which opens a file picker.
-3.  **Select and Upload**: The user selects a file (e.g., a PDF invoice or a photo of a receipt) from their device. The file is then uploaded to the server.
-4.  **View Attachments**: The uploaded file's name appears in an "Attachments" list on the transaction detail page.
-5.  **Retrieve File**: At any time, the user can return to this transaction, click on the file's name, and the system will serve the file for viewing or download [^39].
-6.  **Delete Attachment**: The user can remove an attachment from a transaction.
-
-###### Business Requirements
-
-| Requirement ID | Description | Implemented In |
-| :--- | :--- | :--- |
-| REQ-FILE-01 | The system must allow users to upload files and associate them with a specific `BalanceFlow` (transaction) record [^38]. | `BalanceFlowController.java`: `handleAddFile()` |
-| REQ-FILE-02 | File data must be stored directly in the database as a `LONGBLOB` data type [^40]. | `FlowFile.java` |
-| REQ-FILE-03 | The system must store file metadata, including `originalName`, `contentType`, `size`, and `createTime` [^41]. | `FlowFile.java` |
-| REQ-FILE-04 | File uploads must be validated to restrict them to supported content types, specifically `pdf`, `png`, `jpg`, and `jpeg` [^37]. | `FileValidator.java` |
-| REQ-FILE-05 | The maximum size for a single file upload and for the total request size is configurable in the application properties (defaults to 100MB) [^42]. | `application.properties` |
-| REQ-FILE-06 | Users must be able to retrieve a list of all files attached to a given transaction [^39]. | `BalanceFlowController.java`: `handleFiles()` |
-| REQ-FILE-07 | The system must provide a secure endpoint for viewing/downloading files that validates access rights [^43]. | `FlowFileController.java`: `handleView()` |
-| REQ-FILE-08 | When a `BalanceFlow` record is deleted, all its associated `FlowFile` records must also be deleted from the database to prevent orphaned data [^44]. | `BalanceFlowService.java`: `remove()` |
-
-###### Example User Flow: Attaching a Warranty Receipt
-
-1.  **User `Ethan` buys a new monitor and records it as an expense.**
-2.  He receives the receipt as a PDF in his email. He wants to save it with the transaction for warranty purposes.
-3.  He opens the monitor expense transaction in the MoneyNote app.
-4.  He taps the "Attach File" button.
-5.  He selects the `monitor-receipt.pdf` file from his device.
-6.  The file uploads, and he sees it listed under the transaction's attachments.
-7.  A year later, the monitor malfunctions. He easily finds the transaction in MoneyNote, clicks the attachment, and downloads the PDF receipt to initiate a warranty claim.
-
-[^1]: `src/main/java/cn/biq/mn/balanceflow/FlowType.java`: Defines the enum for transaction types including EXPENSE and INCOME.
-[^2]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java`: The `BalanceFlow` entity has required relationships with `Book` and `Group`.
-[^3]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlowAddForm.java`: This form includes fields for `createTime`, `title`, and `notes`.
-[^4]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java`: The `checkBeforeAdd` method validates that categories are not empty for expense and income types.
-[^5]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlowAddForm.java`: The form accepts a `List<CategoryRelationForm>`, allowing multiple categories per transaction.
-[^6]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java`: In the `add` method, the total `amount` is calculated by summing the amounts from the `categories` list.
-[^7]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java`: The entity includes an optional relationship to the `Payee` entity.
-[^8]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java`: The entity includes a `Set<TagRelation>` to link multiple tags.
-[^9]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java`: The `add` method logic checks if account currency differs from book currency and uses `convertedAmount`.
-[^10]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlowAddForm.java`: The `confirm` boolean field controls the confirmation status of a new transaction.
-[^11]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java`: The `confirmBalance` method updates the account balance based on the flow type.
-[^12]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java`: The `remove` method calls `refundBalance` to reverse the financial impact on the account.
-[^13]: `src/main/java/cn/biq/mn/account/AccountService.java`: The `overview()` method calculates total assets, debts, and net worth, converting all currencies to the group's default.
-[^14]: `src/main/java/cn/biq/mn/account/AccountQueryForm.java`: This form class defines various predicates to filter the account list.
-[^15]: `src/main/java/cn/biq/mn/report/ReportService.java`: Methods like `reportCategory` calculate totals and percentages for chart generation.
-[^16]: `src/main/java/cn/biq/mn/account/AccountService.java`: The `getAssets` method retrieves all accounts of type `CHECKING` and `ASSET`.
-[^17]: `src/main/java/cn/biq/mn/account/AccountService.java`: The `getDebts` method retrieves all accounts of type `CREDIT` and `DEBT`.
-[^18]: `src/main/java/cn/biq/mn/account/AccountController.java`: The `handleQuery` endpoint returns a paginated list of `AccountDetails`.
-[^19]: `src/main/java/cn/biq/mn/report/ReportController.java`: Exposes endpoints for reports on categories (`expense-category`), tags (`expense-tag`), and payees (`expense-payee`).
-[^20]: `src/main/java/cn/biq/mn/report/CategoryReportQueryForm.java`: Defines filters for reports, including date range (`minTime`, `maxTime`), book, and account.
-[^21]: `src/main/java/cn/biq/mn/report/ReportService.java`: The `reportBalance` method generates data for asset and debt breakdown by account.
-[^22]: `src/main/java/cn/biq/mn/book/BookController.java`: Contains endpoints for adding a book from a template (`/template`) or by copying (`/copy`).
-[^23]: `src/main/java/cn/biq/mn/book/BookAddForm.java`: The form for creating a new book requires a `name` and `defaultCurrencyCode`.
-[^24]: `src/main/java/cn/biq/mn/user/UserController.java`: The `handleSetDefaultBook` endpoint allows a user to change their active book.
-[^25]: `src/main/java/cn/biq/mn/book/BookUpdateForm.java`: Allows updating a book's name and its default accounts/categories.
-[^26]: `src/main/java/cn/biq/mn/book/BookService.java`: The `exportFlow` method generates an Excel workbook (`.xlsx`) with all transactions from a book.
-[^27]: `src/main/java/cn/biq/mn/book/Book.java`: The `Book` entity has a mandatory `ManyToOne` relationship with the `Group` entity.
-[^28]: `src/main/java/cn/biq/mn/book/BookService.java`: The `addByTemplate` method uses a `BookTemplate` to create a new book with predefined categories, tags, and payees.
-[^29]: `src/main/java/cn/biq/mn/book/BookService.java`: The `addByBook` method copies categories, tags, and payees from a source book to a new one.
-[^30]: `src/main/java/cn/biq/mn/user/User.java`: The `User` entity has a `defaultBook` field.
-[^31]: `src/main/java/cn/biq/mn/category/Category.java`: `Category`, `Tag`, and `Payee` entities all have a required `ManyToOne` relationship with the `Book` entity.
-[^32]: `src/main/java/cn/biq/mn/account/Account.java`: The `Account` entity contains a `currencyCode` field.
-[^33]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java`: The `add` method enforces providing a `convertedAmount` for transfers between accounts with different currencies.
-[^34]: `src/main/java/cn/biq/mn/currency/CurrencyDataLoader.java`: Loads a list of currencies from `currency.json` into the application scope at startup.
-[^35]: `src/main/java/cn/biq/mn/currency/CurrencyService.java`: The `refreshCurrency` method calls an external API to update exchange rates.
-[^36]: `src/main/java/cn/biq/mn/currency/CurrencyController.java`: The `/calc` endpoint takes from/to currencies and an amount to perform a conversion.
-[^37]: `src/main/java/cn/biq/mn/validation/FileValidator.java`: Implements logic to validate the content type of an uploaded file, restricting it to specific image and PDF types.
-[^38]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlowController.java`: The `handleAddFile` endpoint handles the file upload and associates it with a `BalanceFlow` ID.
-[^39]: `src/main/java/cn/biq/mn/flowfile/FlowFileController.java`: The `handleView` endpoint serves the file data for viewing or download.
-[^40]: `src/main/java/cn/biq/mn/flowfile/FlowFile.java`: The `data` field is annotated with `@Lob` and `columnDefinition = "LONGBLOB"`.
-[^41]: `src/main/java/cn/biq/mn/flowfile/FlowFile.java`: The entity stores `originalName`, `contentType`, `size`, and other metadata.
-[^42]: `src/main/resources/application.properties`: Contains `spring.servlet.multipart.max-file-size` and `max-request-size` properties set to 100MB.
-[^43]: `src/main/java/cn/biq/mn/flowfile/FlowFileService.java`: The `getFile` method validates the request using both the file ID and `createTime` to add a layer of security.
-[^44]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java`: The `remove` method explicitly calls `flowFileRepository.deleteByFlow(entity)` before deleting the transaction itself.
-
-## Cloud Migration
-### Migration Overview
-This document outlines potential strategies for migrating the MoneyNote application to Google Cloud. It considers two primary scenarios: a low-effort "lift-and-shift" approach and a higher-effort modernization path that refactors the application to fully leverage cloud-native services.
-
-#### Migration Scenarios and Compute Targets
-
-The choice of compute target on Google Cloud depends on the desired level of effort and the long-term goals for the application. The application is a stateful Spring Boot monolith, currently deployed via Docker [^1], which influences the suitability of each target.
-
-| Migration Target | Low-Effort Scenario (As-Is) | High-Effort Scenario (Modernization) |
-| :--- | :--- | :--- |
-| **Compute Engine** | Ideal for a "lift-and-shift" migration. The existing Docker container can be deployed directly onto a VM with minimal changes. | Less ideal, but possible. The modernized application (e.g., microservices) could be deployed on a fleet of VMs, but this forgoes the benefits of managed orchestration. |
-| **Google Kubernetes Engine** | Viable with moderate effort. Requires creating Kubernetes manifests to deploy the container. Offers better orchestration and scalability than VMs. | **Highly Recommended**. GKE is an excellent target for a modernized, microservices-based architecture, providing robust orchestration, auto-scaling, and resilience. |
-| **Cloud Run** | High effort. The application's reliance on session state [^2] conflicts with Cloud Run's stateless model and would require significant refactoring to work correctly. | **Highly Recommended**. After refactoring the application into stateless microservices, Cloud Run offers a fully managed, serverless platform with scale-to-zero capabilities for cost efficiency. |
-
-A detailed analysis of migrating to each of these services is available in the "Shift to Compute Engine," "Modernize to Kubernetes Engine," and "Modernize to Cloud Run" sections of this report.
-
-#### External Dependencies and Google Cloud Services
-
-The application relies on several external components that can be migrated to managed Google Cloud services to reduce operational overhead and improve reliability.
-
-##### Database
-
-The application uses an on-premises or self-hosted MySQL database [^3][^4].
-
-*   **Migration Path**: The recommended target is **Cloud SQL for MySQL**. This is a fully managed database service that handles backups, replication, and scaling automatically. Migration would involve:
-    1.  Provisioning a Cloud SQL for MySQL instance.
-    2.  Migrating the schema (the `1.sql` script can be used as a baseline [^5]) and data using the Database Migration Service.
-    3.  Updating the application's datasource configuration in `application.properties` to connect to the Cloud SQL instance.
-
-##### Container Registry
-
-The CI/CD pipelines currently push Docker images to Aliyun Container Registry and Docker Hub [^6].
-
-*   **Migration Path**: These can be consolidated into **Artifact Registry**. Artifact Registry is a fully managed service for storing container images and other build artifacts. It offers vulnerability scanning and provides seamless, secure integration with Google Cloud's compute services like GKE and Cloud Run. The CI/CD workflows would be updated to authenticate with and push images to an Artifact Registry repository.
-
-#### Leveraging Google Cloud Horizontals
-
-Migrating to Google Cloud unlocks access to a suite of powerful services that can enhance the application's performance, security, and maintainability.
-
-##### CI/CD
-
-The project currently uses GitHub Actions for its CI/CD pipeline [^7]. This can be retained and integrated with Google Cloud. A more cloud-native approach would be to adopt **Cloud Build**.
-
-*   **Integration**: Create triggers in Cloud Build that listen for commits to the GitHub repository.
-*   **Pipeline**: Define a `cloudbuild.yaml` file to automate the process of building the Docker image, pushing it to Artifact Registry, and deploying it to the chosen compute target (e.g., GKE or Cloud Run).
-
-##### Observability (Logging and Monitoring)
-
-The application lacks a dedicated observability framework. Google Cloud's Operations Suite (formerly Stackdriver) provides a comprehensive solution.
-
-*   **Cloud Logging**: Automatically aggregates logs from applications running on Google Cloud compute services. No code changes are required for standard log collection.
-*   **Cloud Monitoring**: Provides dashboards, metrics, and alerting on the health and performance of the application and its underlying infrastructure (CPU, memory, request latency, etc.).
-
-##### Storage
-
-The application currently stores uploaded files, such as transaction attachments, as `LONGBLOB` data within the database [^8]. This approach is inefficient, increases database size, and does not scale well.
-
-*   **Modernization Path**: Refactor the file upload logic in `BalanceFlowService` [^9] to use **Cloud Storage**. Files would be uploaded directly to a Cloud Storage bucket, and only the unique object identifier or URL would be stored in the database. This approach is more scalable, cost-effective, and performant.
-
-##### Secret Management
-
-Passwords and other secrets are currently managed through GitHub secrets and environment variables [^10].
-
-*   **Best Practice**: Use **Secret Manager** to securely store and manage all application secrets, including database credentials and API keys. The application can be granted IAM permissions to access these secrets at runtime, eliminating the need to store them in configuration files or environment variables.
-
-#### Proposed Migration Strategies
-
-Based on the analysis, two primary migration strategies are proposed.
-
-##### Strategy 1: Low-Effort Lift and Shift
-
-This strategy focuses on migrating the application to Google Cloud with minimal code and architectural changes.
-
-*   **Objective**: Get the application running quickly on Google Cloud to benefit from its reliable infrastructure.
-*   **Migration Plan**:
-    1.  **Database**: Provision a **Cloud SQL for MySQL** instance and migrate the existing database.
-    2.  **Compute**: Provision a **Compute Engine** VM. Install Docker on the VM.
-    3.  **Configuration**: Update the `application.properties` file to point to the Cloud SQL instance, using **Secret Manager** for the database password.
-    4.  **CI/CD**: Modify the existing GitHub Actions workflow to:
-        *   Build the Docker image.
-        *   Push the image to **Artifact Registry**.
-        *   Connect to the Compute Engine VM to pull and run the new container image.
-    5.  **Networking**: Configure a **Cloud Load Balancer** to direct traffic to the VM and manage SSL.
-
-##### Strategy 2: High-Benefit Modernization
-
-This strategy involves refactoring the application to adopt cloud-native principles for improved scalability, resilience, and cost-efficiency.
-
-*   **Objective**: Evolve the application into a scalable, serverless-first architecture that minimizes operational overhead.
-*   **Migration Plan**:
-    1.  **Database**: Migrate the database to **Cloud SQL for MySQL**.
-    2.  **Storage**: Refactor the file upload functionality (`FlowFileService`) to use **Cloud Storage** instead of storing blobs in the database.
-    3.  **Application Refactoring**:
-        *   Break the monolithic application into smaller, independent microservices (e.g., `user-service`, `account-service`, `transaction-service`).
-        *   Ensure each service is stateless to work with modern serverless compute platforms.
-    4.  **Compute**: Deploy the new microservices to **Cloud Run**. For scheduled tasks or background jobs, use **Cloud Scheduler** to trigger **Cloud Functions**.
-    5.  **CI/CD**: Implement a full CI/CD pipeline using **Cloud Build**. Each microservice would have its own build pipeline that automatically builds, tests, and deploys to Cloud Run upon code changes.
-    6.  **Observability**: Leverage the native integration of Cloud Run with **Cloud Logging** and **Cloud Monitoring** to gain deep insights into application performance and health.
-
-[^1]: Dockerfile: - Defines the container image for the Java application, starting from an Ubuntu base and running the application JAR.
-[^2]: src/main/java/cn/biq/mn/security/CurrentSession.java: CurrentSession - A @SessionScope bean that holds user, book, group, and token information, indicating stateful session management.
-[^3]: build.gradle: com.mysql:mysql-connector-j - The project includes the MySQL Connector/J dependency, indicating the use of a MySQL database.
-[^4]: src/main/resources/application.properties: spring.datasource.url - Defines the JDBC connection string for a MySQL database, with placeholders for host, port, user, and password (e.g., `password=${DB_PASSWORD:******}`).
-[^5]: src/main/resources/1.sql: - A SQL script containing UPDATE and ALTER TABLE statements, likely for database schema migrations and data adjustments.
-[^6]: .github/workflows/docker-image-ali.yml: registry: registry.cn-hangzhou.aliyuncs.com - Specifies Aliyun Container Registry as the target for Docker images.
-[^7]: .github/workflows/docker-image.yml: name: api docker hub image - Defines a GitHub Actions workflow to build and push a Docker image to Docker Hub.
-[^8]: src/main/java/cn/biq/mn/flowfile/FlowFile.java: @Column(columnDefinition = \"LONGBLOB\", nullable = false) private byte[] data; - The `FlowFile` entity maps file content to a `LONGBLOB` database column, storing binary data directly in the database.
-[^9]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: addFile - This method handles the logic for attaching a file to a balance flow record.
-[^10]: .github/workflows/docker-image-ali.yml: username: \"${{ secrets.ACR_USERNAME }}\" - The workflow uses secrets stored in GitHub to authenticate with the container registry.
-
-### Shift to Compute Engine
-#### Lift and Shift to Compute Engine
-
-Migrating the MoneyNote API to Google Cloud can be achieved with minimal disruption by adopting a "lift-and-shift" strategy using Compute Engine. This approach involves moving the application to virtual machines on Google Cloud, which closely mimics a traditional on-premises or private server environment. Given that the application is already containerized with Docker [^1], this process is significantly simplified.
-
-The core of this strategy is to deploy the existing Docker container onto a Compute Engine VM, requiring almost no changes to the application code itself. This allows the team to quickly establish a foothold in the cloud, deferring more complex modernization efforts.
-
-##### Migrating to Compute Engine with Minimal Changes
-
-The application can be deployed on a Compute Engine instance running a container-optimized OS or a standard Linux distribution with Docker installed. The existing `Dockerfile` can be used to build the container image.
-
-The migration would follow these general steps:
-1.  **Provision a Compute Engine VM**: Create a VM instance of an appropriate size (e.g., `e2-medium`) to host the application container.
-2.  **Install Docker**: If not using a container-optimized OS, install Docker and Docker Compose on the VM.
-3.  **Container Image Management**: The current CI/CD pipelines push images to Aliyun Container Registry and Docker Hub [^2]. To align with the Google Cloud ecosystem, the pipeline should be updated to push images to **Artifact Registry**.
-4.  **Deploy the Container**: Pull the application image from Artifact Registry and run it using a `docker run` command or a simple `docker-compose.yml` file. The application's configuration, particularly database connection details, would be passed as environment variables.
-
-##### External Dependency Analysis
-
-The application has one primary external dependency: a MySQL database.
-
-| Dependency | Location in Code | Current Setup | Recommended Google Cloud Service | Migration Strategy |
-| :--- | :--- | :--- | :--- | :--- |
-| **MySQL Database** | `build.gradle` [^3]<br>`application.properties` [^4] | The application is configured to connect to a MySQL database. The connection string `jdbc:mysql://${DB_HOST...` indicates it expects an external database host. | **Cloud SQL for MySQL** | **1. Provision:** Create a new Cloud SQL for MySQL instance. This provides a fully managed, scalable, and secure database service, offloading administrative tasks like patching, backups, and replication.<br>**2. Migrate Data:** Use the **Database Migration Service** for a seamless migration from the existing database. Alternatively, perform a manual dump and import using the backup procedures mentioned in the project notes [^5].<br>**3. Reconfigure:** Update the application's environment variables (`DB_HOST`, `DB_USER`, `DB_PASSWORD`) to point to the new Cloud SQL instance. For enhanced security, connect via the Cloud SQL Auth Proxy running on the same VM or in a sidecar container. |
-
-By migrating the database to a managed service like Cloud SQL, the project immediately benefits from increased reliability, automated backups, and easier scalability without requiring application code changes.
-
-##### Leveraging Google Cloud Horizontals
-
-Adopting Google Cloud offers access to-managed services that can enhance the application's operational posture with minimal effort.
-
-| Google Cloud Service | Description | Integration Strategy |
-| :--- | :--- | :--- |
-| **Artifact Registry** | A fully managed, private repository for storing, and managing container images and other build artifacts. | Modify the existing GitHub Actions workflows to authenticate with Google Cloud and push the built Docker images to an Artifact Registry repository instead of Docker Hub or Aliyun ACR. This centralizes artifacts within the target cloud environment. |
-| **Cloud Build** | A serverless CI/CD platform for building, testing, and deploying applications. | For a more integrated CI/CD pipeline, Cloud Build can be configured to listen for changes in the GitHub repository. It can automatically build the Docker image, push it to Artifact Registry, and even deploy it to the Compute Engine instance, streamlining the entire delivery process. |
-| **Cloud Logging & Monitoring** | Centralized services for collecting, searching, and analyzing log data and performance metrics. | Install the **Ops Agent** on the Compute Engine VM. The agent will automatically collect logs from the application's `stdout` and system metrics, sending them to Cloud Logging and Cloud Monitoring. This enables centralized observability, dashboarding, and alerting without any code modifications. |
-| **Cloud Storage** | Scalable and durable object storage for unstructured data. | The application currently stores uploaded files as `LONGBLOB` in the database [^6]. A highly recommended (though optional for initial migration) improvement is to modify the file upload logic in `BalanceFlowService` [^7] to save files to a Cloud Storage bucket. The database would then only store a reference to the object, drastically reducing database size and load. |
-| **Cloud Load Balancing** | A globally distributed, high-performance load balancing service. | Place an External HTTP(S) Load Balancer pobreza of the Compute Engine instance(s). This provides a stable public IP address, enables easy SSL certificate management with Google-managed certificates, and offers DDoS protection. It also paves the way for future scaling by distributing traffic across multiple VMs. |
-| **Secret Manager** | A secure and convenient storage system for API keys, passwords, and other sensitive data. | Instead of passing secrets like `DB_PASSWORD` directly as environment variables, they should be stored in Secret Manager. The application, with the right permissions, can then fetch these secrets at startup, which is a much more secure practice. |
-
-#### Detailed Migration Plan to Compute Engine
-
-This plan outlines the steps for a lift-and-shift migration of the MoneyNote API to Compute Engine.
-
-##### Phase 1: Foundation and Scaffolding
-
-1.  **Create Google Cloud Project**: Set up a new Google Cloud project to house all resources.
-2.  **VPC Network Configuration**:
-    *   Use the default VPC or create a new one.
-    *   Configure firewall rules to allow incoming traffic for SSH (for management) and on the application port (`9092`).
-3.  **Setup Artifact Registry**: Create a new Docker repository in Artifact Registry to store the application's container images.
-4.  **IAM & Service Accounts**: Create a dedicated service account for the Compute Engine VM with the necessary permissions (e.g., Artifact Registry Reader, Cloud SQL Client, Secret Manager Secret Accessor, Logs Writer, Monitoring Metric Writer).
-
-##### Phase 2: Database Migration
-
-1.  **Provision Cloud SQL**: Create a new Cloud SQL for MySQL instance. Configure it with an appropriate machine size, and enable automated backups. For security, configure it to use a private IP address.
-2.  **Data Migration**:
-    *   Use the **Database Migration Service** to perform a continuous migration from the source database.
-    *   Alternatively, perform a manual one-time migration by exporting the database schema and data and importing it into the new Cloud SQL instance.
-3.  **Secure Credentials**: Store the new database username and password in **Secret Manager**.
-
-##### Phase 3: CI/CD Pipeline Integration
-
-1.  **Update GitHub Actions**:
-    *   Add a step to the existing workflows to authenticate to Google Cloud using the service account created in Phase 1.
-    *   Modify the `docker/build-push-action` step to push the built image to the Artifact Registry repository.
-2.  **Test Pipeline**: Trigger a build to ensure the new image is successfully pushed to Artifact Registry.
-
-##### Phase 4: Application Deployment
-
-1.  **Create VM Template**: Create a Compute Engine instance template.
-    *   Choose a suitable machine type (e.g., `e2-standard-2`).
-    *   Select a container-optimized OS or a standard Linux distribution.
-    *   Assign the service account created in Phase 1.
-    *   Add a startup script to:
-        *   Install/update the Ops Agent.
-        *   Install Docker.
-        *   Fetch secrets from Secret Manager.
-        *   Pull the latest Docker image from Artifact Registry.
-        *   Run the container, passing the database credentials and other configurations as environment variables.
-2.  **Create Managed Instance Group (MIG)**: Create a MIG using the instance template. Start with a size of 1. A MIG allows for auto-healing and easy scaling in the future.
-
-##### Phase 5: Expose, Test, and Cutover
-
-1.  **Configure Load Balancer**:
-    *   Set up an External HTTP(S) Load Balancer.
-    *   Create a backend service that points to the MIG created in the previous step.
-    *   Configure a health check to monitor the application's health on its port.
-    *   Create a frontend with a reserved static IP address and a Google-managed SSL certificate for your domain.
-2.  **Update DNS**: Point the application's domain name (e.g., `api.moneynote.com`) to the load balancer's static IP address.
-3.  **Validation**:
-    *   Verify that logs and metrics are appearing in Cloud Logging and Cloud Monitoring.
-    *   Conduct thorough end-to-end testing of the application to ensure all functionalities, including user registration, transaction recording, and reporting, are working as expected.
-4.  **Decommission**: Once the Google Cloud deployment is stable and validated, the old environment can be decommissioned.
-
-[^1]: Dockerfile: FROM ubuntu:23.04 - Defines the base image and steps to containerize the application.
-[^2]: .github/workflows/docker-image-all-ali.yml: build-push-action - This step in the GitHub Actions workflow pushes the built Docker image to a container registry.
-[^3]: build.gradle: runtimeOnly 'com.mysql:mysql-connector-j' - This dependency declaration indicates that the project uses the MySQL JDBC driver at runtime.
-[^4]: application.properties: spring.datasource.url=jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:moneynote} - This property defines the JDBC connection string for a MySQL database.
-[^5]: notes/data_backup.txt: 1. 使用phpmyadmin的导入导出功能。 - Mentions using phpmyadmin for data import/export, a viable method for manual database migration.
-[^6]: src/main/java/cn/biq/mn/flowfile/FlowFile.java: private byte[] data; - The `data` field is defined as a byte array and annotated with `@Lob` and `@Column(columnDefinition = "LONGBLOB")`, indicating that file contents are stored directly in the database as large binary objects.
-[^7]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: addFile - This method handles the logic for attaching a file to a transaction record.
-
-### Modernize to Kubernetes Engine
-#### User Journeys
-
-This section outlines the primary user journeys and features of the MoneyNote application. Each journey is broken down into core user interactions, the underlying business requirements derived from the codebase, and a practical example of the user's flow through the system.
+This section outlines the primary user journeys and features of the MoneyNote application. Each journey is analyzed from the perspective of a user interacting with the system, supported by the business requirements implemented in the codebase and a concrete user flow example.
 
 ##### 1. Monitoring Financial Situation
 
-This journey focuses on providing the user with a high-level, consolidated overview of their financial health, enabling them to understand their net worth at a glance.
+This journey describes how a user assesses their overall financial health by viewing aggregated summaries of their assets, liabilities, and net worth.
 
 ###### Core Interactions
 
-The user logs into the application and accesses a dashboard or overview screen. This screen presents key financial metrics, including their total assets, total liabilities (debts), and overall net worth. The user can also view graphical representations, such as pie charts, that break down their assets and debts by individual accounts, providing a clear picture of where their money is held and owed.
+The user interacts with dashboard and reporting interfaces to gain a high-level understanding of their financial standing. This typically involves navigating to a dedicated overview page where key financial metrics are displayed. The system presents a consolidated view of all financial accounts, converting different currencies into a single, unified currency for clear comparison.
 
 ###### Business Requirements
 
-The system's functionality is designed to meet the following business requirements for financial monitoring:
+The system's functionality is built upon a set of specific business rules to deliver an accurate financial overview.
 
 | Requirement ID | Description | Implemented In |
 | :--- | :--- | :--- |
-| REQ-FIN-01 | The system must calculate and display the user's total assets. Assets are defined as the sum of balances in `CHECKING` and `ASSET` type accounts [^1]. | `AccountService.java`: `getAssets()` |
-| REQ-FIN-02 | The system must calculate and display the user's total liabilities. Liabilities are defined as the sum of balances in `CREDIT` and `DEBT` type accounts [^2]. | `AccountService.java`: `getDebts()` |
-| REQ-FIN-03 | The system must calculate and display the user's net worth, defined as Total Assets minus Total Liabilities. | `AccountService.java`: `overview()` |
-| REQ-FIN-04 | Only accounts explicitly marked for inclusion (`include=true`) shall be part of the aggregated financial summaries [^1] [^2]. | `AccountRepository.java`: `findAllByGroupAndTypeAndEnableAndInclude(...)` |
-| REQ-FIN-05 | All financial summaries involving multiple currencies must be converted to the user's active group's default currency for consistent reporting [^3]. | `AccountService.java`: `overview()`, `statistics()` |
-| REQ-FIN-06 | The system must provide a dedicated API endpoint (`/accounts/overview`) to retrieve the calculated totals for assets, debts, and net worth [^4]. | `AccountController.java`: `handleOverview()` |
-| REQ-FIN-07 | The system must provide a reporting endpoint (`/reports/balance`) that structures asset and debt data for visualization, such as in charts [^5]. | `ReportController.java`: `handleBalance()` |
-| REQ-FIN-08 | In reports, debt balances (which are often negative) must be presented as positive values to accurately represent the magnitude of the liability [^6]. | `ReportService.java`: `reportBalance()` |
+| FR-MON-01 | The system must provide a consolidated overview of the user's total assets, total debts, and net worth (Assets - Debts). [^1] | `AccountService.java: overview()` |
+| FR-MON-02 | Total Assets must be calculated by summing the balances of all enabled and included accounts of type `CHECKING` and `ASSET`. [^2] | `AccountService.java: getAssets()` |
+| FR-MON-03 | Total Debts must be calculated by summing the balances of all enabled and included accounts of type `CREDIT` and `DEBT`. The final value is presented as a positive number representing total liability. [^3] | `AccountService.java: getDebts()` |
+| FR-MON-04 | All account balances must be converted to the user's current group's default currency before aggregation to ensure a consistent summary. [^4] | `AccountService.java: overview()` |
+| FR-MON-05 | The system must offer a more granular statistical view, allowing users to see total balances, credit limits, and remaining credit for a filtered set of accounts. [^5] | `AccountService.java: statistics()` |
+| FR-MON-06 | A dedicated balance report must be available, presenting a breakdown of assets and debts by individual accounts, including their respective balances and percentage contribution to the total. [^6] | `ReportService.java: reportBalance()` |
 
-###### Example User Flow
+###### Example User Flow: Viewing Net Worth
 
-1.  **Login and Initialization**: The user logs in. The application calls the `/initState` endpoint to load their profile and default settings, including their default group and its associated currency (e.g., USD) [^7].
-2.  **Navigate to Dashboard**: The user navigates to the "Overview" or "Dashboard" page in the user interface.
-3.  **API Request for Overview**: The frontend makes a GET request to the `/accounts/overview` endpoint [^4].
-4.  **Backend Processing**:
-    *   The `AccountService.overview()` method is executed [^3].
-    *   It fetches all asset accounts (`CHECKING`, `ASSET`) and debt accounts (`CREDIT`, `DEBT`) that are enabled and marked for inclusion.
-    *   It iterates through each account. If an account's currency is different from the group's default currency (e.g., a EUR account in a USD group), it calls the `CurrencyService` to get the conversion rate and calculate the balance in the default currency [^8].
-    *   The service sums the converted balances to produce `totalAssets` and `totalDebts`, then calculates `netWorth`.
-5.  **Display Data**: The API returns an array containing the three key values: `[totalAssets, totalDebts, netWorth]`. The UI displays these figures prominently.
-6.  **Visualize Breakdown**: The UI makes a separate call to `/reports/balance` to fetch data for pie charts. This endpoint provides a detailed list of individual asset and debt accounts with their respective balances converted to the default currency, allowing the user to see the composition of their assets and liabilities [^6].
+**Scenario:** A user wants to check their current net worth after a month of transactions.
+
+1.  **Login:** The user logs into the MoneyNote application.
+2.  **Navigate to Overview:** The user clicks on the "Dashboard" or "Overview" tab in the main navigation menu.
+3.  **System Processes Data:**
+    *   The backend receives a request at the `/accounts/overview` endpoint. [^7]
+    *   The `AccountService` fetches all accounts designated as assets (`CHECKING`, `ASSET`) and debts (`CREDIT`, `DEBT`).
+    *   It iterates through each account, converting its balance to the group's default currency using the `CurrencyService`.
+    *   It sums the converted balances to get Total Assets and Total Debts.
+    *   Net Worth is calculated by subtracting Total Debts from Total Assets.
+4.  **Display Information:** The frontend displays three key figures:
+    *   **Total Assets:** e.g., "$15,000.00"
+    *   **Total Debts:** e.g., "$4,500.00"
+    *   **Net Worth:** e.g., "$10,500.00"
 
 ##### 2. Tracking Incomes & Expenses
 
-This is the core data-entry journey, allowing users to meticulously record their daily financial transactions, including expenditures and earnings.
+This journey is the core activity of the application, where a user records their day-to-day financial transactions, including expenditures, earnings, and transfers between accounts.
 
 ###### Core Interactions
 
-The user initiates the creation of a new financial record. They are presented with a form to add an expense or an income, where they can input details such as a descriptive title, the transaction amount, date, the account used, and one or more categories. Optionally, they can add tags for finer-grained analysis and specify a payee. Once saved, the transaction appears in their record list, and the corresponding account balance is updated. The user can also view, modify, and delete past transactions.
+The user initiates the creation of a new financial record. They select the type of transaction (e.g., Expense), fill in relevant details such as the amount, date, the account used, and categorize the transaction for future analysis. The user can also add descriptive tags, notes, and associate a payee with the transaction before saving it.
 
 ###### Business Requirements
 
-The system supports detailed transaction tracking through the following requirements:
+The transaction tracking feature is governed by the following requirements to ensure data integrity and usability.
 
 | Requirement ID | Description | Implemented In |
 | :--- | :--- | :--- |
-| REQ-TRK-01 | The system must allow the creation of financial transactions with distinct types: `EXPENSE`, `INCOME`, `TRANSFER`, and `ADJUST` [^9]. | `BalanceFlow.java`: `FlowType` enum |
-| REQ-TRK-02 | An `EXPENSE` transaction must debit (decrease) the balance of the selected account, while an `INCOME` transaction must credit (increase) it [^10]. | `BalanceFlowService.java`: `confirmBalance()` |
-| REQ-TRK-03 | Each transaction (`BalanceFlow`) must be associated with a specific `Book` to support compartmentalized bookkeeping [^11]. | `BalanceFlow.java`: `book` field |
-| REQ-TRK-04 | Expense and income transactions must be classifiable under one or more `Category`s. The sum of amounts across all assigned categories must equal the transaction's total amount [^12]. | `BalanceFlowService.java`: `add()` |
-| REQ-TRK-05 | The system must support multi-category transactions, where a single transaction's amount is split across several categories [^13]. | `BalanceFlowAddForm.java`: `categories` list |
-| REQ-TRK-06 | Transactions can be further organized with multiple descriptive `Tag`s [^14]. | `BalanceFlow.java`: `tags` field |
-| REQ-TRK-07 | Deleting a transaction must correctly revert the balance change on the associated account(s) to maintain data integrity [^15]. | `BalanceFlowService.java`: `refundBalance()` |
-| REQ-TRK-08 | Updating a transaction is implemented as an atomic operation of deleting the old record and creating a new one, preserving attached files and ensuring balance accuracy [^16]. | `BalanceFlowService.java`: `update()` |
+| FR-TRK-01 | The system must support four distinct financial flow types: `EXPENSE`, `INCOME`, `TRANSFER`, and `ADJUST`. [^8] | `FlowType.java` |
+| FR-TRK-02 | Users must create transactions within a specific `Book`, and all transaction data is scoped to that book. [^9] | `BalanceFlowAddForm.java: book` |
+| FR-TRK-03 | A transaction record must include: title, creation time, amount, associated account, and confirmation status. Optional fields include notes, payee, and tags. [^10] | `BalanceFlow.java` |
+| FR-TRK-04 | Expense and Income transactions can be associated with one or more categories, each with its own specific amount. The total transaction amount is the sum of all its category amounts. [^11] | `BalanceFlowService.java: add()` |
+| FR-TRK-05 | A `TRANSFER` transaction must debit the source `Account` and credit the destination `Account` (`to`). [^12] | `BalanceFlowService.java: confirmBalance()` |
+| FR-TRK-06 | Transactions can be marked as `confirmed`. Only confirmed transactions will adjust the balance of the associated account(s). [^13] | `BalanceFlowAddForm.java: confirm`, `BalanceFlowService.java: confirmBalance()`|
+| FR-TRK-07 | The system must provide robust querying capabilities, allowing users to filter transactions by date range, amount, type, account, category, tags, and other attributes. [^14] | `BalanceFlowQueryForm.java` |
+| FR-TRK-08 | When a transaction is deleted, its financial impact must be reversed from the associated account balance (refunded). [^15] | `BalanceFlowService.java: refundBalance()` |
 
-###### Example User Flow
+###### Example User Flow: Recording a Grocery Expense
 
-1.  **Initiate Transaction**: While viewing the transaction list within the "Personal" `Book`, the user clicks the "Add Expense" button.
-2.  **Fill Form**: A form appears. The user fills in the details:
-    *   **Account**: Selects "My Credit Card" (a `CREDIT` type account).
-    *   **Categories**:
-        *   Clicks "Add Category", selects "Groceries", and enters an amount of `50.00`.
-        *   Clicks "Add Category" again, selects "Household Goods", and enters `25.00`.
-    *   **Date**: Selects yesterday's date from a calendar picker.
-    *   **Payee**: Selects "Local Supermarket".
-    *   **Tags**: Adds the "weekly-shopping" tag.
-    *   **Notes**: Types "Stocked up on pantry items".
-3.  **Submit Form**: The user clicks "Save".
-4.  **API Request**: The frontend sends a `POST` request to the `/balance-flows` endpoint with the form data [^17].
-5.  **Backend Processing**:
-    *   The `BalanceFlowService.add()` method validates the input [^12]. It calculates the total amount of the transaction by summing the amounts from the categories (`50.00 + 25.00 = 75.00`).
-    *   A new `BalanceFlow` entity of type `EXPENSE` is created.
-    *   Because the transaction is confirmed by default, the `confirmBalance()` method is called. This reduces the balance of the "My Credit Card" account by `75.00` [^10].
-    *   `CategoryRelation` and `TagRelation` entities are created to link the transaction to its respective classifications.
-6.  **Confirmation**: The transaction is saved to the database. The UI refreshes the transaction list, displaying the new `75.00` expense. The balance of "My Credit Card" is updated on the accounts screen.
+**Scenario:** A user has just bought groceries and wants to record the expense.
 
-##### 3. Attaching a Financial Record File
+1.  **Initiate Transaction:** The user clicks the "Add Transaction" button from the dashboard.
+2.  **Select Type:** The user selects "Expense" as the transaction type.
+3.  **Fill Details:** The user fills out the form:
+    *   **Account:** Selects "Checking Account".
+    *   **Categories:**
+        *   Clicks "Add Category".
+        *   Selects the "Groceries" category.
+        *   Enters the amount "$75.50".
+    *   **Payee:** Selects "SuperMart" from the list of payees.
+    *   **Date:** The current date is pre-filled, which the user accepts.
+    *   **Notes:** Adds an optional note: "Weekly grocery shopping".
+4.  **Confirm and Save:** The user checks the "Confirm" box to have this transaction immediately impact the account balance and clicks "Save".
+5.  **System Processes Data:**
+    *   The frontend sends a `POST` request to the `/balance-flows` endpoint. [^16]
+    *   The `BalanceFlowService` validates the form, creates a new `BalanceFlow` entity, and associates the selected category.
+    *   Because `confirm` is true, the `confirmBalance` method is called.
+    *   The balance of the "Checking Account" is reduced by $75.50.
+6.  **Confirmation:** The user sees a success message and the new transaction appears in their transaction list.
 
-This journey provides users with the ability to link digital documents, such as receipts or invoices, directly to their financial transactions for better record-keeping and auditing.
+##### 3. Attaching Financial Record Files
+
+This journey allows users to attach digital files, such as receipts or invoices, to their financial transactions for better record-keeping and auditing.
 
 ###### Core Interactions
 
-After recording a transaction, the user opens its detailed view. They find an "Attachments" section and an option to upload a file. The user selects a file (e.g., a photo of a receipt or a PDF invoice) from their local device and uploads it. The file is now linked to the transaction. They can later view a list of all attachments for that transaction, open any file to view its content, or delete it if it's no longer needed.
+After creating a transaction, the user navigates to the transaction's detail view. Here, they find an option to upload a file. The user selects a file from their device, which is then uploaded and linked to the transaction record. Users can later view or download these attachments directly from the transaction details.
 
 ###### Business Requirements
 
-The system must support file attachments with the following capabilities:
+This feature ensures that supplementary documentation can be securely stored and accessed.
 
 | Requirement ID | Description | Implemented In |
 | :--- | :--- | :--- |
-| REQ-FILE-01 | Users must be able to upload one or more files to any `BalanceFlow` entity [^18]. | `BalanceFlowController.java`: `handleAddFile()` |
-| REQ-FILE-02 | The system must validate uploaded files to ensure they are of a supported content type (e.g., PDF, PNG, JPG, JPEG) [^19]. | `FileValidator.java`, `ValidFile.java` |
-| REQ-FILE-03 | The system must store the file's binary data, content type, original filename, and size. The binary data is stored as a `LONGBLOB` in the database [^20]. | `FlowFile.java` |
-| REQ-FILE-04 | Users must be able to retrieve and view a list of all files associated with a specific transaction [^21]. | `BalanceFlowController.java`: `handleFiles()` |
-| REQ-FILE-05 | The system must provide an endpoint to serve the raw content of a specific file with the correct `Content-Type` header, allowing it to be viewed in the browser or downloaded [^22]. | `FlowFileController.java`: `handleView()` |
-| REQ-FILE-06 | Users must be able to delete a previously uploaded file. This action must only remove the file and not the associated financial transaction [^23]. | `FlowFileController.java`: `handleDelete()` |
+| FR-FILE-01 | The system must allow users to upload files and associate them with a specific `BalanceFlow` record. [^17] | `BalanceFlowController.java: handleAddFile()` |
+| FR-FILE-02 | File uploads must be validated to support only specific content types, such as `application/pdf`, `image/png`, `image/jpg`, and `image/jpeg`. [^18] | `FileValidator.java` |
+| FR-FILE-03 | The system must store the file's binary data (`LONGBLOB`), content type, size, original filename, creator, and creation time. [^19] | `FlowFile.java` |
+| FR-FILE-04 | Users must be able to retrieve a list of all files attached to a given transaction. [^20] | `BalanceFlowService.java: getFiles()` |
+| FR-FILE-05 | The system must provide a secure endpoint for viewing/downloading a file. Access should be controlled to prevent unauthorized retrieval. [^21] | `FlowFileController.java: handleView()`, `FlowFileViewForm.java`|
+| FR-FILE-06 | When a financial record (`BalanceFlow`) is deleted, all associated files must also be deleted from the system. [^22] | `BalanceFlowService.java: remove()` |
 
-###### Example User Flow
+###### Example User Flow: Attaching a Receipt
 
-1.  **Select Transaction**: The user has previously recorded an expense for "New Office Chair" amounting to `250.00`. They click on this transaction in their list to open the details view.
-2.  **Upload File**: In the "Attachments" area of the transaction details, the user clicks the "Add File" or "Upload Receipt" button. This opens their device's file selection dialog.
-3.  **Choose File**: The user selects the PDF invoice for the chair, `invoice-12345.pdf`.
-4.  **API Request**: The frontend sends a multipart `POST` request to `/balance-flows/{id}/addFile`, where `{id}` is the ID of the "New Office Chair" transaction [^18].
-5.  **Backend Processing**:
-    *   The `BalanceFlowService.addFile()` method receives the file.
-    *   The `@ValidFile` annotation triggers `FileValidator` to check if the file's content type is supported [^19].
-    *   The service creates a new `FlowFile` entity. It reads the file's bytes and populates the entity with the binary data, content type (`application/pdf`), size, and original filename.
-    *   The `FlowFile` is linked to the `BalanceFlow` entity via the `flow` field and saved to the database [^20].
-6.  **Confirmation**: The API returns details of the newly created file record. The UI updates to show `invoice-12345.pdf` in the attachments list, with options to view or delete it.
+**Scenario:** A user wants to attach a photo of a receipt to a business lunch expense they just recorded.
+
+1.  **Navigate to Transaction:** The user finds the "Business Lunch" transaction in their transaction list and clicks on it to view its details.
+2.  **Upload File:** In the details view, the user clicks the "Attach File" button.
+3.  **Select File:** A file selection dialog opens. The user selects `receipt_lunch.jpg` from their device.
+4.  **System Processes Data:**
+    *   The file is sent via a `POST` request to the `/balance-flows/{id}/addFile` endpoint.
+    *   The `BalanceFlowService` validates the file type and size.
+    *   A new `FlowFile` entity is created, and the file's byte data is stored in the database.
+    *   The `FlowFile` is linked to the "Business Lunch" `BalanceFlow` entity via its ID.
+5.  **View Attachment:** The transaction details page now shows a thumbnail or link for `receipt_lunch.jpg`. The user can click this link to view the receipt image.
 
 ##### 4. Supporting Multiple Books
 
-This journey enables users to manage separate sets of financial records within a single account, such as for personal use, a side business, or different projects.
+This journey enables users to segregate their finances into different "Books." For instance, a user can maintain separate books for personal finances, a small business, or a specific project.
 
 ###### Core Interactions
 
-A user who wants to keep their business finances separate from their personal ones decides to create a new ledger. They navigate to the "Books" management section and choose to create a new `Book`. They are given the option to start from scratch, use a predefined template (e.g., "Restaurant Ledger"), or copy the structure of an existing book. After creating the new `Book`, they can switch their active context to it, ensuring that all subsequent transactions, categories, and payees are recorded within that specific ledger.
+The user creates and configures different books. Each book acts as a self-contained ledger with its own set of accounts, categories, tags, and payees. The user can easily switch between books to ensure they are recording transactions in the correct context.
 
 ###### Business Requirements
 
-The multi-book functionality is governed by these requirements:
+The multi-book functionality provides organizational structure and data isolation.
 
 | Requirement ID | Description | Implemented In |
 | :--- | :--- | :--- |
-| REQ-BOOK-01 | The system must allow a user to create and manage multiple `Book` entities [^24]. | `BookController.java`: `handleAdd()` |
-| REQ-BOOK-02 | Each `Book` must function as a self-contained ledger, with its own distinct set of `Categories`, `Tags`, and `Payees` [^25]. | `Book.java`: `categories`, `tags`, `payees` fields |
-| REQ-BOOK-03 | The system must provide predefined `BookTemplate`s that users can select to quickly set up a new book with relevant categories and tags [^26]. | `BookService.java`: `addByTemplate()` |
-| REQ-BOOK-04 | Templates for books are loaded from a JSON configuration file, allowing for easy updates and additions without code changes [^27]. | `book_tpl.json`, `BookTplDataLoader.java` |
-| REQ-BOOK-05 | Users must be able to create a new book by duplicating the entire structure (categories, tags, payees) of an existing book [^28]. | `BookService.java`: `addByBook()` |
-| REQ-BOOK-06 | Users must be able to set a default `Book` for their session. All data entry and viewing will be scoped to this active book until it is changed [^29]. | `UserController.java`: `handleSetDefaultBook()` |
-| REQ-BOOK-07 | All transaction-related data, including balance flows, categories, and payees, must be queryable and filterable by `Book` ID [^30]. | `CategoryQueryForm.java`, `PayeeQueryForm.java` |
+| FR-BOOK-01 | The system must allow users to create multiple `Books`. Each book must have a name and belong to a `Group`. [^23] | `Book.java` |
+| FR-BOOK-02 | Core data entities such as `Category`, `Tag`, and `Payee` must be scoped to a single `Book`, preventing data from one book from appearing in another. [^24] | `Category.java: book`, `Tag.java: book`, `Payee.java: book` |
+| FR-BOOK-03 | Users must be able to create a new `Book` using one of three methods: from scratch, by copying an existing book's structure, or from a predefined template. [^25] | `BookService.java: add()`, `addByBook()`, `addByTemplate()` |
+| FR-BOOK-04 | Book templates must provide a pre-configured set of categories, tags, and payees for common use cases (e.g., personal finance, restaurant business). [^26] | `book_tpl.json`, `BookTplDataLoader.java` |
+| FR-BOOK-05 | Each user must have a `defaultBook`, which is automatically selected upon login. The user must be able to change their default book. [^27] | `User.java: defaultBook`, `UserController.java: handleSetDefaultBook()` |
+| FR-BOOK-06 | Deleting a book is only permitted if it contains no transactions. This prevents accidental data loss. [^28] | `BookService.java: remove()` |
 
-###### Example User Flow
+###### Example User Flow: Creating a New Book for a Side Business
 
-1.  **Navigate to Books**: The user goes to the "Settings" -> "Manage Books" page.
-2.  **Initiate Creation**: They click the "Create Book" button. The UI presents several options.
-3.  **Select Template**: The user chooses "Create from Template". A list of available templates, such as "Daily Life" and "Restaurant Ledger," is displayed [^27].
-4.  **Choose and Configure**: The user selects "Restaurant Ledger". A form prompts them for a name and default currency for the new book. They enter "My Cafe" and select "EUR" as the currency.
-5.  **API Request**: The user clicks "Create". The frontend sends a `POST` request to `/books/template` with the new book's details and the selected template ID [^26].
-6.  **Backend Processing**:
-    *   The `BookService.addByTemplate()` method is invoked.
-    *   It first creates a new `Book` entity named "My Cafe".
-    *   It then loads the "Restaurant Ledger" template from `book_tpl.json`.
-    *   It iterates through the categories, tags, and payees defined in the template JSON and creates corresponding new entities in the database, linking them all to the "My Cafe" book [^28].
-7.  **Confirmation and Activation**: The new book is created. The user sees "My Cafe" in their list of books. They can then click on it and set it as their active book for recording cafe-related income and expenses.
+**Scenario:** A user, who already tracks personal finances, starts a freelance business and wants to keep its finances separate.
+
+1.  **Navigate to Books:** The user goes to the "Manage Books" section of the application.
+2.  **Create New Book:** The user clicks "Add New Book".
+3.  **Choose Creation Method:** The application presents options: "Start from Scratch," "Copy Existing Book," or "Use Template." The user chooses "Use Template."
+4.  **Select Template:** The user selects the "Freelance Business" template.
+5.  **Configure Book:** The user provides a name for the new book, "My Freelance Biz," and sets its default currency to "USD".
+6.  **System Processes Data:**
+    *   A request is sent to `/books/template`. [^29]
+    *   The `BookService` creates a new `Book` entity named "My Freelance Biz".
+    *   It then reads the "Freelance Business" template from `book_tpl.json` and programmatically creates all associated `Category`, `Tag`, and `Payee` entities, linking them to the new book.
+7.  **Switch to New Book:** The new book, "My Freelance Biz," now appears in the user's list of books. The user selects it from a dropdown menu to make it their active book for recording business-related transactions.
 
 ##### 5. Supporting Multiple Currencies
 
-This journey addresses the needs of users who deal with more than one currency, enabling them to record transactions in their original currency and view consolidated reports in a single base currency.
+This journey details how the application handles financial data across various currencies, providing accurate conversions and consolidated reporting.
 
 ###### Core Interactions
 
-A user has bank accounts in both the United States (USD) and Europe (EUR). They add both accounts to the application, specifying the correct currency for each. When they record a transaction from their EUR account, they enter the amount in EUR. The system, aware that the user's primary reporting currency is USD, fetches the current exchange rate and calculates the equivalent value in USD. In their financial overview, the balance of the EUR account is shown in its converted USD value, contributing to a unified financial summary.
+A user can create bank accounts in different currencies (e.g., USD, EUR, JPY). When they record a transaction involving multiple currencies, such as a transfer from a USD account to a EUR account, the system facilitates the currency conversion. Reports and dashboards automatically convert all financial data into a single, user-selected base currency for a unified view.
 
 ###### Business Requirements
 
-The multi-currency feature is built upon the following requirements:
+Multi-currency support is critical for users who manage international finances.
 
 | Requirement ID | Description | Implemented In |
 | :--- | :--- | :--- |
-| REQ-CUR-01 | The system must maintain a list of world currencies with their exchange rates relative to a base currency (USD) [^31]. | `currency.json`, `CurrencyDataLoader.java` |
-| REQ-CUR-02 | Each `Account` entity must be assigned a specific `currencyCode` [^32]. | `Account.java`: `currencyCode` field |
-| REQ-CUR-03 | Each `Book` must have a `defaultCurrencyCode` which serves as the base currency for all reporting within that book [^33]. | `Book.java`: `defaultCurrencyCode` field |
-| REQ-CUR-04 | For transactions where the account currency differs from the book's default currency, the system must store both the original `amount` and the `convertedAmount` in the book's currency [^34]. | `BalanceFlow.java`: `amount`, `convertedAmount` fields |
-| REQ-CUR-05 | The system must provide a mechanism to refresh currency exchange rates from an external API service to ensure they are up-to-date [^35]. | `CurrencyService.java`: `refreshCurrency()` |
-| REQ-CUR-06 | All aggregated financial reports (e.g., net worth, category spending) must convert all transaction amounts into a single, consistent currency (the group's default) before aggregation [^3]. | `AccountService.java`: `overview()` |
-| REQ-CUR-07 | The system must expose an API endpoint to calculate the value of an amount from one currency to another (`/currencies/calc`) [^36]. | `CurrencyController.java`: `handleCalc()` |
+| FR-CUR-01 | The system must maintain a pre-populated list of world currencies and their exchange rates. [^30] | `currency.json`, `CurrencyDataLoader.java` |
+| FR-CUR-02 | The system must be capable of refreshing currency exchange rates from an external provider to ensure they are up-to-date. [^31] | `CurrencyService.java: refreshCurrency()` |
+| FR-CUR-03 | Each `Account` entity must be assigned a specific `currencyCode` (e.g., "USD", "CNY"). [^32] | `Account.java: currencyCode` |
+| FR-CUR-04 | When an `EXPENSE` or `INCOME` transaction occurs in an account whose currency differs from the book's default currency, the system must store both the original `amount` and the `convertedAmount`. [^33] | `BalanceFlow.java: convertedAmount` |
+| FR-CUR-05 | For a `TRANSFER` between accounts of different currencies, the system must handle the conversion from the source currency to the destination currency. [^12] | `BalanceFlowService.java: confirmBalance()` |
+| FR-CUR-06 | All high-level financial reports and statistics must present data in a single, consistent currency (the group's default currency). [^4] | `AccountService.java: overview()` |
+
+###### Example User Flow: International Money Transfer
+
+**Scenario:** A user needs to record a transfer of $100 USD from their US-based checking account to their German bank account, which is in EUR.
+
+1.  **Initiate Transaction:** The user selects "Add Transaction" and chooses the "Transfer" type.
+2.  **Fill Details:** The user fills out the transfer form:
+    *   **From Account:** Selects "US Checking (USD)".
+    *   **To Account:** Selects "German Bank (EUR)".
+    *   **Amount:** Enters "100.00" (in USD).
+3.  **Handle Conversion:**
+    *   The system detects that the source and destination currencies are different.
+    *   It calls the `CurrencyService` to get the latest USD-to-EUR exchange rate (e.g., 0.95).
+    *   The UI displays the calculated converted amount: "95.00 EUR" and allows the user to override it if needed.
+4.  **Confirm and Save:** The user verifies the details and clicks "Save".
+5.  **System Processes Data:**
+    *   A `BalanceFlow` entity is created for the transfer.
+    *   The `amount` is set to `100.00`.
+    *   The `convertedAmount` is set to `95.00`.
+    *   The `confirmBalance` method is executed:
+        *   The balance of "US Checking (USD)" is reduced by 100.00.
+        *   The balance of "German Bank (EUR)" is increased by 95.00.
+6.  **Confirmation:** The transaction appears in the user's history, clearly showing the transfer from the USD account to the EUR account with the amounts involved.
+
+[^1]: src/main/java/cn/biq/mn/account/AccountService.java: overview() - Calculates total assets, debts, and net worth.
+[^2]: src/main/java/cn/biq/mn/account/AccountService.java: getAssets() - Fetches all accounts of type CHECKING and ASSET.
+[^3]: src/main/java/cn/biq/mn/account/AccountService.java: getDebts() - Fetches all accounts of type CREDIT and DEBT.
+[^4]: src/main/java/cn/biq/mn/account/AccountService.java: overview() - Uses CurrencyService to convert all balances to the group's default currency.
+[^5]: src/main/java/cn/biq/mn/account/AccountService.java: statistics() - Calculates statistics for a given set of accounts based on a query form.
+[^6]: src/main/java/cn/biq/mn/report/ReportService.java: reportBalance() - Generates a detailed breakdown of asset and debt accounts.
+[^7]: src/main/java/cn/biq/mn/account/AccountController.java: handleOverview() - Exposes the endpoint for the financial overview.
+[^8]: src/main/java/cn/biq/mn/balanceflow/FlowType.java: EXPENSE, INCOME, TRANSFER, ADJUST - Defines the four types of financial transactions.
+[^9]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowAddForm.java: book - The form for adding a new transaction requires a book ID.
+[^10]: src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java: Defines the schema for a transaction record.
+[^11]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: add() - Sums amounts from the categories list to determine the total transaction amount.
+[^12]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: confirmBalance() - Handles the logic for debiting and crediting accounts during a transfer.
+[^13]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowAddForm.java: confirm - A boolean field in the transaction form to specify if the transaction should be confirmed immediately.
+[^14]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowQueryForm.java: buildPredicate() - Constructs a dynamic query based on various filter criteria.
+[^15]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: refundBalance() - Reverses the financial impact of a transaction on an account's balance.
+[^16]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowController.java: handleAdd() - The controller endpoint for creating new balance flow records.
+[^17]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowController.java: handleAddFile() - Endpoint for uploading and associating a file with a transaction.
+[^18]: src/main/java/cn/biq/mn/validation/FileValidator.java: isSupportedContentType() - Validates that the uploaded file is one of the allowed MIME types.
+[^19]: src/main/java/cn/biq/mn/flowfile/FlowFile.java: Defines the entity for storing file metadata and data.
+[^20]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: getFiles() - Retrieves all file records associated with a balance flow ID.
+[^21]: src/main/java/cn/biq/mn/flowfile/FlowFileController.java: handleView() - Securely serves file content based on ID and a time-based token.
+[^22]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: remove() - Deletes associated flow files before deleting the balance flow record itself.
+[^23]: src/main/java/cn/biq/mn/book/Book.java: Defines the Book entity and its relationship to a Group.
+[^24]: src/main/java/cn/biq/mn/category/Category.java: book - The Category entity contains a mandatory reference to a Book.
+[^25]: src/main/java/cn/biq/mn/book/BookService.java: add(), addByBook(), addByTemplate() - Implements the three methods for book creation.
+[^26]: src/main/resources/book_tpl.json: Contains predefined structures for different types of books.
+[^27]: src/main/java/cn/biq/mn/user/User.java: defaultBook - The User entity stores a reference to the user's default book.
+[^28]: src/main/java/cn/biq/mn/book/BookService.java: remove() - Checks if a book has existing flows before allowing deletion.
+[^29]: src/main/java/cn/biq/mn/book/BookController.java: handleAddByTemplate() - The controller endpoint for creating a book from a template.
+[^30]: src/main/resources/currency.json: A file containing a list of world currencies and their initial rates.
+[^31]: src/main/java/cn/biq/mn/currency/CurrencyService.java: refreshCurrency() - Method to update currency rates from an external API.
+[^32]: src/main/java/cn/biq/mn/account/Account.java: currencyCode - Each account entity has a string field for its currency code.
+[^33]: src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java: convertedAmount - A field to store the transaction amount after currency conversion.
+
+### Modernization Opportunities
+Here are the User Journeys and Features for the MoneyNote application, structured as a requirements document based on the provided codebase.
+
+#### 1\. Monitor Financial Situation
+
+This journey describes how a user can get a high-level overview of their financial health, including their assets, debts, and overall net worth.
+
+##### Core Interactions
+
+The user interacts with dashboard or reporting sections of the application to view consolidated financial summaries. This involves the system fetching data from various accounts, performing necessary currency conversions, and presenting the information in an easily digestible format, such as summary cards and charts.
+
+##### Business requirements
+
+| Requirement ID | Description | Code Evidence |
+| :--- | :--- | :--- |
+| **FIN-MON-01** | The system must provide a consolidated overview of the user's total assets. | `AccountService.java`: The `overview()` method calls `getAssets()` to collect all asset-type accounts (CHECKING, ASSET) [^1]. |
+| **FIN-MON-02** | The system must provide a consolidated overview of the user's total debts. | `AccountService.java`: The `overview()` method calls `getDebts()` to collect all debt-type accounts (CREDIT, DEBT) [^2]. |
+| **FIN-MON-03** | The system must calculate and display the user's net worth, defined as Total Assets minus Total Debts. | `AccountService.java`: The `overview()` method calculates `result[2] = result[0].subtract(result[1])` to determine net worth [^3]. |
+| **FIN-MON-04** | All summary calculations must accommodate multiple currencies by converting all account balances to the user's group-defined default currency before aggregation. | `AccountService.java`: The `overview()` method uses `currencyService.convert()` to standardize balances to the default currency of the group [^4]. |
+| **FIN-MON-05** | The system must provide a visual breakdown of assets and debts by account. | `ReportService.java`: The `reportBalance()` method prepares data for two separate charts, one for assets and one for debts, calculating the percentage contribution of each account [^5]. |
+| **FIN-MON-06** | Only accounts marked as `include=true` and `enable=true` shall be part of the financial overview calculations. | `AccountService.java`: The `getAssets()` and `getDebts()` methods query for accounts where `enable` and `include` are both true [^6]. |
+
+##### Example user flow
+
+**User: Alex, a diligent budgeter.**
+
+1.  **Login and Dashboard View**: Alex logs into the MoneyNote application. The main dashboard immediately presents a summary widget with three key figures:
+    *   Total Assets: \$15,000
+    *   Total Debts: \$5,500
+    *   Net Worth: \$9,500
+2.  **Navigate to Reports**: Alex wants to see the breakdown of their assets. They click on the "Reports" section in the navigation menu.
+3.  **View Balance Report**: On the reports page, Alex selects the "Balance Report". The screen displays two pie charts:
+    *   **Assets Chart**: Shows "Checking Account: \$5,000 (33%)", "Savings Account: \$8,000 (53%)", and "Investment Portfolio: \$2,000 (14%)".
+    *   **Debts Chart**: Shows "Visa Credit Card: \$4,000 (73%)" and "Student Loan: \$1,500 (27%)".
+4.  **Analysis**: Alex can quickly see that their savings account is their largest asset and the credit card constitutes the majority of their debt, allowing them to make informed financial decisions.
+
+#### 2\. Track Incomes & Expenses
+
+This journey outlines the process of recording, reviewing, and managing individual financial transactions, which is the core data-entry function of the application.
+
+##### Core Interactions
+
+The user accesses a form to input details of a new income or expense. This includes specifying the amount, selecting the relevant account and category, and optionally adding other metadata like a payee or tags. The user can also view a historical list of transactions and modify or delete them.
+
+##### Business requirements
+
+| Requirement ID | Description | Code Evidence |
+| :--- | :--- | :--- |
+| **TRK-TXN-01** | Users must be able to record transactions of different types: Expense, Income, Transfer, and Balance Adjustment. | `BalanceFlow.java`: The `FlowType` enum defines `EXPENSE`, `INCOME`, `TRANSFER`, and `ADJUST` [^7]. |
+| **TRK-TXN-02** | Each transaction must be associated with a specific book and at least one account. | `BalanceFlow.java`: Contains `@ManyToOne` relationships to `Book` and `Account` entities [^8]. |
+| **TRK-TXN-03** | A transaction must include an amount and a creation/transaction date. | `BalanceFlow.java`: Contains fields `amount` and `createTime` [^9]. |
+| **TRK-TXN-04** | Income and Expense transactions must support splitting the total amount across multiple categories. | `BalanceFlowAddForm.java`: The `categories` field is a `List<CategoryRelationForm>`, allowing for multiple category entries per transaction. The logic in `BalanceFlowService` sums these amounts [^10]. |
+| **TRK-TXN-05** | Transactions can optionally be associated with a payee and multiple tags for detailed tracking and reporting. | `BalanceFlow.java`: Contains relationships to `Payee` and a set of `TagRelation` entities [^11]. |
+| **TRK-TXN-06** | When a transaction marked as "confirmed" is created, the balance of the associated account(s) must be updated automatically. | `BalanceFlowService.java`: The `confirmBalance()` method adjusts the `balance` property of the `Account` entity based on the transaction type and amount [^12]. |
+| **TRK-TXN-07** | Deleting a transaction must reverse its effect on the account balance (refund). | `BalanceFlowService.java`: The `remove()` method calls `refundBalance()` before deleting the transaction entity [^13]. |
+| **TRK-TXN-08** | The system must provide a paginated and filterable list of all transactions within a book. | `BalanceFlowController.java`: The `handleQuery()` endpoint accepts a `BalanceFlowQueryForm` and `Pageable` object to facilitate filtering and pagination [^14]. |
+
+##### Example user flow
+
+**User: Sam, a freelancer tracking project expenses.**
+
+1.  **Initiate Transaction**: Sam is on their "Freelance Business" book dashboard and clicks the "+" (Add New) button.
+2.  **Select Transaction Type**: They select "Expense" from the options.
+3.  **Fill out Form**:
+    *   **Title**: "Monthly Software Subscription"
+    *   **Categories**: Sam clicks to add a category, selects "Software", and enters the amount: \$25.
+    *   **Account**: They select their "Business Credit Card" account.
+    *   **Payee**: They select "Creative Suite Inc." from their list of payees.
+    *   **Tags**: They add the tags "recurring" and "design-tools".
+    *   **Date**: The date defaults to today, which is correct.
+4.  **Save Transaction**: Sam reviews the details and clicks "Save".
+5.  **Confirmation**: The transaction appears at the top of their recent transaction list. The balance of the "Business Credit Card" is immediately updated to reflect the \$25 charge.
+
+#### 3\. Finance Record File
+
+This journey describes the user's ability to attach digital files, such as receipts or invoices, to their transaction records for archival and reference purposes.
+
+##### Core Interactions
+
+The user selects a transaction and uses an upload interface to attach a file from their local device. Once uploaded, the file is associated with the transaction record and can be viewed or deleted later.
+
+##### Business requirements
+
+| Requirement ID | Description | Code Evidence |
+| :--- | :--- | :--- |
+| **FILE-MGT-01** | The system must allow users to upload and attach one or more files to a single transaction record. | `BalanceFlowController.java`: The `handleAddFile()` method takes a transaction ID and a `MultipartFile` to handle the upload [^15]. `FlowFile` has a many-to-one relationship with `BalanceFlow` [^16]. |
+| **FILE-MGT-02** | The system must validate uploaded files, restricting them to supported content types (e.g., PDF, PNG, JPG/JPEG). | `FileValidator.java`: Implements the validation logic, checking the `contentType` against a list of allowed types [^17]. |
+| **FILE-MGT-03** | The system must enforce a maximum file size for uploads. | `application.properties`: Configuration properties like `spring.servlet.multipart.max-file-size=100MB` define the server-side limit [^18]. |
+| **FILE-MGT-04** | The system must store the file's binary data, along with metadata such as the original filename, content type, and size. | `FlowFile.java`: The entity includes fields for `data` (as a `LONGBLOB`), `originalName`, `contentType`, and `size` [^19]. |
+| **FILE-MGT-05** | Users must be able to view the content of an uploaded file through the application interface. | `FlowFileController.java`: The `handleView()` endpoint retrieves the file's byte array and serves it with the correct content type, allowing it to be rendered in the browser [^20]. |
+| **FILE-MGT-06** | Users must be able to permanently delete an attached file from a transaction record. | `FlowFileController.java`: The `handleDelete()` endpoint allows for the removal of a `FlowFile` entity by its ID [^21]. |
+
+##### Example user flow
+
+**User: Maria, keeping records for tax purposes.**
+
+1.  **Locate Transaction**: Maria finds the \$150 expense transaction for "New Office Chair" that she recorded yesterday.
+2.  **Initiate Upload**: She clicks on the transaction to view its details and finds an "Attachments" section with an "Upload File" button.
+3.  **Select and Upload File**: She clicks the button, and a file browser opens. She navigates to her "Receipts" folder and selects the `invoice-office-chair.pdf` file. The file uploads, and a progress bar is shown.
+4.  **View Attachment**: Once complete, the file `invoice-office-chair.pdf` appears as a link or thumbnail in the "Attachments" section of the transaction.
+5.  **Later Access**: Months later, while preparing her tax return, Maria can navigate back to this transaction and click on the attachment to view the original invoice, verifying the purchase details.
+
+#### 4\. Support Multiple Books
+
+This journey enables users to maintain separate, self-contained ledgers (called "Books") to manage different financial areas, such as personal vs. business finances, without mixing data.
+
+##### Core Interactions
+
+The user creates and configures new books, each with its own set of categories, tags, and settings. A key interaction is the ability to easily switch the active context from one book to another, which changes the entire dataset being viewed and managed.
+
+##### Business requirements
+
+| Requirement ID | Description | Code Evidence |
+| :--- | :--- | :--- |
+| **BOOK-MGT-01** | Users must be able to create, read, update, and delete bookkeeping ledgers ("books"). | `BookController.java`: Provides full CRUD functionality for `Book` entities [^22]. |
+| **BOOK-MGT-02** | Each book must act as an isolated container. Transactions, categories, tags, and payees created within one book must not be visible in another. | `Category.java`, `Tag.java`, `Payee.java`: Each of these entities has a mandatory `@ManyToOne` relationship with the `Book` entity, ensuring they are scoped to a specific book [^23]. |
+| **BOOK-MGT-03** | Each book must have its own configurable default currency. | `Book.java`: Contains the `defaultCurrencyCode` field [^24]. |
+| **BOOK-MGT-04** | Users must be able to set a default active book for their session. | `UserController.java`: The `handleSetDefaultBook()` endpoint updates the `defaultBook` reference on the `User` entity [^25]. |
+| **BOOK-MGT-05** | The system must allow users to create a new book from predefined templates (e.g., "Personal Finance", "Small Business"). | `BookController.java`: The `handleAddByTemplate()` endpoint uses data from `book_tpl.json` to create a new book with pre-populated categories and tags [^26]. |
+| **BOOK-MGT-06** | The system must allow users to create a new book by copying the structure (categories, tags, payees) of an existing book. | `BookController.java`: The `handleAddByBook()` endpoint orchestrates the copying of structure from a source book to a new book [^27]. |
+
+##### Example user flow
+
+**User: David, who runs a small café.**
+
+1.  **Requirement for Separation**: David uses MoneyNote for his personal finances but wants to track his café's finances separately.
+2.  **Create New Book**: He navigates to the "Settings" -> "Manage Books" page. He clicks "Create New Book".
+3.  **Use a Template**: He is presented with options to create from scratch or use a template. He selects the "餐饮店账本" (Restaurant Ledger) template.
+4.  **Configure Book**: He names the new book "My Café" and confirms "USD" as the default currency. He clicks "Create".
+5.  **Automatic Setup**: The system creates the "My Café" book, automatically populating it with relevant categories like "原材料" (Raw Materials), "员工" (Employees), and "门店" (Storefront), and payees like "美团" (Meituan).
+6.  **Switching Context**: A dropdown menu at the top of the app now shows "Personal" and "My Café". David selects "My Café". The entire application context switches: the dashboard, transactions, and reports now only show data related to his café. He can switch back to his "Personal" book at any time.
+
+#### 5\. Support Multiple Currencies
+
+This journey covers the application's ability to handle finances across different currencies, allowing users to manage international accounts and transactions seamlessly.
+
+##### Core Interactions
+
+The user creates accounts in various currencies. When entering transactions or transfers between accounts with different currencies, the system prompts for or calculates a converted amount. All reports and high-level summaries present a unified view by converting all values to a single default currency.
+
+##### Business requirements
+
+| Requirement ID | Description | Code Evidence |
+| :--- | :--- | :--- |
+| **CCY-MGT-01** | Users must be able to assign a specific currency to each account. | `Account.java`: The entity has a `currencyCode` field to store the currency for that account [^28]. |
+| **CCY-MGT-02** | The system must maintain a list of supported currencies and their exchange rates against a base currency (USD). | `CurrencyDataLoader.java`: Loads a list of currencies and their rates from `currency.json` into the application context [^29]. |
+| **CCY-MGT-03** | The system must be able to update exchange rates from an external provider. | `CurrencyService.java`: The `refreshCurrency()` method makes an API call to `https://api.exchangerate-api.com` to fetch the latest rates [^30]. |
+| **CCY-MGT-04** | For transactions involving an account whose currency differs from the book's default currency, the system must store both the original amount and the amount converted to the book's default currency. | `BalanceFlow.java`: Includes both an `amount` and a `convertedAmount` field. The logic is handled in `BalanceFlowService` [^31]. |
+| **CCY-MGT-05** | All financial reports and summaries (e.g., Net Worth, Category Reports) must display values converted to a single, consistent default currency. | `ReportService.java` & `AccountService.java`: Both services make extensive use of `currencyService.convert()` to normalize amounts before aggregation and reporting [^32]. |
+| **CCY-MGT-06** | When transferring funds between two accounts with different currencies, the system must record the source amount deducted and the target amount credited after conversion. | `BalanceFlowService.java`: In the `confirmBalance` method for a `TRANSFER` type, it subtracts `amount` from the source account and adds `convertedAmount` to the `toAccount` [^33]. |
+
+##### Example user flow
+
+**User: Chloe, an international traveler.**
+
+1.  **Account Setup**: Chloe's primary book has a default currency of EUR. She has a "French Bank" account in EUR and a "US Bank" account in USD.
+2.  **Record Foreign Transaction**: While in New York, she spends \$50 on a taxi. She opens MoneyNote, selects her "US Bank" (USD) account, and creates an expense transaction for \$50.
+3.  **Automatic Conversion**: The UI shows the \$50 amount and, because the book's default currency is EUR, it also shows the calculated converted amount (e.g., €47.50).
+4.  **Save and Verify**: She saves the transaction. The balance of her "US Bank" account decreases by \$50.
+5.  **Consolidated Reporting**: Later, she runs a monthly expense report. The report shows her total "Transportation" spending in EUR. The \$50 taxi expense is included in this total, having been converted to €47.50 for the report, providing a clear and consolidated view of her spending regardless of the original currency.
+
+[^1]: AccountService.java: overview() - This method orchestrates the calculation of total assets, debts, and net worth for the financial overview.
+[^2]: AccountService.java: getDebts() - This method retrieves all accounts that are classified as liabilities (CREDIT, DEBT).
+[^3]: AccountService.java: overview() - The net worth is calculated by subtracting the total debt from the total asset value.
+[^4]: AccountService.java: overview() - It iterates through accounts and uses `currencyService.convert` to normalize all balances to the group's default currency.
+[^5]: ReportService.java: reportBalance() - This method groups accounts by asset and debt, calculates their value in the default currency, and computes their percentage of the total for chart visualization.
+[^6]: AccountRepository.java: findAllByGroupAndTypeAndEnableAndInclude() - This repository method is used to fetch accounts that match specific criteria, including being enabled and included in reports.
+[^7]: BalanceFlow.java: FlowType - This enum defines the fundamental types of financial transactions the system can handle.
+[^8]: BalanceFlow.java: book, account - The entity definition includes non-nullable relationships to the `Book` and `Account` entities.
+[^9]: BalanceFlow.java: amount, createTime - These fields are fundamental attributes of any transaction record.
+[^10]: BalanceFlowService.java: add() - The service logic iterates through the list of `CategoryRelationForm` objects, summing their amounts to calculate the total transaction amount.
+[^11]: BalanceFlow.java: payee, tags - The entity contains relationships to the `Payee` and `TagRelation` entities, allowing for rich metadata.
+[^12]: BalanceFlowService.java: confirmBalance() - This private method contains the logic to increase or decrease an account's balance based on the transaction's type (e.g., subtract for EXPENSE, add for INCOME).
+[^13]: BalanceFlowService.java: refundBalance() - This method reverses the financial impact of a transaction on an account's balance before the transaction is deleted.
+[^14]: BalanceFlowController.java: handleQuery() - This endpoint is designed to accept query parameters and pagination info to return a filtered and paginated list of transactions.
+[^15]: BalanceFlowController.java: handleAddFile() - This endpoint handles the `POST` request for uploading a file against a specific transaction ID.
+[^16]: FlowFile.java: flow - The `@ManyToOne` relationship links an uploaded file to its parent `BalanceFlow` transaction.
+[^17]: FileValidator.java: isSupportedContentType() - This method explicitly checks if the uploaded file's MIME type is in the allowed list (pdf, png, jpg, jpeg).
+[^18]: application.properties: spring.servlet.multipart.max-file-size - This property sets the application-wide limit for single file uploads.
+[^19]: FlowFile.java: data, originalName, contentType, size - These fields define the schema for storing file attachments in the database.
+[^20]: FlowFileController.java: handleView() - This endpoint serves the file's raw byte data with the appropriate `Content-Type` header for browser rendering.
+[^21]: FlowFileController.java: handleDelete() - This endpoint allows for the removal of a `FlowFile` record.
+[^22]: BookController.java: handleAdd, handleUpdate, handleDelete - These endpoints expose the core CRUD operations for managing `Book` entities.
+[^23]: Category.java: book - The `@ManyToOne` relationship ensures every category belongs to exactly one book, creating data isolation.
+[^24]: Book.java: defaultCurrencyCode - A simple `String` field on the `Book` entity to store its default currency.
+[^25]: UserController.java: handleSetDefaultBook() - This endpoint allows a user to change their active book by updating the `defaultBook` field on their `User` profile.
+[^26]: BookService.java: addByTemplate() - This service method reads from `book_tpl.json` and programmatically creates the entities (Book, Categories, Tags) for the new book.
+[^27]: BookService.java: addByBook() - This service method iterates through the categories, tags, and payees of a source book and creates new corresponding entities for the destination book.
+[^28]: Account.java: currencyCode - The `@Column` annotation on this field defines that each account has an associated currency code.
+[^29]: CurrencyDataLoader.java: run() - On application startup, this runner loads the `currency.json` file into an application-scoped bean for easy access.
+[^30]: CurrencyService.java: refreshCurrency() - This method uses `RestTemplate` to call an external exchange rate API and update the rates in the `ApplicationScopeBean`.
+[^31]: BalanceFlow.java: amount, convertedAmount - The entity has two distinct fields to store the value in both the original and default currencies.
+[^32]: ReportService.java: reportCategory() - This reporting method uses `getConvertedAmount()` on `CategoryRelation` to ensure all data is aggregated in the same currency.
+[^33]: BalanceFlowService.java: confirmBalance() - The logic for `FlowType.TRANSFER` explicitly subtracts `amount` from one account and adds `convertedAmount` to the other.
+
+## Cloud Migration
+### Migration Overview
+#### User Journeys
+
+This section outlines the primary user journeys and features implemented in the MoneyNote application. Each journey is described from the perspective of a user interacting with the system, followed by the specific business requirements that the codebase fulfills.
+
+##### Monitoring Financial Health
+
+This journey describes how a user can get a high-level overview of their financial status, including their assets, debts, and overall net worth.
+
+###### Core Interactions
+
+1.  The user logs into the application and lands on the main dashboard or an overview page.
+2.  The system automatically fetches and displays key financial metrics.
+3.  The user views aggregated totals for their assets, debts, and net worth, all presented in their primary currency.
+4.  The user can also view visualizations, such as pie charts, that break down the composition of their assets and debts across different accounts.
+
+###### Business Requirements
+
+*   The system must provide an at-a-glance financial overview, calculating total assets, total debts, and the resulting net worth [^1].
+*   Total assets must be calculated by summing the balances of all accounts designated as `ASSET` or `CHECKING` types.
+*   Total debts must be calculated by summing the balances of accounts designated as `DEBT` or `CREDIT` types.
+*   Net worth is calculated as Total Assets minus Total Debts.
+*   All calculations for the overview must be converted into the user's group-level default currency to ensure consistency and accurate aggregation [^2].
+*   The financial overview should only include accounts that are explicitly enabled and marked to be included in net worth calculations (`enable=true` and `include=true`).
+*   The system must be able to generate data suitable for visual charts that break down asset and debt totals by individual accounts, helping users understand their financial composition [^3].
 
 ###### Example User Flow
 
-1.  **Account Setup**: The user has already configured their accounts: "Bank of America" (USD) and "BNP Paribas" (EUR). Their group's default currency is set to USD.
-2.  **Record Foreign Transaction**: The user needs to record a `€50` dinner expense paid from their "BNP Paribas" account. They create a new expense.
-3.  **UI Assistance**:
-    *   They select the "BNP Paribas" account. The UI detects its currency is EUR, which is different from the group's default of USD.
-    *   The UI makes a background call to `/currencies/rate?from=EUR&to=USD` to fetch the conversion rate (e.g., 1.08).
-    *   It automatically calculates the converted amount (`50 * 1.08 = 54.00`) and displays "$54.00" next to the amount field, allowing the user to override it if needed.
-4.  **Submit Transaction**: The user confirms the details and saves. The frontend sends a `POST` request to `/balance-flows` with `amount: 50` (in EUR) and `convertedAmount: 54` (in USD).
-5.  **Backend Processing**:
-    *   The `BalanceFlowService` saves the transaction, storing both the original and converted amounts [^34].
-    *   The balance of the "BNP Paribas" account is correctly reduced by `€50`.
-6.  **Consolidated Reporting**: Later, when the user generates a monthly spending report, this transaction contributes `$54` to the total, allowing it to be aggregated seamlessly with other USD-based transactions.
+Priya, a freelance designer, logs into her MoneyNote account to check her financial standing. The dashboard immediately loads with three prominent cards at the top: **Total Assets: $85,000**, **Total Debts: $25,000**, and **Net Worth: $60,000**. Below these figures, she sees two pie charts. The "Assets" chart shows her holdings are split between a "Savings Account" (40%), an "Investment Portfolio" (50%), and a "Checking Account" (10%). The "Debts" chart visualizes her liabilities, composed of a "Student Loan" (80%) and a "Credit Card" balance (20%). This single view gives her an instant and clear picture of her financial health without needing to check individual accounts.
 
-[^1]: AccountService.java: getAssets() - This method retrieves all accounts of type CHECKING and ASSET that are enabled and included in summaries.
-[^2]: AccountService.java: getDebts() - This method retrieves all accounts of type CREDIT and DEBT that are enabled and included in summaries.
-[^3]: AccountService.java: overview() - This method calculates total assets, debts, and net worth by converting each account's balance to the group's default currency.
-[^4]: AccountController.java: handleOverview() - This endpoint exposes the financial overview functionality through a GET request.
-[^5]: ReportController.java: handleBalance() - This endpoint provides asset and debt data structured for reporting and charting.
-[^6]: ReportService.java: reportBalance() - This service prepares the data for balance reports, negating debt balances for correct representation as liabilities.
-[^7]: UserService.java: getInitState() - This method provides the initial session data for a logged-in user, including their default book and group settings.
-[^8]: CurrencyService.java: convert() - This utility method calculates the exchange rate between a 'from' and 'to' currency code.
-[^9]: BalanceFlow.java: FlowType - This enum defines the four types of financial transactions supported by the system.
-[^10]: BalanceFlowService.java: confirmBalance() - This method applies the financial impact of a transaction to the corresponding account balances.
-[^11]: BalanceFlow.java: book - The `BalanceFlow` entity has a mandatory association with a `Book` entity.
-[^12]: BalanceFlowService.java: add() - The logic in this method ensures that expenses/incomes have categories and calculates the total amount from them.
-[^13]: BalanceFlowAddForm.java: categories - The transaction creation form accepts a list of category-amount pairs, enabling multi-category entries.
-[^14]: BalanceFlow.java: tags - The `BalanceFlow` entity has a one-to-many relationship with `TagRelation`, allowing multiple tags per transaction.
-[^15]: BalanceFlowService.java: refundBalance() - This method reverts the balance changes when a transaction is deleted.
-[^16]: BalanceFlowService.java: update() - This method handles transaction updates by creating a new record and deleting the old one, while re-associating any attached files.
-[^17]: BalanceFlowController.java: handleAdd() - This is the API endpoint for creating a new balance flow transaction.
-[^18]: BalanceFlowController.java: handleAddFile() - This endpoint handles the uploading of a file and associating it with a transaction.
-[^19]: FileValidator.java: isValid() - This custom validator checks if the uploaded file's content type is in a list of allowed types.
-[^20]: FlowFile.java: data - This field in the `FlowFile` entity is defined as a `LONGBLOB` to store the binary content of the uploaded file.
-[^21]: BalanceFlowController.java: handleFiles() - This endpoint returns a list of all files attached to a given transaction.
-[^22]: FlowFileController.java: handleView() - This endpoint serves the raw file data with the appropriate `Content-Type` header.
-[^23]: FlowFileController.java: handleDelete() - This endpoint deletes a `FlowFile` entity by its ID.
-[^24]: BookController.java: handleAdd() - The endpoint for creating a new, empty `Book`.
-[^25]: Book.java: categories, tags, payees - These fields establish that a book is the root owner for its own set of categories, tags, and payees.
-[^26]: BookController.java: handleAddByTemplate() - This endpoint facilitates the creation of a new book from a predefined template.
-[^27]: book_tpl.json: - This JSON file contains the definitions for all available book templates, including their categories and tags.
-[^28]: BookService.java: addByBook() - This service method contains the logic to copy the structure from one book to a new one.
-[^29]: UserController.java: handleSetDefaultBook() - This endpoint allows a user to change their active book for the current session.
-[^30]: CategoryQueryForm.java: bookId - Query forms for entities like Category and Payee include a `bookId` to filter results by the active book.
-[^31]: currency.json: - This file contains a list of supported currencies and their default exchange rates against USD.
-[^32]: Account.java: currencyCode - Each `Account` has a mandatory `currencyCode` to define the currency of its balance.
-[^33]: Book.java: defaultCurrencyCode - Each `Book` has a default currency used for consolidated reporting.
-[^34]: BalanceFlow.java: amount, convertedAmount - These two fields store the transaction value in its original currency and its equivalent in the book's default currency.
-[^35]: CurrencyService.java: refreshCurrency() - This method calls an external API to fetch the latest exchange rates and update the in-memory currency list.
-[^36]: CurrencyController.java: handleCalc() - This endpoint provides a utility to convert an amount between two specified currencies.
+##### Tracking Incomes & Expenses
 
-### Modernize to Cloud Run
+This journey covers the core functionality of the application: recording daily financial transactions, whether they are expenses or incomes.
+
+###### Core Interactions
+
+1.  From the main interface, the user selects "Add Expense" or "Add Income."
+2.  The application presents a form to capture transaction details.
+3.  The user selects the appropriate `Book` (e.g., "Personal," "Business") and the `Account` from which the money was spent or received.
+4.  The user enters the transaction amount. They can optionally split this amount across multiple spending `Categories`.
+5.  The user selects a `Payee` (the person or business involved in the transaction).
+6.  The user can add descriptive `Tags` for more granular tracking (e.g., "vacation-2024," "project-alpha").
+7.  The user sets the date and time of the transaction.
+8.  After filling in the details, the user saves the transaction. The system then updates the balance of the affected account.
+
+###### Business Requirements
+
+*   The system must allow users to record transactions with a type of `EXPENSE`, `INCOME`, `TRANSFER`, or `ADJUST` [^4].
+*   Each transaction must be associated with a specific `Book` and at least one `Account`.
+*   A transaction's total amount must be allocated to one or more `Categories`. The system must support splitting the amount across several categories within a single transaction [^5].
+*   Upon confirmation of an `EXPENSE` transaction, the system must subtract the amount from the corresponding account's balance [^6].
+*   Upon confirmation of an `INCOME` transaction, the system must add the amount to the corresponding account's balance [^6].
+*   Transactions can exist in an unconfirmed state (`confirm=false`), where they are recorded but do not yet impact any account balances.
+*   The system must provide a mechanism to update account balances only when a transaction is explicitly confirmed [^7].
+*   Users can optionally associate each transaction with a `Payee`, multiple `Tags`, a descriptive `Title`, and `Notes`.
+
+###### Example User Flow
+
+David buys a coffee and a sandwich for $12 at a local cafe. He opens MoneyNote and taps "Add Expense." He selects his "Daily Spending" book and "Debit Card" account. He wants to track his food and coffee spending separately, so he uses the split feature: he assigns $8 to the "Food" category and $4 to the "Coffee" category. He selects "The Corner Cafe" as the payee and adds the tag "lunch." He confirms the date is today and hits "Save." Instantly, the balance of his "Debit Card" account in the app is reduced by $12.
+
+##### Attaching a File to a Financial Record
+
+This journey details how users can attach digital files, such as receipts or warranties, to their financial transactions for record-keeping and later reference.
+
+###### Core Interactions
+
+1.  The user locates and opens an existing transaction record.
+2.  Within the transaction details view, the user finds and clicks an "Add Attachment" or "Upload File" button.
+3.  The user is prompted to select a file from their device (e.g., a photo of a receipt or a PDF invoice).
+4.  The selected file is uploaded to the system and linked to the transaction.
+5.  The user can see a list of all attachments associated with that transaction.
+6.  By clicking on an attachment, the user can view or download the file.
+
+###### Business Requirements
+
+*   The system must allow users to associate one or more file attachments with any transaction (`BalanceFlow`) [^8].
+*   For each uploaded file, the system must store the file's binary data, its original name, content type, and size [^9].
+*   The system must enforce file type restrictions, allowing only supported formats such as PDF and common image types (PNG, JPG, JPEG) [^10].
+*   The application must provide an endpoint to list all files associated with a specific transaction.
+*   Users must be able to retrieve the content of any attached file for viewing or download.
+*   The underlying storage mechanism for these files is a `LONGBLOB` field within the database [^9].
+
+###### Example User Flow
+
+Samantha has just purchased a new monitor and recorded the $300 expense in MoneyNote. To keep the receipt for warranty purposes, she opens the transaction details. She clicks "Upload File" and selects the PDF receipt she saved on her computer. The file "monitor_receipt.pdf" appears in an "Attachments" section on the transaction page. A year later, when the monitor malfunctions, she easily finds the transaction in MoneyNote, clicks on the attached PDF to view the receipt, and initiates the warranty claim.
+
+##### Managing Multiple Books
+
+This journey explains how users can segregate their finances into different "Books" for different purposes, such as personal versus business expenses.
+
+###### Core Interactions
+
+1.  The user navigates to the "Books" management section.
+2.  The user initiates the creation of a new book.
+3.  The system offers three creation methods:
+    *   Create a blank book from scratch.
+    *   Duplicate an existing book, copying its structure.
+    *   Create from a predefined template (e.g., "Personal Life," "Restaurant Business").
+4.  The user provides a name and a default currency for the new book.
+5.  Once created, the book becomes available for selection when adding new transactions.
+6.  All `Categories`, `Tags`, and `Payees` are scoped within the selected book.
+
+###### Business Requirements
+
+*   The system must support the creation and management of multiple, independent `Books`.
+*   Each `Book` acts as a self-contained ledger with its own set of `Categories`, `Tags`, and `Payees` [^11].
+*   Users must have the ability to create a new `Book` in one of three ways: from a blank slate, by copying an existing book's structure [^12], or by using a predefined `BookTemplate` [^13].
+*   Each `Book` must be configured with a `defaultCurrencyCode`, which serves as the base currency for reporting within that book [^14].
+*   Every transaction (`BalanceFlow`) recorded in the system must be exclusively associated with a single `Book`.
+*   All data queries, reports, and views must be filterable by `Book` to ensure financial segregation.
+
+###### Example User Flow
+
+Mark uses MoneyNote for his family's finances in a book named "Home." He's also a hobbyist woodworker and has started selling his creations. To keep his business finances separate, he navigates to the "Manage Books" page and clicks "Create Book." He chooses to use the "Small Business" template, names the book "Woodwork Shop," and sets "USD" as the default currency. The book is created with pre-populated business-related categories like "Raw Materials," "Tooling," and "Sales Revenue." When he sells a piece of furniture, he records the income in the "Woodwork Shop" book, keeping it entirely separate from his personal "Home" finances.
+
+##### Handling Multiple Currencies
+
+This journey outlines how the application supports transactions in different currencies and provides consolidated reporting in a single, primary currency.
+
+###### Core Interactions
+
+1.  The system pre-loads a list of world currencies and their exchange rates at startup.
+2.  When creating a new financial `Account`, the user can assign a specific currency to it (e.g., EUR, JPY).
+3.  The user's `Book` is configured with a default currency (e.g., USD).
+4.  The user records a transaction using an account with a non-default currency (e.g., an expense of €100 from a Euro-based account).
+5.  The system automatically calculates and stores the equivalent value in the book's default currency (e.g., $108) alongside the original amount.
+6.  When the user views a consolidated financial report, all transaction amounts are displayed in the book's default currency, providing a unified financial picture.
+
+###### Business Requirements
+
+*   The system must maintain a list of supported currencies and their exchange rates relative to a base currency (USD) [^15].
+*   On application startup, the system should attempt to refresh these exchange rates from a remote API (`api.exchangerate-api.com`) to ensure they are up-to-date [^16].
+*   Each financial `Account` entity must have a `currencyCode` attribute to define its currency [^17].
+*   Each `Book` entity must have a `defaultCurrencyCode` to be used for unified reporting [^14].
+*   When a transaction is made from an account whose currency differs from the book's default, the system must store both the original `amount` and the `convertedAmount` in the book's default currency [^5].
+*   All high-level financial summaries, statistics, and reports must aggregate figures by using the `convertedAmount`, ensuring all values are presented in a single, consistent currency [^2].
+
+###### Example User Flow
+
+Lena is based in the UK and her main `Book` in MoneyNote has a default currency of GBP. She travels to Japan for a holiday and creates a new "JPY Cash" account with the currency set to JPY. She spends ¥15,000 on a hotel. When she records this expense in the "JPY Cash" account, MoneyNote automatically uses the latest exchange rate to calculate the equivalent amount in her home currency, storing approximately £85 as the `convertedAmount`. At the end of the month, when she reviews her total travel expenses, this spending is correctly included in the GBP total, giving her an accurate understanding of her holiday budget in her own currency.
+
+[^1]: `AccountService.java`: `overview()` - Calculates total assets, debts, and net worth.
+[^2]: `AccountService.java`: `overview()` - Uses `currencyService` to convert account balances to the group's default currency before aggregation.
+[^3]: `ReportService.java`: `reportBalance()` - Prepares data for asset and debt breakdown charts.
+[^4]: `FlowType.java`: - Enum defining the four types of balance flows: EXPENSE, INCOME, TRANSFER, and ADJUST.
+[^5]: `BalanceFlowService.java`: `add()` - Logic to handle transactions, including processing amounts from `CategoryRelationForm`.
+[^6]: `BalanceFlowService.java`: `confirmBalance()` - Updates the account balance by adding or subtracting the flow amount based on its type.
+[^7]: `BalanceFlow.java`: `confirm` - A boolean field on the transaction entity that gates whether it affects account balances.
+[^8]: `BalanceFlowController.java`: `handleAddFile()` - Endpoint for uploading a file and associating it with a `BalanceFlow`.
+[^9]: `FlowFile.java`: - Entity that stores file data as a `LONGBLOB` along with metadata like `contentType`, `size`, and `originalName`.
+[^10]: `FileValidator.java`: `isSupportedContentType()` - Implements validation to check if an uploaded file's content type is among the allowed formats (pdf, png, jpg, jpeg).
+[^11]: `Category.java`: `book` - A `Category` entity is directly associated with a `Book`, scoping it to that ledger.
+[^12]: `BookService.java`: `addByBook()` - Implements functionality to create a new book by copying the categories, tags, and payees from a source book.
+[^13]: `BookService.java`: `addByTemplate()` - Creates a new book using a structure defined in a `BookTemplate` object, originally loaded from a JSON file.
+[^14]: `Book.java`: `defaultCurrencyCode` - Field defining the default currency for a book, used for consistent reporting.
+[^15]: `currency.json`: - A resource file containing a predefined list of world currencies and their initial exchange rates against USD.
+[^16]: `CurrencyRemoteDataLoader.java`: `run()` - An `ApplicationRunner` that triggers `currencyService.refreshCurrency()` on startup to fetch the latest rates.
+[^17]: `Account.java`: `currencyCode` - A required string field on the `Account` entity that specifies its currency.
+
+### Shift to Compute Engine
 #### User Journeys
 
-This section outlines the primary user journeys and features of the MoneyNote application, reverse-engineered from the codebase. Each journey is detailed from the perspective of a senior business analyst, describing the user's interactions, the underlying business requirements the system fulfills, and an example flow of execution.
+This section outlines the primary user journeys and features of the MoneyNote application. Each journey details the core user interactions, distills the underlying business requirements as implemented in the code, and provides an example user flow.
 
 ##### Journey 1: Monitoring Financial Situation
 
-This journey describes how a user assesses their overall financial health by viewing aggregated summaries and reports. It is the primary "read-only" or analytical journey, providing the user with a high-level snapshot of their assets, debts, and net worth.
+This journey focuses on how a user assesses their overall financial health by viewing aggregated data, reports, and statistics.
 
 ###### Core Interactions
 
-1.  **Dashboard Overview**: Upon login, the user is presented with a primary dashboard that displays their most critical financial metrics. This includes Total Assets, Total Debts, and the resulting Net Worth, providing an immediate understanding of their financial position.
-2.  **Account Drill-Down**: From the dashboard, the user can navigate to a detailed list of all their financial accounts. This view lists each account (e.g., checking, savings, credit cards, loans) along with its current balance.
-3.  **Visual Reporting**: The user can access a dedicated reporting section to visualize their financial data. A key report is the "Balance Report," which typically uses pie charts to illustrate the composition of their assets and debts, showing which accounts contribute most to each category.
+The user's primary goal is to get a high-level overview of their assets, debts, and net worth without delving into individual transactions. The interaction starts from the main dashboard or a dedicated reporting section.
+
+1.  **Accessing Overview**: The user navigates to a dashboard or an "Overview" page.
+2.  **Viewing Key Metrics**: The system presents a summary of total assets, total liabilities (debts), and the resulting net worth. These figures are calculated in the user's default currency for easy comprehension [^1].
+3.  **Analyzing Balance Distribution**: The user can access a "Balance Report" to visualize the composition of their assets and debts. This is typically presented as charts (e.g., pie charts) showing the breakdown of funds across different accounts [^2]. For example, the user can see what percentage of their assets is in a checking account versus an investment account.
+4.  **Viewing Account Statistics**: Users can filter their accounts and view aggregated statistics, such as the total balance of all included asset accounts or the total outstanding balance of all credit accounts [^3].
 
 ###### Business Requirements
 
-| Requirement ID | Description | Technical Implementation |
+| Requirement ID | Description | Implemented In |
 | :--- | :--- | :--- |
-| FIN-MON-01 | The system must calculate and display a user's total assets, total liabilities (debts), and net worth. | The `AccountService.overview()` method orchestrates this calculation. It separates accounts into assets and debts and sums their balances [^1]. |
-| FIN-MON-02 | Asset accounts are defined as types `CHECKING` and `ASSET`. | The `AccountService.getAssets()` method specifically queries for accounts of type `CHECKING` and `ASSET` that are enabled and included in reports [^2]. |
-| FIN-MON-03 | Debt accounts are defined as types `CREDIT` and `DEBT`. | The `AccountService.getDebts()` method queries for accounts of type `CREDIT` and `DEBT` that are enabled and included in reports [^3]. |
-| FIN-MON-04 | All account balances must be converted to the user's group-defined default currency before aggregation to ensure a consistent summary. | The `overview()` and `statistics()` methods in `AccountService` use `CurrencyService.convert()` to normalize all balances to the group's `defaultCurrencyCode` before summing them [^4]. |
-| FIN-MON-05 | The system must provide a visual breakdown of assets and debts by individual account. | The `ReportService.reportBalance()` method generates two lists of `ChartVO` objects, one for assets and one for debts, which are designed to be consumed by a charting library on the frontend [^5]. |
-| FIN-MON-06 | Users can exclude certain accounts from the main financial overview calculations. | The `Account` entity contains an `include` boolean flag. All overview and reporting queries filter accounts where `include` is `true` [^6]. |
+| **FIN-MON-01** | The system must provide a real-time financial overview, calculating the user's total assets, total debts, and net worth. [^1] | `AccountService.java: overview()` |
+| **FIN-MON-02** | All overview calculations must be converted to the user's default group currency to provide a consistent summary across multi-currency accounts. [^4] | `AccountService.java: overview()`, `CurrencyService.java: convert()` |
+| **FIN-MON-03** | The system must distinguish between asset accounts (e.g., Checking, Asset) and debt accounts (e.g., Credit, Debt) for accurate overview calculations. [^5] | `AccountService.java: getAssets()`, `AccountService.java: getDebts()` |
+| **FIN-MON-04** | Users must be able to generate a visual report (e.g., charts) that breaks down their total balance by individual asset and debt accounts. [^2] | `ReportService.java: reportBalance()` |
+| **FIN-MON-05** | The balance report must display the relative percentage of each account's contribution to the total asset or debt pool. [^2] | `ReportService.java: reportBalance()` |
+| **FIN-MON-06** | Users should be able to view aggregated statistics for a filtered list of accounts, including total balance, total credit limit, and remaining credit. [^3] | `AccountService.java: statistics()` |
 
-###### Example User Flow: Checking Net Worth
+###### Example User Flow
 
-1.  **Login**: The user, Alice, logs into the MoneyNote application. The system authenticates her and establishes her session.
-2.  **Initial State Load**: The frontend makes a `GET` request to `/api/v1/initState`. The backend `UserService.getInitState()` fetches Alice's user profile, her default group, and default book settings.
-3.  **Dashboard Display**: The main dashboard UI is rendered. To populate the financial overview widget, the frontend sends a `GET` request to `/api/v1/accounts/overview`.
-4.  **Backend Calculation**: The `AccountController` routes the request to `AccountService.overview()`. This service:
-    *   Fetches all of Alice's asset accounts (`CHECKING`, `ASSET`) and debt accounts (`CREDIT`, `DEBT`).
-    *   For each account, it converts the `balance` to the group's default currency (e.g., converting a EUR balance to USD).
-    *   It sums the converted balances to get a total asset value and a total debt value.
-5.  **API Response**: The API responds with an array containing the total assets, total debts, and the calculated net worth (Assets - Debts).
-6.  **UI Render**: The dashboard widget updates, displaying Alice's key financial figures, such as "Total Assets: $50,000," "Total Debts: $15,000," and "Net Worth: $35,000."
+**Scenario**: A user, Sarah, wants to check her financial standing at the end of the month.
+
+1.  **Login**: Sarah opens the MoneyNote application and logs into her account.
+2.  **Navigate to Overview**: She lands on the main dashboard, which has an "Overview" section.
+3.  **Review Summary**: The overview card immediately shows her:
+    *   **Total Assets**: $25,000
+    *   **Total Debts**: $7,000
+    *   **Net Worth**: $18,000
+4.  **Drill into Details**: Curious about her debt composition, Sarah clicks on the "Balance Report".
+5.  **Analyze Report**: The report displays two pie charts:
+    *   An **Assets** chart showing her funds are split between "Savings" (70%) and "Checking" (30%).
+    *   A **Debts** chart showing her debt is split between "Credit Card" (40%) and "Student Loan" (60%).
+6.  **Conclusion**: Sarah now has a clear picture of her financial health and where her money is located, allowing her to make informed decisions for the next month.
+
+---
 
 ##### Journey 2: Tracking Incomes & Expenses
 
-This is the fundamental data-entry journey of the application. It details the process a user follows to record their day-to-day financial transactions, such as expenses, incomes, and transfers between accounts.
+This is the most frequent user journey, involving the creation, review, and management of financial transactions.
 
 ###### Core Interactions
 
-1.  **Select Book**: The user first ensures they are in the correct financial "Book" (e.g., "Personal" vs. "Business").
-2.  **Initiate Transaction**: The user clicks a button like "Add Expense" or "Add Income."
-3.  **Complete Form**: A form is presented where the user provides the transaction details:
-    *   Selects the source/destination account.
-    *   Splits the total amount across one or more spending/earning categories.
-    *   Optionally selects a Payee (e.g., "Starbucks," "ACME Corp").
-    *   Optionally adds descriptive tags, a title, and notes.
-4.  **Save Transaction**: The user saves the form. The system records the transaction and, if it is marked as "confirmed," immediately updates the balance of the affected account(s).
-5.  **Review and Edit**: The user can view a list of recent transactions. They can select any transaction to view its full details, edit the information, or delete it entirely.
+1.  **Initiate Transaction**: The user decides to record a financial activity and navigates to the "Add Transaction" screen.
+2.  **Select Transaction Type**: The user chooses the type of transaction: Expense, Income, or Transfer [^6].
+3.  **Enter Core Details**: The user inputs essential information:
+    *   The **amount** of the transaction.
+    *   The **Account** from which the money was spent or to which it was received.
+    *   The **date and time** of the transaction.
+4.  **Add Contextual Information**: The user provides additional details for better tracking:
+    *   A **Category** (e.g., "Food", "Salary"). For multi-category transactions, the user can split the amount across different categories [^7].
+    *   One or more **Tags** (e.g., "Work", "Vacation").
+    *   The **Payee** (e.g., "Supermarket", "Employer").
+    *   A descriptive **Title** and optional **Notes**.
+5.  **Confirm and Save**: The user saves the transaction. If marked as "confirmed," the system immediately updates the balance of the associated account(s) [^8].
+6.  **Review and Edit**: Later, the user can find the transaction in their history, view its details, and make changes if necessary. The system handles balance recalculations by effectively reversing the old transaction and applying the new one [^9].
 
 ###### Business Requirements
 
-| Requirement ID | Description | Technical Implementation |
+| Requirement ID | Description | Implemented In |
 | :--- | :--- | :--- |
-| FIN-TRK-01 | The system must allow users to create financial records of type `EXPENSE`, `INCOME`, and `TRANSFER`. | The `BalanceFlow` entity has a `FlowType` enum which includes these types. The `BalanceFlowAddForm` allows the user to specify the type upon creation [^7]. |
-| FIN-TRK-02 | Every transaction must belong to a specific `Book`, ensuring data isolation. | The `BalanceFlow` entity has a mandatory `ManyToOne` relationship with the `Book` entity [^8]. |
-| FIN-TRK-03 | Expense and Income transactions can be split across multiple categories, each with a specific amount. The transaction's total amount is the sum of these splits. | A `BalanceFlow` can have a `Set` of `CategoryRelation` objects. The service logic in `BalanceFlowService.add()` calculates the total amount by summing the amounts from the `CategoryRelationForm` list [^9]. |
-| FIN-TRK-04 | Transactions can be marked as "Confirmed" to immediately impact account balances, or "Unconfirmed" to be saved as a draft. | The `BalanceFlow` entity has a `confirm` boolean flag. The `confirmBalance()` method in `BalanceFlowService` contains the logic to update account balances only if this flag is true [^10]. |
-| FIN-TRK-05 | Recording a confirmed expense must decrease the account balance. Recording a confirmed income must increase it. | The `confirmBalance()` method subtracts from the account balance for `FlowType.EXPENSE` and adds to it for `FlowType.INCOME` [^10]. |
-| FIN-TRK-06 | Deleting a confirmed transaction must correctly reverse the balance change on the associated account(s). | The `refundBalance()` method in `BalanceFlowService` is called before deleting a `BalanceFlow` entity. It adds back expense amounts and subtracts income amounts to restore the previous balance [^11]. |
-| FIN-TRK-07 | Users must be able to modify the details of an existing transaction. | The `BalanceFlowService.update()` method handles modifications by effectively deleting the old transaction (and refunding its balance impact) and creating a new one with the updated details [^12]. |
+| **FIN-TRK-01** | The system must allow users to record four types of financial flows: Expense, Income, Transfer, and Balance Adjustment. [^6] | `FlowType.java`, `BalanceFlowService.java: add()` |
+| **FIN-TRK-02** | Every transaction must be associated with a specific book. [^10] | `BalanceFlow.java: book` |
+| **FIN-TRK-03** | Expense and Income transactions must be associated with at least one category and can be split across multiple categories, each with its own amount. [^7] | `BalanceFlowService.java: checkBeforeAdd()`, `CategoryRelationService.java` |
+| **FIN-TRK-04** | A Transfer transaction must specify a 'from' account, a 'to' account, and the transfer amount. [^11] | `BalanceFlowService.java: checkBeforeAdd()` |
+| **FIN-TRK-05** | Upon saving a 'confirmed' transaction, the system must automatically update the balance of the affected account(s). [^8] | `BalanceFlowService.java: confirmBalance()` |
+| **FIN-TRK-06**| Users must be able to edit existing transactions. The system must correctly adjust account balances by refunding the old transaction and applying the new one. [^9]| `BalanceFlowService.java: update()`|
+| **FIN-TRK-07** | Users must be able to query and filter their transaction history based on various criteria like date range, amount, type, account, category, and tags. [^12]| `BalanceFlowQueryForm.java: buildPredicate()`|
 
-###### Example User Flow: Recording a Multi-Category Grocery Bill
+###### Example User Flow
 
-1.  **Navigation**: Alice selects her "Household" book from the main navigation. She then clicks "Add Expense."
-2.  **Form Entry**: A form appears.
-    *   **Account**: She selects her "Debit Card" account.
-    *   **Payee**: She selects "Local Supermarket."
-    *   **Categories**: She clicks "Add Category Split."
-        *   Row 1: She selects the "Groceries" category and enters "$50."
-        *   Row 2: She selects the "Household Supplies" category and enters "$15."
-    *   **Confirmation**: She leaves the "Confirm" checkbox ticked.
-3.  **Submission**: Alice clicks "Save." The frontend constructs a JSON payload and sends a `POST` request to `/api/v1/balance-flows`.
-4.  **Backend Processing**: The request is handled by `BalanceFlowService.add()`:
-    *   It validates that the categories are not duplicated and are within limits.
-    *   It sums the category amounts ($50 + $15) to determine the total transaction `amount` is $65.
-    *   It creates a new `BalanceFlow` entity and two associated `CategoryRelation` entities.
-    *   It calls `confirmBalance()`. Since the type is `EXPENSE`, it retrieves the "Debit Card" `Account` and updates its balance by subtracting $65.
-5.  **Response and UI Update**: The API returns a success response. The UI displays a confirmation message and adds the new $65 expense to the top of the transaction list.
+**Scenario**: John wants to record his grocery shopping expense.
 
-##### Journey 3: Attaching Files to Financial Records
+1.  **Open App**: John opens the MoneyNote app.
+2.  **Add Flow**: He taps the "+" button to add a new transaction.
+3.  **Select Type**: He chooses "Expense" as the transaction type.
+4.  **Fill Details**: He fills in the form:
+    *   **Account**: Selects "My Credit Card".
+    *   **Category & Amount**: He taps "Add Category", selects "Groceries", and enters `$75.50`.
+    *   **Payee**: Selects "Local Supermarket".
+    *   **Date**: The app defaults to the current date, which is correct.
+    *   **Notes**: Adds a note "Weekly grocery run".
+5.  **Save**: He reviews the details and taps "Save".
+6.  **Confirmation**: The app confirms the transaction is saved, and John can see that the available credit on "My Credit Card" has decreased by $75.50.
 
-This journey enables users to attach supporting documents, such as receipts or invoices, to their transactions. This provides context and proof for financial records, enhancing auditability and personal record-keeping.
+---
+
+##### Journey 3: Managing Finance Record Files
+
+This journey describes how a user attaches, views, and manages supporting documents (like receipts or invoices) for their financial transactions.
 
 ###### Core Interactions
 
-1.  **Access Attachment Feature**: While creating a new transaction or editing an existing one, the user finds an "Attach File" or "Add Receipt" button.
-2.  **File Selection**: Clicking the button opens the device's native file explorer. The user selects the relevant file (e.g., a photo of a paper receipt or a PDF invoice).
-3.  **Upload and Link**: The selected file is uploaded to the server and is permanently linked to the transaction record.
-4.  **View and Manage Attachments**: When viewing the transaction's details, the user sees a list of all attached files. They can click on any file to view it in their browser or download it. They also have the option to delete attachments.
+1.  **Locate Transaction**: The user first records a transaction or navigates to an existing one from their transaction history.
+2.  **Initiate File Upload**: Within the transaction details view, the user finds and selects an "Add File" or "Attach Document" option.
+3.  **Select and Upload File**: The user chooses a file (e.g., an image of a receipt, a PDF invoice) from their device. The application uploads the file to the server [^13]. The file data is stored directly in the database as a `LONGBLOB` [^14].
+4.  **View Attachments**: After uploading, the transaction details page now displays a list of or thumbnails for all attached files.
+5.  **Access and Manage Files**: The user can click on an attachment to view it. They also have the option to delete an attachment if it was uploaded in error [^15].
 
 ###### Business Requirements
 
-| Requirement ID | Description | Technical Implementation |
+| Requirement ID | Description | Implemented In |
 | :--- | :--- | :--- |
-| FIN-FLE-01 | The system must allow one or more files to be associated with a single `BalanceFlow` record. | The `BalanceFlow` entity has a `OneToMany` relationship with the `FlowFile` entity, allowing a collection of files per flow [^13]. |
-| FIN-FLE-02 | The system must restrict uploaded file types to a predefined list (e.g., PDF, PNG, JPG/JPEG). | A custom `@ValidFile` annotation and its corresponding `FileValidator` class check the `contentType` of the uploaded file against a supported list [^14]. |
-| FIN-FLE-03 | The system must store the file's binary data, original filename, size, and MIME type. | The `FlowFile` entity contains fields for `data` (as a `LONGBLOB`), `originalName`, `size`, and `contentType` [^15]. |
-| FIN-FLE-04 | File uploads must be constrained by a maximum size limit. | The `application.properties` file configures server-wide multipart request limits (`spring.servlet.multipart.max-file-size=100MB`) [^16]. |
-| FIN-FLE-05 | Users must be able to securely retrieve and view the content of an attached file. | The `FlowFileController.handleView()` endpoint serves the file's byte data. Access is secured by requiring the file's ID and creation timestamp in the request, making the URL difficult to guess [^17]. |
-| FIN-FLE-06 | Users must have the ability to delete a previously attached file from a transaction. | The `/flow-files/{id}` `DELETE` endpoint in `FlowFileController` allows for the removal of a `FlowFile` entity, but only after verifying the user has rights to the parent transaction [^18]. |
+| **FIN-FILE-01** | The system must allow users to upload one or more files to be associated with a single financial transaction. [^13] | `BalanceFlowController.java: handleAddFile()` |
+| **FIN-FILE-02** | The system must store the uploaded file's binary data, content type, size, and original filename. [^14] | `FlowFile.java` |
+| **FIN-FILE-03** | The system must support common file types, including images (PNG, JPG, JPEG) and PDF documents. [^16] | `FileValidator.java: isSupportedContentType()` |
+| **FIN-FILE-04** | Users must be able to view a list of all files attached to a transaction. [^17] | `BalanceFlowController.java: handleFiles()` |
+| **FIN-FILE-05** | Users must be able to view the content of an attached file through a secure endpoint. [^18] | `FlowFileController.java: handleView()` |
+| **FIN-FILE-06** | Users must have the ability to delete an attached file from a transaction. [^15] | `FlowFileController.java: handleDelete()` |
 
-###### Example User Flow: Attaching an E-Receipt to an Expense
+###### Example User Flow
 
-1.  **Find Transaction**: Alice has an existing expense record for an online purchase of a new monitor for $300. She wants to attach the PDF receipt she received via email. She navigates to the transaction details page.
-2.  **Initiate Upload**: She clicks the "Add Attachment" button. A file dialog opens.
-3.  **Select File**: She selects `monitor_receipt.pdf` from her computer.
-4.  **API Request**: The frontend initiates a `POST` request to the endpoint `/api/v1/balance-flows/{id}/addFile`, where `{id}` is the ID of the monitor expense. The request is of type `multipart/form-data` and contains the file data.
-5.  **Backend Handling**: The `BalanceFlowController` receives the request.
-    *   The `@ValidFile` annotation triggers the `FileValidator`, which checks if the file's content type is `application/pdf`. It is, so validation passes.
-    *   The request is passed to `BalanceFlowService.addFile()`.
-    *   This service creates a new `FlowFile` entity, populates it with the file's bytes, metadata (name, size, type), and links it to the `BalanceFlow` record.
-    *   The `FlowFile` entity is saved to the database.
-6.  **UI Update**: The service returns details of the newly created `FlowFile`. The frontend updates the attachments section on the transaction details page to show a link to `monitor_receipt.pdf`. Alice can now click this link to view the receipt at any time.
+**Scenario**: Jane just had a business lunch and wants to save the receipt for expense reporting.
 
-##### Journey 4: Using Multiple Financial Books
+1.  **Record Expense**: Jane first records the lunch as an expense in the MoneyNote app, categorizing it under "Business Meals".
+2.  **Open Transaction**: She navigates to the transaction she just created.
+3.  **Attach Receipt**: She taps the "Add Attachment" button. Her phone's camera app opens, and she takes a clear photo of the receipt.
+4.  **Upload**: She confirms the photo, and the app uploads it. A brief loading indicator is shown.
+5.  **Confirmation**: The transaction details screen refreshes, now showing a thumbnail of the receipt.
+6.  **Verify**: She taps the thumbnail, and the full-size image of the receipt is displayed, confirming it's saved correctly.
 
-This journey caters to users who need to manage separate, isolated sets of financial records. A common use case is separating personal finances from small business finances. Each "Book" acts as a self-contained ledger with its own settings and data.
+---
+
+##### Journey 4: Supporting Multiple Books
+
+This journey enables users to maintain separate, self-contained ledgers ("books") to manage different financial areas, such as personal, family, or a small business.
 
 ###### Core Interactions
 
-1.  **Book Creation**: A user can create a new Book. They are given options to:
-    *   Start with a blank slate.
-    *   Use a predefined template (e.g., "Daily Life," "Restaurant Business") that comes pre-populated with relevant categories and tags.
-    *   Duplicate one of their existing Books, copying all its settings.
-2.  **Book Switching**: The user interface provides a clear mechanism (like a dropdown menu) to switch the active Book.
-3.  **Contextual Operations**: Once a Book is selected, all subsequent actions—adding transactions, creating accounts (within the group), managing categories, and viewing reports—are performed exclusively within the context of that active Book.
-4.  **Book Management**: The user can view a list of all their books, edit their properties (like name or default accounts), and set a global default book for their user profile.
+1.  **Book Creation**: The user navigates to the "Manage Books" section and chooses to create a new book. They can create a blank book or use a predefined template (e.g., "Personal Finance", "Small Business") to pre-populate categories and tags [^19]. They provide a name and a default currency for the new book.
+2.  **Switching Books**: The user can easily switch their active context between different books. When a book is selected, all subsequent views and operations (adding transactions, viewing reports) are scoped to that book.
+3.  **Book Management**: Within the "Manage Books" section, the user can edit a book's name, notes, and default accounts/categories [^20].
+4.  **Archiving/Deleting**: The user can disable (archive) a book they no longer actively use or delete it entirely if it contains no transactions [^21].
 
 ###### Business Requirements
 
-| Requirement ID | Description | Technical Implementation |
+| Requirement ID | Description | Implemented In |
 | :--- | :--- | :--- |
-| FIN-BK-01 | The system must support the creation of multiple `Book` entities within a user's `Group`. | The `Book` entity has a `ManyToOne` relationship with the `Group` entity, allowing a group to contain multiple books [^19]. |
-| FIN-BK-02 | Each Book must act as a container, isolating its own set of `Category`, `Tag`, and `Payee` records. | `Category`, `Tag`, and `Payee` entities each have a mandatory `ManyToOne` relationship with the `Book` entity, ensuring they are scoped to a single book [^20]. |
-| FIN-BK-03 | Users must be able to create new books from predefined templates. | The `BookService.addByTemplate()` method uses a `BookTemplate` object (loaded from `book_tpl.json`) to create a new book and populate its associated categories, tags, and payees [^21]. |
-| FIN-BK-04 | Users must be able to create a new book by copying an existing one. | The `BookService.addByBook()` method first creates a new book and then copies the categories, tags, and payees from the source book to the new one [^22]. |
-| FIN-BK-05 | A user's session must have an active "current book" context, which filters all data views and actions. | The `CurrentSession` bean holds a reference to the active `Book`. Services like `CategoryService` use `sessionUtil.getCurrentBook()` to scope their database queries [^23]. |
-| FIN-BK-06 | Users can specify a default book for their profile, which is automatically selected upon login. | The `User` entity has a `defaultBook` field. The `UserService.setDefaultBook()` method allows users to change this preference [^24]. |
+| **FIN-BOOK-01** | The system must allow a user to create and manage multiple books, with each book acting as an independent ledger. [^22] | `BookController.java` |
+| **FIN-BOOK-02** | Each book must be associated with a user group and have its own set of accounts, categories, tags, and payees. | `Book.java` (contains lists of categories, tags, etc.) |
+| **FIN-BOOK-03** | Users must be able to create a new book from scratch or by copying the structure of an existing book or a system template. [^19] | `BookService.java: addByTemplate()`, `BookService.java: addByBook()` |
+| **FIN-BOOK-04** | Each book must have a user-defined name and a default currency. [^23] | `Book.java: defaultCurrencyCode`, `BookAddForm.java` |
+| **FIN-BOOK-05**| Users must be able to set a default book for their session, which determines the active context for all financial operations. [^24]| `UserController.java: handleSetDefaultBook()`|
+| **FIN-BOOK-06** | A book can only be deleted if it contains no associated financial transactions. [^21] | `BookService.java: remove()` |
+| **FIN-BOOK-07** | The system must allow users to export all transactions from a specific book into an Excel file. [^25] | `BookService.java: exportFlow()` |
 
-###### Example User Flow: Creating and Using a Separate Business Book
+###### Example User Flow
 
-1.  **Creation**: Alice, who uses MoneyNote for her personal finances, decides to start tracking the finances for her freelance design work separately. She navigates to the "Books" management page.
-2.  **Select Template**: She clicks "Add Book" and chooses the "Daily Life" template, as it's a good starting point. She names the new book "Freelance Work."
-3.  **API Call**: The frontend sends a `POST` request to `/api/v1/books/template`.
-4.  **Backend Process**: `BookService.addByTemplate()` creates the new "Freelance Work" `Book`. It then reads the "Daily Life" template from `book_tpl.json` and programmatically creates all the default categories (e.g., "Active Income") and tags (e.g., "Food") under this new book.
-5.  **Switch Active Book**: The book list now shows "Personal Finances" and "Freelance Work." Alice selects "Freelance Work" from the UI's book switcher. This triggers a `PATCH` request to `/api/v1/setDefaultBook/{id}`.
-6.  **Session Update**: The backend updates Alice's `User` profile to make "Freelance Work" her new default book and also updates the `CurrentSession` bean.
-7.  **Isolated Context**: When Alice now navigates to the "Categories" page, she sees only the categories associated with the "Freelance Work" book. When she adds a new expense, it is recorded only in this book, keeping her personal and business finances completely separate.
+**Scenario**: Michael runs a small online store and wants to keep its finances separate from his personal expenses.
 
-##### Journey 5: Handling Multiple Currencies
+1.  **Navigate**: Michael goes to the "Settings" menu and selects "Manage Books".
+2.  **Create New Book**: He taps "Create Book" and chooses the "Business" template.
+3.  **Configure Book**: He names the book "My Online Store" and confirms "USD" as the default currency. The system creates the new book with pre-defined business categories like "Revenue", "Cost of Goods Sold", and "Marketing".
+4.  **Switch Context**: In the main navigation, he switches his active book from "Personal" to "My Online Store".
+5.  **Record Business Transaction**: He records a new income of $200 from a sale. The transaction is now correctly logged only within the "My Online Store" book, keeping his personal finances untouched.
 
-This journey addresses the needs of users who operate with more than one currency. It allows them to manage accounts in different currencies and accurately record transactions that involve currency conversion.
+---
+
+##### Journey 5: Supporting Multiple Currencies
+
+This journey allows users to manage accounts and record transactions in various currencies, with the system handling conversions for reporting and transfers.
 
 ###### Core Interactions
 
-1.  **Multi-Currency Accounts**: When creating a new financial `Account`, the user can select its currency from a list of world currencies (e.g., USD, EUR, CNY).
-2.  **Cross-Currency Transactions**: The user records a transaction using an account with a foreign currency (relative to the Book's default currency). The system prompts for both the original amount and the converted amount.
-3.  **Inter-Account Transfers**: The user initiates a transfer between two accounts with different currencies (e.g., from a USD account to a EUR account). The system requires them to specify the source amount (in USD) and the final destination amount (in EUR).
-4.  **Aggregated Reporting**: When viewing high-level reports like the Net Worth overview, all balances are automatically converted to a single, consistent default currency for accurate aggregation.
+1.  **Set Base Currency**: During setup, the user's group and individual books have a default currency (e.g., USD) [^23]. This currency is used for aggregated reporting.
+2.  **Create Foreign Currency Account**: The user creates a new account and specifies a currency different from the book's default, for instance, a "Euro Bank Account" with EUR [^26].
+3.  **Record Foreign Currency Transaction**: The user records an expense. They select the EUR account and enter the amount in EUR. If the book's default currency is USD, the system requires the user to input the equivalent amount in USD, or it calculates it based on a fetched exchange rate [^27].
+4.  **Perform Cross-Currency Transfer**: The user initiates a transfer from their USD account to their EUR account. They enter the amount to be sent (e.g., 100 USD) and the amount to be received (e.g., 95 EUR), effectively defining the exchange rate for that specific transaction [^28].
+5.  **View Converted Reports**: When viewing an overview report, the balance of the EUR account is automatically converted to USD to be included in the total asset calculation [^4].
 
 ###### Business Requirements
 
-| Requirement ID | Description | Technical Implementation |
+| Requirement ID | Description | Implemented In |
 | :--- | :--- | :--- |
-| FIN-CUR-01 | The system must support a comprehensive list of world currencies. | A list of currencies and their base exchange rates to USD is loaded on application startup from `currency.json` into the `ApplicationScopeBean` [^25]. |
-| FIN-CUR-02 | The system should periodically update exchange rates from a reliable external source. | `CurrencyService.refreshCurrency()` makes an HTTP GET request to `api.exchangerate-api.com` to fetch the latest rates and updates the in-memory currency list [^26]. |
-| FIN-CUR-03 | Each financial `Account` must be assigned a specific `currencyCode`. Each `Book` must also have a `defaultCurrencyCode`. | The `Account` and `Book` entities both contain a `currencyCode` string field to store this information [^27]. |
-| FIN-CUR-04 | For transactions where the account currency does not match the book's default currency, the system must store both the original `amount` and the `convertedAmount`. | The `BalanceFlow` entity contains fields for both `amount` and `convertedAmount`. The `BalanceFlowService.add()` logic checks for currency mismatch and requires `convertedAmount` to be present if they differ [^28]. |
-| FIN-CUR-05 | For cross-currency transfers, the system must debit the `amount` from the source account and credit the `convertedAmount` to the destination account. | In `BalanceFlowService.confirmBalance()`, for `FlowType.TRANSFER`, the `amount` is subtracted from the source account and `convertedAmount` is added to the destination `toAccount` [^10]. |
-| FIN-CUR-06 | All summary reports must present data in a single, unified currency. | Services like `AccountService` and `ReportService` consistently use `CurrencyService.convert()` to normalize values to the group's default currency before performing calculations or presenting data [^4]. |
+| **FIN-CUR-01** | The system must maintain a list of supported world currencies and their exchange rates relative to a base currency (USD). [^29] | `CurrencyDataLoader.java`, `currency.json` |
+| **FIN-CUR-02** | The system should attempt to refresh exchange rates automatically from an external provider. [^30] | `CurrencyService.java: refreshCurrency()` |
+| **FIN-CUR-03** | Each user account must be assigned a specific currency code. [^26] | `Account.java: currencyCode` |
+| **FIN-CUR-04** | When a transaction involves an account with a currency different from the book's default, the system must store both the original amount and the converted amount. [^27] | `BalanceFlow.java: amount`, `BalanceFlow.java: convertedAmount` |
+| **FIN-CUR-05** | For cross-currency transfers, the user must provide both the source amount and the target (converted) amount to ensure balances are updated correctly. [^28] | `BalanceFlowService.java` logic for `FlowType.TRANSFER` |
+| **FIN-CUR-06** | All financial reports and overviews must convert balances from various currencies into the user's single default currency for consistent aggregation. [^4] | `AccountService.java: statistics()`, `ReportService.java` |
 
-###### Example User Flow: Recording a Purchase in Europe with a USD Card
+###### Example User Flow
 
-1.  **Setup**: Alice has a "Travel" book with a default currency of USD. She also has a "European Bank" account with a currency of EUR.
-2.  **Transaction Entry**: While in Paris, she buys a souvenir for €50 using her European Bank card. She opens MoneyNote to record the expense.
-    *   **Book**: "Travel" (USD)
-    *   **Account**: "European Bank" (EUR)
-3.  **Conversion Prompt**: The UI detects that the account currency (EUR) is different from the book's default currency (USD). Alice enters "50" in the amount field for the "Souvenirs" category. The UI prompts for the converted USD amount. Based on her bank statement, the charge was $55. She enters "55" into the "Converted Amount" field.
-4.  **API Submission**: The frontend sends a `POST` to `/api/v1/balance-flows`. The `categories` array in the payload contains `{ "category": 123, "amount": 50, "convertedAmount": 55 }`.
-5.  **Backend Processing**: `BalanceFlowService.add()` is executed:
-    *   It creates a `BalanceFlow` record, setting its `amount` to 50 and its `convertedAmount` to 55.
-    *   It calls `confirmBalance()`. This method retrieves the "European Bank" account and subtracts **50** from its balance, as the transaction amount is in the account's native currency.
-6.  **Reporting**: Later, when Alice runs an expense report for her "Travel" book, the system uses the `convertedAmount` field. This transaction will appear as a **$55** expense, ensuring the report is consistently in USD.
+**Scenario**: Emily is on vacation in Japan and uses her US-based credit card to pay for a meal costing ¥5,000.
 
-[^1]: AccountService.java: overview() - Calculates total assets, debts, and net worth by separating accounts by type and summing their converted balances.
-[^2]: AccountService.java: getAssets() - Queries for all enabled and included accounts of type `CHECKING` and `ASSET` for the current user group.
-[^3]: AccountService.java: getDebts() - Queries for all enabled and included accounts of type `CREDIT` and `DEBT` for the current user group.
-[^4]: AccountService.java: statistics() - Iterates through accounts and uses `currencyService.convert()` to normalize balances to the group's default currency before aggregation.
-[^5]: ReportService.java: reportBalance() - Generates data for balance charts by separating asset and debt accounts and converting their balances to a common currency for comparison.
-[^6]: Account.java: include - A boolean field on the Account entity that determines if the account's balance is included in summary calculations.
-[^7]: BalanceFlow.java: type - An enum field `FlowType` that defines the transaction as `EXPENSE`, `INCOME`, `TRANSFER`, or `ADJUST`.
-[^8]: BalanceFlow.java: book - A non-nullable `ManyToOne` relationship that links every transaction to a specific `Book`.
-[^9]: BalanceFlowService.java: add() - Processes a list of `CategoryRelationForm` objects, summing their amounts to calculate the total transaction value.
-[^10]: BalanceFlowService.java: confirmBalance() - Contains the core logic for applying financial changes to account balances based on the transaction's type and its `confirm` status.
-[^11]: BalanceFlowService.java: refundBalance() - Reverses the financial impact of a transaction on account balances, used when a transaction is deleted or updated.
-[^12]: BalanceFlowService.java: update() - Handles transaction updates by creating a new record with the updated data and removing the old one, ensuring financial integrity by calling `refundBalance` on the old record.
-[^13]: BalanceFlow.java: files - A `OneToMany` mapped field to a `Set` of `FlowFile` entities, allowing multiple files per transaction.
-[^14]: ValidFile.java: FileValidator.class - A custom constraint validator that checks the content type of a `MultipartFile` against a list of allowed types (PDF, PNG, JPG, JPEG).
-[^15]: FlowFile.java: `data`, `originalName`, `size`, `contentType` - Entity fields that store the essential metadata and binary content of an uploaded file.
-[^16]: application.properties: spring.servlet.multipart.max-file-size - Configuration property that sets the maximum size for a single uploaded file.
-[^17]: FlowFileController.java: handleView() - An endpoint that serves the raw byte data of a file, using the creation timestamp as a simple security measure to make the URL less predictable.
-[^18]: FlowFileService.java: remove() - Service method to delete a `FlowFile` after verifying that the requesting user has ownership of the parent `BalanceFlow`.
-[^19]: Book.java: group - A `ManyToOne` relationship to the `Group` entity, structuring books within a user group.
-[^20]: Category.java: book - A mandatory `ManyToOne` relationship field, ensuring every category is scoped to exactly one book. The same pattern applies to `Tag.java` and `Payee.java`.
-[^21]: BookService.java: addByTemplate() - Logic to create a new `Book` and populate its initial `Categories`, `Tags`, and `Payees` from a `BookTemplate` loaded from a JSON file.
-[^22]: BookService.java: addByBook() - Logic to create a new `Book` by copying the `Categories`, `Tags`, and `Payees` from an existing source `Book`.
-[^23]: SessionUtil.java: getCurrentBook() - A utility method to retrieve the currently active book from the user's session scope, used throughout the service layer to filter data.
-[^24]: UserService.java: setDefaultBook() - An endpoint and service method allowing a user to update their `defaultBook` preference, which is stored on the `User` entity.
-[^25]: CurrencyDataLoader.java: run() - An `ApplicationRunner` that loads a list of currencies from `currency.json` into a shared `ApplicationScopeBean` on startup.
-[^26]: CurrencyService.java: refreshCurrency() - Method that calls an external exchange rate API and updates the currency rates in the application-scoped bean.
-[^27]: Account.java: currencyCode - A string field on the `Account` entity to specify its currency. The `Book` entity has a similar `defaultCurrencyCode` field.
-[^28]: BalanceFlowService.java: checkBeforeAdd() - Validation logic that checks if an account's currency differs from the book's currency and throws an exception if `convertedAmount` is missing.
+1.  **Open App**: Emily opens the MoneyNote app, which is set to her "Vacation" book with a default currency of USD.
+2.  **Add Expense**: She creates a new expense transaction.
+3.  **Select Account**: She chooses her "Visa Credit Card (USD)" account.
+4.  **Enter Foreign Currency Amount**:
+    *   She enters `5000` as the amount.
+    *   She changes the currency field for this transaction from USD to **JPY**.
+    *   The app displays a `convertedAmount` field, pre-filled with an estimated value like `$37.50` based on the latest exchange rate. She can adjust this value if the credit card statement shows a slightly different rate.
+5.  **Add Details**: She categorizes the expense as "Restaurants" and adds the tag "Japan Trip".
+6.  **Save**: She saves the transaction.
+7.  **Check Balance**: The system records the expense and reduces her credit card's balance by the confirmed USD amount ($37.50). When she later generates a report on her vacation spending, the ¥5,000 expense is correctly shown as a $37.50 expenditure.
+
+[^1]: src/main/java/cn/biq/mn/account/AccountService.java: overview() - Calculates total assets, debts, and net worth.
+[^2]: src/main/java/cn/biq/mn/report/ReportService.java: reportBalance() - Prepares data for asset and debt distribution charts, including percentages.
+[^3]: src/main/java/cn/biq/mn/account/AccountService.java: statistics() - Aggregates financial data for a given set of accounts.
+[^4]: src/main/java/cn/biq/mn/account/AccountService.java: overview() - This method explicitly uses `currencyService.convert` to standardize all account balances to the group's default currency before aggregation.
+[^5]: src/main/java/cn/biq/mn/account/AccountService.java: getAssets() - This method queries for accounts of type CHECKING and ASSET. `getDebts()` queries for CREDIT and DEBT types.
+[^6]: src/main/java/cn/biq/mn/balanceflow/FlowType.java: EXPENSE, INCOME, TRANSFER, ADJUST - Defines the four primary types of financial transactions.
+[^7]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: checkBeforeAdd() - Validates that expense/income flows have at least one category and checks for duplicates.
+[^8]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: confirmBalance() - Contains the logic to update account balances based on the flow type (e.g., subtracting for an expense, adding for an income).
+[^9]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: update() - This method orchestrates the update by removing the old flow (which triggers `refundBalance`) and adding a new one.
+[^10]: src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java: @ManyToOne private Book book - Entity mapping showing every balance flow must belong to a book.
+[^11]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: checkBeforeAdd() - Enforces that transfers must have a 'from' account (`account`), a 'to' account (`form.getTo()`), and an amount.
+[^12]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowQueryForm.java: buildPredicate() - Constructs a dynamic database query based on user-provided filters.
+[^13]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowController.java: handleAddFile() - The API endpoint for uploading a file and associating it with a transaction (`flow`).
+[^14]: src/main/java/cn/biq/mn/flowfile/FlowFile.java: @Lob @Basic(fetch = FetchType.LAZY) @Column(columnDefinition = "LONGBLOB") private byte[] data - Defines the database column for storing the raw file data.
+[^15]: src/main/java/cn/biq/mn/flowfile/FlowFileController.java: handleDelete() - The API endpoint for deleting a file record.
+[^16]: src/main/java/cn/biq/mn/validation/FileValidator.java: isSupportedContentType() - Checks if the uploaded file's content type is one of the allowed types.
+[^17]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowController.java: handleFiles() - Endpoint to retrieve all file details associated with a transaction.
+[^18]: src/main/java/cn/biq/mn/flowfile/FlowFileController.java: handleView() - Endpoint to serve the raw byte data of a file for viewing or downloading.
+[^19]: src/main/java/cn/biq/mn/book/BookService.java: addByTemplate() - Logic for creating a new book based on a predefined `BookTemplate`.
+[^20]: src/main/java/cn/biq/mn/book/BookController.java: handleUpdate() - API endpoint for updating a book's properties.
+[^21]: src/main/java/cn/biq/mn/book/BookService.java: remove() - Checks if a book has any associated flows before allowing deletion.
+[^22]: src/main/java/cn/biq/mn/book/BookController.java: handleAdd(), handleUpdate(), handleQuery() - Endpoints for full CRUD operations on books.
+[^23]: src/main/java/cn/biq/mn/book/Book.java: private String defaultCurrencyCode; - Entity field for storing the book's default currency.
+[^24]: src/main/java/cn/biq/mn/user/UserController.java: handleSetDefaultBook() - API endpoint for a user to change their active book.
+[^25]: src/main/java/cn/biq/mn/book/BookService.java: exportFlow() - Logic to generate an Excel workbook from a book's transaction data.
+[^26]: src/main/java/cn/biq/mn/account/Account.java: private String currencyCode; - Entity field defining the currency for an individual account.
+[^27]: src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java: private BigDecimal convertedAmount; - Entity field to store the transaction amount after conversion to the book's default currency.
+[^28]: src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java: add() - When the flow type is TRANSFER, it uses the provided `convertedAmount` to update the destination account's balance if currencies differ.
+[^29]: src/main/java/cn/biq/mn/currency/currency.json: List of currencies - A resource file containing a predefined list of world currencies and their initial rates.
+[^30]: src/main/java/cn/biq/mn/currency/CurrencyService.java: refreshCurrency() - Method that makes a web request to an external exchange rate API (`api.exchangerate-api.com`).
+
+### Modernize to Kubernetes Engine
+#### Migration to Google Kubernetes Engine
+
+Migrating the MoneyNote API to Google Kubernetes Engine (GKE) offers a powerful path to enhanced scalability, resilience, and operational efficiency. The application's existing container-based setup provides a strong foundation for this transition. The migration can be approached in phases, starting with a direct "lift and shift" of the monolith, followed by gradual decomposition and integration with Google Cloud's managed services.
+
+The primary strategy involves containerizing the Spring Boot application, deploying it on a GKE cluster, and externalizing its dependencies to managed cloud services. This approach minimizes initial refactoring while immediately leveraging the benefits of container orchestration.
+
+##### Initial Container Deployment
+
+The application already includes a `Dockerfile`, which simplifies the initial migration step significantly [^1]. This file defines the steps to package the Java application into a runnable container image.
+
+The process for a direct migration would be:
+
+1.  **Build and Store the Container Image**: The application JAR is built using Gradle and then packaged into a Docker image. This image should be pushed to **Artifact Registry**, Google Cloud's fully managed service for storing container images and language packages.
+2.  **Provision a GKE Cluster**: A GKE cluster serves as the orchestration environment. For simplicity and reduced operational overhead, a **GKE Autopilot** cluster is recommended. Autopilot manages the underlying nodes, scaling, and security configurations, allowing the team to focus on the application itself.
+3.  **Deploy the Application**:
+    *   A Kubernetes `Deployment` manifest will be created to define the desired state for the application, including the number of replicas and the container image to use (hosted in Artifact Registry).
+    *   Application configuration, such as the settings in `application.properties` [^2], should be externalized using Kubernetes `ConfigMaps` for non-sensitive values and `Secrets` for sensitive data like database credentials.
+    *   A Kubernetes `Service` of type `LoadBalancer` will expose the application to the internet, automatically provisioning a Google Cloud External Load Balancer.
+
+#### Managing External Dependencies
+
+The application relies on several external components that can be migrated to equivalent or superior managed services on Google Cloud to improve reliability and reduce maintenance.
+
+| Dependency Type | Component Identified | Google Cloud Recommended Service | Modernization Strategy |
+| :--- | :--- | :--- | :--- |
+| **Database** | MySQL | **Cloud SQL for MySQL** | The application currently uses a MySQL database, as indicated by the JDBC driver in the build configuration [^3] and connection string in the properties file [^2]. Migrating to Cloud SQL provides a fully managed relational database service with automated backups, high availability, and effortless scaling. The **Database Migration Service (DMS)** can be used to perform a homogeneous migration from the existing on-premises or self-managed MySQL instance to Cloud SQL with minimal downtime. |
+| **File Storage** | Database BLOB | **Cloud Storage** | Transaction attachments (`FlowFile`) are stored as `LONGBLOB` data directly within the database [^4]. This is inefficient, increases database size, and complicates backups. The application should be refactored to upload files to a Cloud Storage bucket. The database would then only need to store a URI reference to the Cloud Storage object. This change would drastically reduce database load and cost, while providing a highly scalable and durable solution for file storage. Access to files can be controlled securely using signed URLs. |
+| **Currency API** | `api.exchangerate-api.com` | **Cloud Functions / API Gateway** | The application fetches real-time currency conversion rates from an external third-party API [^5]. While this can continue to function as-is, introducing a caching layer can improve performance and reliability. A serverless **Cloud Function** could be used to periodically fetch rates and store them in a fast-access cache like **Memorystore for Redis**. **API Gateway** can be placed in front of this function to provide a stable, managed internal endpoint for the application. |
+| **DB Schema Migration** | SQL Script | **Cloud Build / GKE Jobs** | The application runs a SQL script on startup to handle schema updates [^6]. In a Kubernetes environment, this is better managed using a Helm pre-install hook or a Kubernetes `Job` that runs to completion before the main application deployment is rolled out. This ensures the database schema is prepared before the application attempts to connect. |
+
+#### Decomposing into Microservices
+
+The current monolithic structure can be strategically broken down into a set of independent microservices to improve scalability, fault tolerance, and development agility. The existing package structure provides a logical guide for this decomposition.
+
+##### Proposed Microservice Architecture
+
+| Service Name | Responsibilities | Core Packages | Communication Patterns |
+| :--- | :--- | :--- | :--- |
+| **User & Auth Service** | User registration, login, JWT generation, group management, and access control. | `user`, `group`, `security` | Synchronous (REST/gRPC) for authentication requests. Publishes events (e.g., `UserCreated`) to Pub/Sub. |
+| **Bookkeeping Service** | Core data management for books, accounts, and payees. | `book`, `account`, `payee` | Synchronous (REST/gRPC) for CRUD operations. Subscribes to events like `UserCreated` to set up default books. |
+| **Transaction Service** | Manages the lifecycle of all financial transactions (expense, income, transfer, adjust). | `balanceflow` | Synchronous (REST/gRPC) for creating and updating transactions. Publishes events like `TransactionConfirmed` or `TransactionDeleted`. |
+| **Taxonomy Service** | Manages hierarchical data for categories and tags. | `category`, `tag` | Synchronous (REST/gRPC) for managing categories and tags. |
+| **Reporting Service** | Aggregates data and generates financial reports. | `report` | Asynchronous. Subscribes to `TransactionConfirmed` events from Pub/Sub to update aggregated views, ensuring the reporting database is eventually consistent without impacting transaction processing performance. |
+| **File Service** | Handles file uploads and downloads for transaction attachments, interfacing with Cloud Storage. | `flowfile` | Synchronous (REST/gRPC) for managing file operations. |
+| **Currency Service** | Manages currency conversion rates, caching data from the external API. | `currency` | Synchronous (REST/gRPC) for providing conversion rates to other services. |
+
+##### Network and Communication
+
+- **API Gateway**: A single entry point for all external client requests. It would route traffic to the appropriate microservice (e.g., `/api/v1/login` to the User & Auth Service, `/api/v1/balance-flows` to the Transaction Service).
+- **Service-to-Service Communication**: For internal communication, services can communicate directly via their Kubernetes service names. Using a **Service Mesh** like Anthos Service Mesh can add reliability, security, and observability to this internal traffic.
+- **Asynchronous Communication**: **Pub/Sub** should be used to decouple services. For example, when the Transaction Service confirms a new expense, it publishes a message. The Bookkeeping Service (to update account balances) and the Reporting Service can both subscribe to this message and act independently. This makes the system more resilient and scalable.
+
+#### Leveraging Google Cloud Horizontals
+
+The application can benefit from a wide array of Google Cloud's horizontal services to build a robust, automated, and observable system.
+
+- **CI/CD**: A `cloudbuild.yaml` file should be added to the repository to define a CI/CD pipeline in **Cloud Build**. This pipeline would be triggered on every git push, automatically building the Docker image, pushing it to **Artifact Registry**, and deploying the new version to the GKE cluster.
+- **Observability**: GKE natively integrates with the **Cloud Operations** suite.
+    - **Cloud Logging** will automatically collect stdout/stderr from all containers.
+    - **Cloud Monitoring** will gather performance metrics (CPU, memory) and can be used to set up uptime checks and alerting for the application's external endpoint.
+- **Networking**: The entire deployment will be housed within a **Virtual Private Cloud (VPC)**, providing a secure and isolated network environment. GKE services exposed via a **Cloud Load Balancer** will benefit from global distribution and DDoS protection.
+- **Storage**:
+    - **Artifact Registry** will serve as the trusted, secure source for all container images.
+    - **Cloud Storage** will be used for storing financial record attachments, as well as for storing database backups generated by Cloud SQL.
+
+#### Detailed Migration Plan
+
+The migration from the current Docker-based deployment to a fully modernized architecture on Google Cloud can be executed in three distinct phases.
+
+##### Phase 1: Lift and Shift to GKE
+
+This phase focuses on moving the existing monolith to GKE with minimal code changes to quickly realize the benefits of container orchestration.
+
+1.  **Environment Setup**:
+    *   Create a Google Cloud project and enable the GKE, Cloud SQL, Artifact Registry, and Cloud Build APIs.
+    *   Set up a VPC network and subnets to host the GKE cluster and Cloud SQL instance.
+2.  **Provision Managed Database**:
+    *   Create a **Cloud SQL for MySQL** instance.
+    *   Use the **Database Migration Service (DMS)** to migrate the schema and data from the existing MySQL database to the new Cloud SQL instance.
+3.  **Containerize and Configure**:
+    *   Parameterize the `application.properties` file to read database connection details (host, user, password) from environment variables.
+    *   Create a `cloudbuild.yaml` file to define a Cloud Build pipeline that builds the Docker image and pushes it to Artifact Registry.
+4.  **Deploy to GKE**:
+    *   Create a GKE **Autopilot** cluster for simplified management.
+    *   Create a Kubernetes `Secret` to store the database password.
+    *   Create a Kubernetes `Deployment` manifest that pulls the application image from Artifact Registry and injects the database credentials from the Secret.
+    *   Create a Kubernetes `Service` of type `LoadBalancer` to expose the application to the internet.
+5.  **Validation**:
+    *   Perform comprehensive testing to ensure the application runs correctly on GKE and communicates successfully with Cloud SQL.
+
+##### Phase 2: Application Refactoring and Optimization
+
+This phase focuses on modernizing key parts of the application to better leverage cloud-native services.
+
+1.  **Refactor File Storage**:
+    *   Modify the `FlowFileService` to use the **Cloud Storage** client library.
+    *   Change the logic to upload file attachments to a Cloud Storage bucket and store the object URI in the database instead of the file itself [^4].
+    *   Implement a data migration script to move existing files from the database BLOBs to the Cloud Storage bucket.
+2.  **Implement Enhanced Observability**:
+    *   Integrate a structured logging library into the Spring Boot application to emit JSON-formatted logs, which are more easily parsed in Cloud Logging.
+    *   Create custom dashboards in **Cloud Monitoring** to track key application metrics, such as transaction volume, user logins, and API latency.
+3.  **Strengthen Security**:
+    *   Place **API Gateway** in front of the GKE service to manage API keys, enforce usage quotas, and validate JWTs, offloading this responsibility from the application.
+
+##### Phase 3: Decompose into Microservices (Iterative)
+
+This phase involves incrementally breaking down the monolith into a distributed system of microservices.
+
+1.  **Identify Initial Service**: Start with a functionally distinct and low-risk component, such as the **Currency Service** [^5] or the **Reporting Service**.
+2.  **Extract and Deploy**:
+    *   Create a new, separate Spring Boot project for the microservice.
+    *   Deploy it as a separate `Deployment` and `Service` within the same GKE cluster.
+3.  **Integrate and Decouple**:
+    *   Update the monolith to communicate with the new microservice via its internal Kubernetes service endpoint (e.g., `http://reporting-service/api/...`).
+    *   For event-driven flows, introduce **Pub/Sub**. For example, modify the monolith to publish a `TransactionConfirmed` message, and have the new Reporting Service subscribe to it.
+4.  **Iterate**: Continue this process for other domains, such as the **User & Auth Service** and **Transaction Service**. Each new service reduces the responsibilities of the original monolith.
+5.  **Decommission**: Once all core functionalities have been extracted into microservices, the original monolithic application can be safely decommissioned, completing the modernization journey.
+
+[^1]: Dockerfile: FROM ubuntu:23.04 - Defines the base image and steps to package the Java application into a container.
+[^2]: application.properties: spring.datasource.url=jdbc:mysql... - Contains application configuration, including the database connection string.
+[^3]: build.gradle: runtimeOnly 'com.mysql:mysql-connector-j' - Declares the MySQL JDBC driver dependency, confirming the use of a MySQL database.
+[^4]: src/main/java/cn/biq/mn/flowfile/FlowFile.java: @Column(columnDefinition = "LONGBLOB") private byte[] data; - This annotation indicates that file attachments are stored directly in the database as large binary objects.
+[^5]: src/main/java/cn/biq/mn/currency/CurrencyService.java: webUtils.get("https://api.exchangerate-api.com/v4/latest/USD"); - Shows the application making an external HTTP call to a third-party service for currency rates.
+[^6]: src/main/java/cn/biq/mn/SqlScriptRunner.java: run(ApplicationArguments args) - This class executes a SQL script (`1.sql`) upon application startup to perform database schema modifications.
+
+### Modernize to Cloud Run
+This report section outlines the core user journeys and their underlying business requirements as implemented in the MoneyNote application. By analyzing the codebase, we can reverse-engineer the intended functionality and user experience, providing a clear requirements document for future development and modernization efforts.
+
+#### 1\. Monitor Financial Situation
+
+This journey focuses on providing the user with a high-level, aggregated overview of their financial health, enabling them to quickly assess their assets, liabilities, and net worth.
+
+##### Core Interactions
+
+The user's primary interaction is to view a consolidated summary of their financial standing. This typically occurs on a main dashboard or a dedicated overview screen upon logging in. The user can also navigate to a more detailed reporting section to see a graphical breakdown of their financial position.
+
+1.  **Navigate to Overview**: The user logs in and accesses the main dashboard or a specific "Overview" section.
+2.  **View High-Level Statistics**: The system presents the user with three key figures: Total Assets, Total Debts, and Net Worth.
+3.  **Analyze Detailed Breakdown**: The user navigates to a balance report, which displays visual charts (e.g., pie charts) that break down the composition of their assets and debts by individual accounts.
+
+##### Business Requirements
+
+The system must provide an accurate and easy-to-understand summary of the user's financial status.
+
+| Requirement ID | Description | Implemented In |
+| :--- | :--- | :--- |
+| FIN-MON-01 | The system shall calculate the user's total assets by summing the balances of all active and included `CHECKING` and `ASSET` type accounts [^1]. | `AccountService.java`: `getAssets()` |
+| FIN-MON-02 | The system shall calculate the user's total debts by summing the balances of all active and included `CREDIT` and `DEBT` type accounts [^2]. | `AccountService.java`: `getDebts()` |
+| FIN-MON-03 | The system shall calculate the net worth by subtracting total debts from total assets. | `AccountService.java`: `overview()` |
+| FIN-MON-04 | All financial summaries must be presented in the user's group default currency. Balances from accounts with different currencies shall be converted before aggregation [^3]. | `AccountService.java`: `overview()` |
+| FIN-MON-05 | The system shall provide a reporting feature to visualize the composition of total assets and total debts, breaking them down by individual accounts [^4]. | `ReportService.java`: `reportBalance()` |
+| FIN-MON-06 | Only accounts that are explicitly marked as `enable=true` and `include=true` shall be part of the overview and balance report calculations [^1] [^2]. | `AccountRepository.java`: `findAllByGroupAndTypeAndEnableAndInclude()` |
+
+##### Example User Flow
+
+**User:** Alex, a user who wants to check their financial health at a glance.
+
+1.  **Login**: Alex opens the MoneyNote application and logs in.
+2.  **Dashboard View**: He is directed to the main dashboard. A prominent "Financial Overview" card immediately shows:
+    *   **Total Assets:** $25,200
+    *   **Total Debts:** $8,500
+    *   **Net Worth:** $16,700
+3.  **Drill-Down to Report**: Curious about the debt composition, Alex clicks on "View Reports" and selects the "Balance Report".
+4.  **Analyze Charts**: The report page displays two pie charts.
+    *   The "Assets" chart shows his "401k" account is the largest portion, followed by his "Checking Account".
+    *   The "Debts" chart reveals that his "Student Loan" makes up 70% of his debt, with the remaining 30% on his "Visa Credit Card".
+5.  **Conclusion**: Alex has a clear picture of his financial standing and knows that paying down his student loan is the key to improving his net worth.
+
+#### 2\. Track Incomes & Expenses
+
+This is the fundamental journey of the application, allowing users to meticulously record every financial transaction, whether it's an inflow (income) or an outflow (expense).
+
+##### Core Interactions
+
+The user interacts with a form to input the details of a new transaction. This form is designed to be quick yet comprehensive, capturing all necessary data for accurate bookkeeping.
+
+1.  **Initiate Transaction Entry**: The user clicks a primary action button (e.g., a '+' icon) to open the new transaction form.
+2.  **Select Transaction Type**: The user chooses whether the transaction is an `EXPENSE` or an `INCOME`.
+3.  **Enter Core Details**: The user inputs the transaction amount and selects the `Account` it affects.
+4.  **Categorize the Transaction**: The user assigns one or more `Categories` to the transaction, specifying the amount for each if it's a split transaction.
+5.  **Add Optional Details**: The user can optionally add a `Payee`, descriptive `Tags`, a `Title`, and `Notes` for context.
+6.  **Confirm and Save**: The user saves the transaction. If marked as 'Confirmed', the system immediately updates the balance of the affected account.
+
+##### Business Requirements
+
+The system must facilitate detailed and accurate recording of all financial flows.
+
+| Requirement ID | Description | Implemented In |
+| :--- | :--- | :--- |
+| FIN-TRK-01 | The system shall allow users to create financial records of type `EXPENSE` and `INCOME` [^5]. | `FlowType.java` |
+| FIN-TRK-02 | Every transaction (`BalanceFlow`) must be associated with a specific `Book` and `Group` [^6]. | `BalanceFlow.java`: `book`, `group` fields |
+| FIN-TRK-03 | A transaction must be linked to a source/destination `Account`. | `BalanceFlow.java`: `account` field |
+| FIN-TRK-04 | Upon confirmation of a transaction, the associated account's balance must be updated accordingly (decremented for `EXPENSE`, incremented for `INCOME`) [^7]. | `BalanceFlowService.java`: `confirmBalance()` |
+| FIN-TRK-05 | Each transaction must be associated with at least one `Category`. The system must support splitting a transaction across multiple categories [^8]. | `BalanceFlow.java`: `categories` relationship |
+| FIN-TRK-06 | The total amount of a transaction is derived from the sum of amounts allocated to its categories [^9]. | `BalanceFlowService.java`: `add()` method |
+| FIN-TRK-07 | Users shall be able to add multiple `Tags` to a transaction for enhanced filtering and reporting [^10]. | `BalanceFlow.java`: `tags` relationship |
+| FIN-TRK-08 | Transactions can have a `confirm` status. Unconfirmed transactions are treated as drafts and do not affect account balances [^6]. | `BalanceFlow.java`: `confirm` field |
+| FIN-TRK-09| Transactions can be excluded from financial reports and summaries by setting the `include` flag to `false`. | `BalanceFlow.java`: `include` field |
+
+##### Example User Flow
+
+**User:** Emily, who wants to record her grocery shopping.
+
+1.  **Open App**: Emily has just finished shopping and opens MoneyNote on her phone.
+2.  **Add New Transaction**: She taps the large "+" button on the home screen.
+3.  **Select Type**: The form defaults to "Expense," which is what she wants.
+4.  **Enter Details**:
+    *   She enters "85.40" in the amount field for the `CategoryRelationForm`.
+    *   She selects her "Chase Debit Card" from the `Account` dropdown.
+    *   She chooses the `Category`: "Groceries".
+    *   She types "Trader Joe's" and selects it from the `Payee` list.
+    *   She adds a `Tag`: "WeeklyShop".
+5.  **Save**: She leaves the "Confirm" toggle on and hits "Save".
+6.  **Verification**: She navigates to her Accounts list and sees that the balance of her "Chase Debit Card" has decreased by $85.40.
+
+#### 3\. Attach Files to Financial Records
+
+This journey allows users to attach digital files, such as receipts or invoices, to their transaction records, creating a comprehensive and auditable financial history.
+
+##### Core Interactions
+
+The user adds a file to an existing transaction record. This is typically done from the transaction's detail view.
+
+1.  **Navigate to Transaction**: The user finds and opens the detail view of the transaction they want to add a file to.
+2.  **Initiate File Upload**: The user clicks an "Add Attachment" or "Upload File" button.
+3.  **Select File**: A file picker opens, allowing the user to select a file (e.g., image, PDF) from their device.
+4.  **Upload and Associate**: The file is uploaded to the server, and the system links it to the transaction.
+5.  **View Attachment**: The user can see a thumbnail or link to the attachment in the transaction details and can click it to view or download the file.
+
+##### Business Requirements
+
+The system must support the storage and retrieval of file attachments for financial records.
+
+| Requirement ID | Description | Implemented In |
+| :--- | :--- | :--- |
+| FIN-FILE-01 | The system shall allow users to upload files and associate them with a specific `BalanceFlow` record [^11]. | `BalanceFlowController.java`: `handleAddFile()` |
+| FIN-FILE-02 | The system shall validate uploaded files to ensure they are of a supported content type (e.g., `image/jpeg`, `image/png`, `application/pdf`) [^12]. | `FileValidator.java`: `isSupportedContentType()` |
+| FIN-FILE-03 | For each uploaded file, the system must store the binary data, original filename, content type, size, and creation timestamp [^13]. | `FlowFile.java` |
+| FIN-FILE-04 | Access to view or download a file shall be protected, requiring a secure, time-sensitive URL or authenticated session [^14]. | `FlowFileController.java`: `handleView()` |
+| FIN-FILE-05 | When a `BalanceFlow` record is deleted, all associated `FlowFile` records must also be permanently deleted [^15]. | `BalanceFlowService.java`: `remove()` |
+| FIN-FILE-06 | A transaction can have multiple files attached to it [^16]. | `BalanceFlow.java`: `Set<FlowFile> files` |
+
+##### Example User Flow
+
+**User:** Ben, who needs to keep a digital record of a business lunch for expense reporting.
+
+1.  **Record Expense**: Ben records a $45.50 lunch expense in his "Business" book.
+2.  **Take Photo**: He takes a photo of the printed receipt with his phone.
+3.  **Open Transaction**: He opens the lunch transaction he just created in MoneyNote.
+4.  **Upload Receipt**: He taps "Add Attachment," chooses "From Gallery," and selects the receipt photo.
+5.  **Confirmation**: The photo uploads and a thumbnail appears under an "Attachments" section in the transaction details.
+6.  **Later Retrieval**: A week later, when filing his expense report, Ben opens the transaction, clicks the receipt thumbnail, and emails the image to his accounting department.
+
+#### 4\. Support Multiple Books
+
+This journey enables users to segregate their finances into different ledgers, or "Books," for different purposes, such as personal, family, or business bookkeeping.
+
+##### Core Interactions
+
+The user manages and interacts with different Books, each acting as a separate financial environment.
+
+1.  **Create a New Book**: From a settings or management screen, the user creates a new `Book`, either from scratch, from a predefined template, or by copying an existing Book's structure.
+2.  **Set Book Defaults**: The user names the `Book` (e.g., "Side Hustle") and sets its default currency.
+3.  **Switch Active Book**: The user selects the `Book` they want to interact with from a global switcher or dropdown menu.
+4.  **Context-Specific Operations**: Once a `Book` is active, all subsequent actions—adding transactions, viewing reports, managing categories—are performed within the context of that `Book`.
+
+##### Business Requirements
+
+The system must provide robust support for multi-ledger bookkeeping.
+
+| Requirement ID | Description | Implemented In |
+| :--- | :--- | :--- |
+| FIN-BOOK-01 | Users shall be able to create and manage multiple `Books` within their `Group` [^17]. | `BookController.java`: `handleAdd()` |
+| FIN-BOOK-02 | Each `Book` shall act as a distinct container for `Categories`, `Tags`, and `Payees` [^18]. | `Category.java`, `Tag.java`, `Payee.java`: `book` relationship |
+| FIN-BOOK-03 | Each `Book` must have a `defaultCurrencyCode`, which governs the currency for its reports and converted amounts [^19]. | `Book.java`: `defaultCurrencyCode` field |
+| FIN-BOOK-04 | Users can set a `defaultBook` at the user level, which becomes their active ledger upon login [^20]. | `User.java`: `defaultBook` field |
+| FIN-BOOK-05 | The system shall provide predefined templates (e.g., "Personal," "Business") to accelerate the creation of new `Books` [^21]. | `BookService.java`: `addByTemplate()` |
+| FIN-BOOK-06| The system shall allow a user to create a new `Book` by copying the `Categories` and `Tags` from an existing `Book` [^22]. | `BookService.java`: `addByBook()` |
+| FIN-BOOK-07 | All financial reports and transaction queries can be filtered by `Book` [^23]. | `BalanceFlowQueryForm.java`: `book` field |
+
+##### Example User Flow
+
+**User:** Maria, who runs a small Etsy shop and wants to separate its finances from her personal spending.
+
+1.  **Navigate to Books**: Maria goes to `Settings -> Manage Books`. She sees her existing "Personal" book.
+2.  **Create New Book**: She clicks "Add Book" and selects the "Business" template, which comes with pre-built business-related categories.
+3.  **Configure Book**: She names the new book "Etsy Shop" and sets the default currency to USD.
+4.  **Switch Context**: A dropdown menu appears at the top of the app. She switches from "Personal" to "Etsy Shop".
+5.  **Record Business Transaction**: She records a sale of $50 as `INCOME` in her "Etsy Shop" book, using the "Sales Revenue" category that came with the template.
+6.  **Switch Back**: Later, she buys coffee and switches the context back to her "Personal" book to record the expense.
+7.  **Reporting**: At tax time, she can generate an income/expense report filtered exclusively for the "Etsy Shop" book, simplifying her accounting.
+
+#### 5\. Support Multiple Currencies
+
+This journey addresses the needs of users who operate with more than one currency, enabling them to manage international accounts and transactions seamlessly.
+
+##### Core Interactions
+
+The user manages accounts and records transactions involving different currencies. The system handles the complexities of currency conversion in the background.
+
+1.  **Create Foreign Currency Account**: When creating a new `Account`, the user specifies its `currencyCode` (e.g., "EUR", "JPY").
+2.  **Record Foreign Transaction**: The user records a transaction in a foreign currency account. The system prompts for both the local currency `amount` and the `convertedAmount` in the `Book`'s default currency.
+3.  **Perform Cross-Currency Transfer**: The user initiates a `TRANSFER` between two accounts with different currencies. They enter the amount to be debited from the source account, and the system calculates and displays the expected credited amount in the destination currency, which can be confirmed or adjusted.
+4.  **View Aggregated Reports**: When viewing high-level reports, all amounts are automatically converted to a single, consistent default currency for easy comparison.
+
+##### Business Requirements
+
+The system must handle transactions and balances across multiple currencies accurately.
+
+| Requirement ID | Description | Implemented In |
+| :--- | :--- | :--- |
+| FIN-CUR-01 | The system shall maintain a list of supported world currencies and their exchange rates relative to a base currency (USD) [^24]. | `currency.json`, `CurrencyDataLoader.java` |
+| FIN-CUR-02 | Each `Account` entity must be associated with a specific `currencyCode` [^25]. | `Account.java`: `currencyCode` field |
+| FIN-CUR-03 | When a transaction occurs in an account whose currency differs from the `Book`'s default, the system must store both the original `amount` and the `convertedAmount` [^26]. | `BalanceFlow.java`: `amount`, `convertedAmount` fields |
+| FIN-CUR-04 | For a `TRANSFER` between accounts with different currencies, the `amount` reflects the source currency value, and the `convertedAmount` reflects the destination currency value [^27]. | `BalanceFlowService.java`: `confirmBalance()` for transfers |
+| FIN-CUR-05 | The system must be capable of refreshing its exchange rate data from a third-party API to ensure rates are up-to-date [^28]. | `CurrencyService.java`: `refreshCurrency()` |
+| FIN-CUR-06 | All aggregated financial summaries and reports shall convert balances into the `Group`'s default currency to provide a unified view [^3]. | `AccountService.java`: `overview()` |
+| FIN-CUR-07 | The system must provide an interface for calculating the exchange value between any two supported currencies [^29]. | `CurrencyController.java`: `handleCalc()` |
+
+##### Example User Flow
+
+**User:** David, a Canadian who travels frequently to the U.S. for work.
+
+1.  **Account Setup**: David has two accounts set up in MoneyNote:
+    *   "RBC Chequing" with currency `CAD`.
+    *   "Chase Checking" with currency `USD`.
+    His `Book`'s default currency is `CAD`.
+2.  **Record US Expense**: While in New York, he buys a meal for $25. He records an expense in his "Chase Checking" account.
+    *   `Account`: Chase Checking (USD)
+    *   `Amount`: 25.00
+    *   The app automatically suggests a `convertedAmount` of roughly 34.00 CAD based on the latest exchange rate, which he confirms.
+3.  **Cross-Currency Transfer**: Back in Canada, he transfers 1000 CAD from his "RBC Chequing" to his "Chase Checking" to pre-load it for his next trip.
+    *   `Type`: Transfer
+    *   `From Account`: RBC Chequing (CAD), Amount: 1000.00
+    *   `To Account`: Chase Checking (USD)
+    *   The app calculates and shows that this will result in a credit of approximately 740.00 USD in his Chase account. He confirms.
+4.  **Unified Reporting**: When David views his monthly expense report, the $25 meal is shown as a ~34 CAD expense, allowing him to see all his spending in his native currency.
+
+[^1]: `src/main/java/cn/biq/mn/account/AccountService.java`: getAssets() - This method retrieves all accounts of type `CHECKING` and `ASSET` that are enabled and included in reports.
+[^2]: `src/main/java/cn/biq/mn/account/AccountService.java`: getDebts() - This method retrieves all accounts of type `CREDIT` and `DEBT` that are enabled and included in reports.
+[^3]: `src/main/java/cn/biq/mn/account/AccountService.java`: overview() - This method iterates through asset and debt accounts, converting their balances to the group's default currency before summing them up.
+[^4]: `src/main/java/cn/biq/mn/report/ReportService.java`: reportBalance() - Generates data for balance charts by creating separate lists for assets and debts and converting all balances to the group's default currency.
+[^5]: `src/main/java/cn/biq/mn/balanceflow/FlowType.java`: enum - Defines the different types of financial transactions, including `EXPENSE` and `INCOME`.
+[^6]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java`: Entity - The core transaction entity, which includes fields for `book`, `group`, and `confirm` status.
+[^7]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java`: confirmBalance() - This private method contains the logic to debit or credit an account balance based on the flow type.
+[^8]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java`: categories - A `Set<CategoryRelation>` that allows a single transaction to be linked to multiple categories.
+[^9]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java`: add() - The service method calculates the total transaction amount by summing the amounts from the provided category relations.
+[^10]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java`: tags - A `Set<TagRelation>` allowing multiple tags to be associated with one transaction.
+[^11]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlowController.java`: handleAddFile() - The API endpoint for uploading and attaching a file to a transaction.
+[^12]: `src/main/java/cn/biq/mn/validation/FileValidator.java`: isSupportedContentType() - This method checks if the content type of an uploaded file is in the allowed list (pdf, png, jpg, jpeg).
+[^13]: `src/main/java/cn/biq/mn/flowfile/FlowFile.java`: Entity - Defines the database schema for storing file metadata and binary data.
+[^14]: `src/main/java/cn/biq/mn/flowfile/FlowFileController.java`: handleView() - An endpoint that requires an ID and a creation timestamp to authorize file viewing, adding a layer of security.
+[^15]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java`: remove() - This method explicitly calls `flowFileRepository.deleteByFlow(entity)` before deleting the transaction itself.
+[^16]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java`: files - A `Set<FlowFile>` relationship indicating a one-to-many link from a transaction to its files.
+[^17]: `src/main/java/cn/biq/mn/book/BookController.java`: handleAdd() - The endpoint for creating a new `Book`.
+[^18]: `src/main/java/cn/biq/mn/category/Category.java`: Entity - The `Category` entity has a many-to-one relationship with `Book`, scoping it to that book.
+[^19]: `src/main/java/cn/biq/mn/book/Book.java`: defaultCurrencyCode - A required field on the `Book` entity that sets its base currency.
+[^20]: `src/main/java/cn/biq/mn/user/User.java`: defaultBook - A field linking a user to their default `Book`.
+[^21]: `src/main/java/cn/biq/mn/book/BookService.java`: addByTemplate() - This service method uses a `BookTemplate` to create a new book with predefined categories and tags.
+[^22]: `src/main/java/cn/biq/mn/book/BookService.java`: addByBook() - This method copies categories, tags, and payees from a source book to a new book.
+[^23]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlowQueryForm.java`: buildPredicate() - The query builder includes logic to filter transactions by `book.id`.
+[^24]: `src/main/resources/currency.json`: File - A static JSON file containing a predefined list of world currencies and their initial rates against USD.
+[^25]: `src/main/java/cn/biq/mn/account/Account.java`: currencyCode - A required, non-nullable field on the `Account` entity.
+[^26]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlow.java`: amount, convertedAmount - Two fields to hold the value in the original currency and the converted value in the book's default currency.
+[^27]: `src/main/java/cn/biq/mn/balanceflow/BalanceFlowService.java`: confirmBalance() - When handling a `TRANSFER`, this method subtracts the `amount` from the source account and adds the `convertedAmount` to the destination account.
+[^28]: `src/main/java/cn/biq/mn/currency/CurrencyService.java`: refreshCurrency() - This method makes an HTTP GET request to `https://api.exchangerate-api.com` to fetch the latest rates.
+[^29]: `src/main/java/cn/biq/mn/currency/CurrencyController.java`: handleCalc() - An API endpoint that takes a from currency, to currency, and amount, and returns the calculated conversion.
 

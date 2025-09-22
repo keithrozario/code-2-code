@@ -88,14 +88,12 @@ if __name__ == "__main__":
     with open(final_output_file, "a") as output_file:
         output_file.write(new_content)
     
-    # journey files
     file_names = [
-    p.name for p in Path('.').glob('*') 
-    if p.is_file() and 'journey' in p.name.lower()
+    p.name for p in Path('./user_journeys/').glob('*') 
+    if p.is_file()
     ]
     for file_name in sorted(file_names):
         append_entire_file(
-            input_file = file_name,
+            input_file = f"./user_journeys/{file_name}",
             output_file=final_output_file
         )
-
