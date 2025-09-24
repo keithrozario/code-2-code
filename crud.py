@@ -102,3 +102,61 @@ def delete_book(db: Session, db_book: models.Book):
     db.delete(db_book)
     db.commit()
     return db_book
+
+# Category CRUD functions
+def get_category(db: Session, category_id: int):
+    return db.query(models.Category).filter(models.Category.id == category_id).first()
+
+def get_categories_by_book(db: Session, book_id: int, skip: int = 0, limit: int = 100):
+    return db.query(models.Category).filter(models.Category.book_id == book_id).offset(skip).limit(limit).all()
+
+def create_category(db: Session, category: schemas.CategoryCreate, book_id: int):
+    db_category = models.Category(**category.model_dump(), book_id=book_id)
+    db.add(db_category)
+    db.commit()
+    db.refresh(db_category)
+    return db_category
+
+def delete_category(db: Session, db_category: models.Category):
+    # TODO: Check for children and associated transactions before deleting
+    db.delete(db_category)
+    db.commit()
+    return db_category
+
+# Tag CRUD functions
+def get_tag(db: Session, tag_id: int):
+    return db.query(models.Tag).filter(models.Tag.id == tag_id).first()
+
+def get_tags_by_book(db: Session, book_id: int, skip: int = 0, limit: int = 100):
+    return db.query(models.Tag).filter(models.Tag.book_id == book_id).offset(skip).limit(limit).all()
+
+def create_tag(db: Session, tag: schemas.TagCreate, book_id: int):
+    db_tag = models.Tag(**tag.model_dump(), book_id=book_id)
+    db.add(db_tag)
+    db.commit()
+    db.refresh(db_tag)
+    return db_tag
+
+def delete_tag(db: Session, db_tag: models.Tag):
+    db.delete(db_tag)
+    db.commit()
+    return db_tag
+
+# Payee CRUD functions
+def get_payee(db: Session, payee_id: int):
+    return db.query(models.Payee).filter(models.Payee.id == payee_id).first()
+
+def get_payees_by_book(db: Session, book_id: int, skip: int = 0, limit: int = 100):
+    return db.query(models.Payee).filter(models.Payee.book_id == book_id).offset(skip).limit(limit).all()
+
+def create_payee(db: Session, payee: schemas.PayeeCreate, book_id: int):
+    db_payee = models.Payee(**payee.model_dump(), book_id=book_id)
+    db.add(db_payee)
+    db.commit()
+    db.refresh(db_payee)
+    return db_payee
+
+def delete_payee(db: Session, db_payee: models.Payee):
+    db.delete(db_payee)
+    db.commit()
+    return db_payee

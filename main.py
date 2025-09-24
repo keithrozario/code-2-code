@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 from database import engine
 import models
-from api import users, accounts, books
+from api import users, accounts, books, categories, tags, payees
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -11,6 +11,9 @@ app = FastAPI()
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(accounts.router, prefix="/accounts", tags=["accounts"])
 app.include_router(books.router, prefix="/books", tags=["books"])
+app.include_router(categories.router, prefix="/categories", tags=["categories"])
+app.include_router(tags.router, prefix="/tags", tags=["tags"])
+app.include_router(payees.router, prefix="/payees", tags=["payees"])
 
 @app.get("/")
 def read_root():

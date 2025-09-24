@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional
+from typing import Optional, List
 from enum import Enum
 
 
@@ -78,5 +78,61 @@ class BookUpdate(BaseModel):
 
 class Book(BookBase):
     id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+# Pydantic models for Category
+class CategoryType(str, Enum):
+    EXPENSE = "EXPENSE"
+    INCOME = "INCOME"
+
+class CategoryBase(BaseModel):
+    name: str
+    type: CategoryType
+
+class CategoryCreate(CategoryBase):
+    parent_id: Optional[int] = None
+
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    type: Optional[CategoryType] = None
+    parent_id: Optional[int] = None
+
+class Category(CategoryBase):
+    id: int
+    book_id: int
+    parent_id: Optional[int] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+# Pydantic models for Tag
+class TagBase(BaseModel):
+    name: str
+
+class TagCreate(TagBase):
+    pass
+
+class TagUpdate(BaseModel):
+    name: Optional[str] = None
+
+class Tag(TagBase):
+    id: int
+    book_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+# Pydantic models for Payee
+class PayeeBase(BaseModel):
+    name: str
+
+class PayeeCreate(PayeeBase):
+    pass
+
+class PayeeUpdate(BaseModel):
+    name: Optional[str] = None
+
+class Payee(PayeeBase):
+    id: int
+    book_id: int
 
     model_config = ConfigDict(from_attributes=True)

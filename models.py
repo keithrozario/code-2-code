@@ -56,3 +56,37 @@ class Book(Base):
     group_id = Column(Integer, ForeignKey("groups.id"))
 
     group = relationship("Group", back_populates="books")
+    categories = relationship("Category", back_populates="book")
+    tags = relationship("Tag", back_populates="book")
+    payees = relationship("Payee", back_populates="book")
+
+class Category(Base):
+    __tablename__ = "categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    type = Column(String)
+    book_id = Column(Integer, ForeignKey("books.id"))
+    parent_id = Column(Integer, ForeignKey("categories.id"))
+
+    book = relationship("Book", back_populates="categories")
+    parent = relationship("Category", remote_side=[id], back_populates="children")
+    children = relationship("Category", back_populates="parent")
+
+class Tag(Base):
+    __tablename__ = "tags"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    book_id = Column(Integer, ForeignKey("books.id"))
+
+    book = relationship("Book", back_populates="tags")
+
+class Payee(Base):
+    __tablename__ = "payees"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    book_id = Column(Integer, ForeignKey("books.id"))
+
+    book = relationship("Book", back_populates="payees")
