@@ -26,6 +26,7 @@ class Group(Base):
 
     owner = relationship("User", back_populates="group")
     accounts = relationship("Account", back_populates="group")
+    books = relationship("Book", back_populates="group")
 
 
 class Account(Base):
@@ -44,3 +45,14 @@ class Account(Base):
     group_id = Column(Integer, ForeignKey("groups.id"))
 
     group = relationship("Group", back_populates="accounts")
+
+class Book(Base):
+    __tablename__ = "books"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    notes = Column(String, nullable=True)
+    defaultCurrencyCode = Column(String)
+    group_id = Column(Integer, ForeignKey("groups.id"))
+
+    group = relationship("Group", back_populates="books")

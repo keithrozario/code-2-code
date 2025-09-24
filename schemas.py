@@ -61,3 +61,22 @@ class Account(AccountBase):
     balance: float
 
     model_config = ConfigDict(from_attributes=True)
+
+# Pydantic models for Book
+class BookBase(BaseModel):
+    name: str
+    defaultCurrencyCode: str
+    notes: Optional[str] = None
+
+class BookCreate(BookBase):
+    pass
+
+class BookUpdate(BaseModel):
+    name: Optional[str] = None
+    defaultCurrencyCode: Optional[str] = None
+    notes: Optional[str] = None
+
+class Book(BookBase):
+    id: int
+
+    model_config = ConfigDict(from_attributes=True)
