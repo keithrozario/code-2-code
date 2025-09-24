@@ -1,55 +1,54 @@
-# Functional Specification: Customized Reporting Module
+# Functional Specification: MoneyNote Application
 
-## 1. Purpose of the Document
+## 1. Introduction
 
-This document provides the detailed functional specifications for the implementation of a new **Customized Reporting Module** for the MoneyNote application. The existing application provides robust capabilities for tracking financial data, but its reporting features are static and run directly against the transactional database, which poses a performance risk.
+This document provides a detailed functional specification for the MoneyNote application, an open-source, self-hostable bookkeeping solution. It describes the system's features, capabilities, and the underlying business logic from the perspective of the end-user.
 
-This specification formalizes the requirements for a new, flexible reporting engine that will empower users to create, save, and view personalized financial reports. It will serve as the single source of truth for the development, quality assurance, and project management teams, ensuring that the final product aligns with business objectives and user needs. This document is based on the analysis of the existing application architecture, data layer, and core user journeys.
+### 1.1. Purpose of the Document
 
-## 2. Goals and Objectives
+The purpose of this functional specification is to establish a clear and comprehensive understanding of the MoneyNote application's functionality. It serves as a foundational document for various stakeholders:
 
-The primary goal of the Customized Reporting Module is to **enable users to derive meaningful, personalized insights from their financial data through flexible and powerful data visualization tools.**
+*   **For Business Analysts and Product Managers**: It formalizes the system's capabilities and user journeys, providing a baseline for future feature development and enhancement.
+*   **For Developers**: It acts as an authoritative guide for implementing and maintaining the system, detailing the business rules, data structures, and API functionalities required.
+*   **For Quality Assurance Teams**: It provides the basis for creating test plans and test cases to ensure the application meets its intended requirements.
+*   **For Project Modernization**: It documents the "as-is" state of the application, which is critical for planning and executing migration and modernization efforts, such as the strategic recommendations outlined in the associated project modernization reports.
 
-To achieve this goal, the system will meet the following objectives:
+This document translates the system's existing behavior, as analyzed from the source code and user journey documents, into a structured set of functional requirements.
 
-*   **Empower User-Driven Analysis:** Allow users to build custom reports by selecting from a range of financial dimensions (e.g., categories, tags, payees) and metrics (e.g., total income, average spending).
-*   **Provide Advanced Filtering:** Enable users to precisely scope their reports using comprehensive filtering options, including date ranges, specific books, accounts, and more.
-*   **Enhance Data Visualization:** Offer multiple visualization formats, such as pie charts, bar charts, and data tables, allowing users to interpret their financial data in the most effective way.
-*   **Improve Reusability:** Provide the functionality for users to save their custom report configurations, allowing for quick and easy access to frequently viewed reports.
-*   **Ensure Architectural Integrity:** Seamlessly integrate with the application's existing multi-book and multi-currency architecture, ensuring all reports are accurate and consistent by leveraging the established data model.
-*   **Optimize Application Performance:** Architecturally separate the analytical workload of the reporting module from the primary transactional database to ensure that generating complex reports does not degrade the performance of core bookkeeping operations.
+### 1.2. Goals and Objectives
 
-## 3. Scope
+The primary goal of the MoneyNote application is to empower users with a private, independent, and comprehensive tool to manage their finances effectively. The system aims to achieve the following high-level objectives:
 
-This section defines the boundaries of the Customized Reporting Module project.
+*   **Provide Financial Clarity**: To offer users a clear and immediate understanding of their financial health by providing a consolidated overview of their assets, liabilities, and net worth.
+*   **Enable Detailed Financial Tracking**: To allow for meticulous recording of all financial transactions, including incomes, expenses, and transfers, with robust support for categorization and tagging for detailed analysis.
+*   **Support Diverse Financial Structures**: To accommodate various financial scenarios through support for multiple "Books" (ledgers), allowing users to segregate personal, business, or project-based finances.
+*   **Handle Global Finances**: To provide seamless support for multiple currencies, enabling users to manage accounts and transactions in different currencies with consistent reporting in a single base currency.
+*   **Ensure Data Integrity and Accessibility**: To maintain the integrity of financial records while allowing users to enrich their data with file attachments (e.g., receipts) and export it for external analysis or backup.
+*   **Facilitate Collaboration**: To allow multiple users to collaborate on shared financial books within a "Group," with role-based access control.
 
-### In Scope:
+### 1.3. Scope
 
-*   **Report Builder UI:** Development of a new user interface where users can define the parameters, filters, and visualization style for their custom reports.
-*   **Report Viewer:** A dedicated screen to display the generated reports, including interactive charts and data tables.
-*   **Report Management:** Functionality for users to save, name, update, and delete their custom report configurations.
-*   **Backend Data Aggregation:** Implementation of the backend services required to query, aggregate, and process the data for the reports. This includes leveraging a separate, optimized data store for analytical queries.
-*   **Core Reporting Dimensions:** The ability to generate reports based on the following core entities:
-    *   Income and Expenses (`BalanceFlow`)
-    *   Categories
-    *   Tags
-    *   Payees
-*   **Filtering Capabilities:** The ability to filter reports by:
-    *   Date Range (pre-defined and custom)
-    *   Book(s)
-    *   Account(s)
-    *   Transaction Type (Income, Expense)
-*   **Visualization Options:** Initial support for the following chart types:
-    *   Pie Chart
-    *   Bar Chart
-    *   Data Table
+This document defines the functional scope of the MoneyNote backend application API.
 
-### Out of Scope:
+#### 1.3.1. In Scope
 
-The following features will not be included in the initial release of the Customized Reporting Module but may be considered for future versions:
+The following features and functionalities are within the scope of this specification:
 
-*   **Report Exporting:** Exporting custom reports to external formats such as PDF, CSV, or Excel.
-*   **Report Sharing:** Sharing custom report configurations or results with other users within a `Group`.
-*   **Real-Time Dashboards:** Dashboards that update automatically in real-time. All reports will be generated on-demand by the user.
-*   **Financial Forecasting:** Any predictive analysis or forecasting based on historical data.
-*   **Mobile-Specific UI:** A dedicated, optimized interface for creating reports on mobile devices. The initial release will focus on a desktop-first responsive design.
+*   **Financial Overview**: Calculation and presentation of total assets, debts, and net worth.
+*   **Transaction Management**: Full CRUD (Create, Read, Update, Delete) operations for financial transactions, including expenses, incomes, transfers, and balance adjustments.
+*   **Categorization and Tagging**: Management of hierarchical categories and tags scoped to individual books.
+*   **Multi-Book Management**: Creation of books from scratch, from templates, or by copying existing books. Management and isolation of financial data within these books.
+*   **Multi-Currency Support**: Management of accounts and transactions in different currencies, including automated exchange rate fetching and manual overrides. All reporting is consolidated into a single base currency.
+*   **File Management**: Uploading, attaching, viewing, and deleting files associated with financial transactions.
+*   **Data Export**: Exporting a book's complete transaction history to an Excel (`.xlsx`) file.
+*   **User and Group Management**: User registration, authentication, and the ability to manage finances collaboratively within groups with role-based access.
+
+#### 1.3.2. Out of Scope
+
+The following items are considered outside the scope of this functional specification document:
+
+*   **Frontend Implementation**: The specific design, user interface (UI), and user experience (UX) of any client application (web or mobile) that consumes the API. This document defines the functional capabilities the API must provide, not how they are presented to the user.
+*   **Infrastructure and Deployment**: The underlying infrastructure, server configuration, and specific deployment procedures.
+*   **Implementation of Modernization Strategies**: The technical implementation details of migrating the application to cloud-native services (e.g., Google Cloud SQL, Cloud Storage, BigQuery), as recommended in the data layer assessment report. This document defines the functionality to be migrated, not the migration process itself.
+*   **Non-Functional Requirements**: Specific performance benchmarks, scalability targets, load testing, and detailed security hardening procedures (e.g., penetration testing).
+*   **Third-Party Integrations**: Any integrations with external systems beyond the specified API for fetching currency exchange rates.
