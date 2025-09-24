@@ -99,6 +99,7 @@ This document provides a detailed technical design for the second phase of the M
 
 ---
 
+## SKIPPING THIS STEP till after phase 3
 ## Step 3: Implement Advanced Book Creation
 
 **Goal:** Add helper endpoints to speed up the creation of new books by using templates or copying existing books.
@@ -107,6 +108,7 @@ This document provides a detailed technical design for the second phase of the M
 
 - All components from the previous steps.
 - `json` module for parsing templates.
+- That the models for `Category`, `Tags`, and `Payee` exists. Because this is only done in phase 3, we will skip this step for now.
 
 ### Implementation Steps
 
