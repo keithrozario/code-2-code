@@ -18,4 +18,7 @@ In version 1 we will retain all functionality in moneynote and only perform a te
 
 ## Database
 
-* Reimplement the database in SQLite3 by implementing the models in code. 
+* Reimplement the database in SQLite3 by implementing the models in code.
+* The database in `./moneynote.db` there is only one database, use this.
+* The database definition is in `./technical_design/database_design/database_schema.md`
+
