@@ -22,3 +22,9 @@ In version 1 we will retain all functionality in moneynote and only perform a te
 * The database in `./moneynote.db` there is only one database, use this.
 * The database definition is in `./technical_design/database_design/database_schema.md`
 
+## Backend
+* The backend is API driven, written in Python and based on Fast API
+* Use `uv` for the package management, namely
+  * Use `uv add` instead of pip install
+  * Assume that you are already in the virtual environment
+
