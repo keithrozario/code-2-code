@@ -69,24 +69,24 @@ if __name__ == "__main__":
     )
     
     
-    file_name = "./customized_report_money_note_data_layer.md" 
-    extract_sections = [
-        {
-            "header": "Key Data Entities",
-            "new_level": 2
-        },
-        {
-            "header": "Data Model",
-            "new_level": 3
-        },
-        {
-            "header": "Data Flow",
-            "new_level": 3
-        }
-    ]
-    new_content = get_sections_from_file(file_name, extract_sections)
-    with open(final_output_file, "a") as output_file:
-        output_file.write(new_content)
+    # file_name = "./customized_report_money_note_data_layer.md" 
+    # extract_sections = [
+    #     {
+    #         "header": "Key Data Entities",
+    #         "new_level": 2
+    #     },
+    #     {
+    #         "header": "Data Model",
+    #         "new_level": 3
+    #     },
+    #     {
+    #         "header": "Data Flow",
+    #         "new_level": 3
+    #     }
+    # ]
+    # new_content = get_sections_from_file(file_name, extract_sections)
+    # with open(final_output_file, "a") as output_file:
+    #     output_file.write(new_content)
     
     file_names = [
     p.name for p in Path('./user_journeys/').glob('*') 

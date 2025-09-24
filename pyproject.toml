@@ -1,0 +1,7 @@
+[project]
+name = "AiDM-trial"
+version = "0.1.0"
+description = "AiDM Trial for generating FS from Code"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = ["mrkdwn-analysis>=0.1.6"]
