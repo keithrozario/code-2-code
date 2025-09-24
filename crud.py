@@ -73,3 +73,32 @@ def delete_account(db: Session, db_account: models.Account):
     db.delete(db_account)
     db.commit()
     return db_account
+
+# Book CRUD functions
+def get_book(db: Session, book_id: int):
+    return db.query(models.Book).filter(models.Book.id == book_id).first()
+
+def get_books_by_group(db: Session, group_id: int, skip: int = 0, limit: int = 100):
+    return db.query(models.Book).filter(models.Book.group_id == group_id).offset(skip).limit(limit).all()
+
+def create_book(db: Session, book: schemas.BookCreate, group_id: int):
+    db_book = models.Book(**book.model_dump(), group_id=group_id)
+    db.add(db_book)
+    db.commit()
+    db.refresh(db_book)
+    return db_book
+
+def update_book(db: Session, db_book: models.Book, book_in: schemas.BookUpdate):
+    update_data = book_in.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_book, key, value)
+    db.add(db_book)
+    db.commit()
+    db.refresh(db_book)
+    return db_book
+
+def delete_book(db: Session, db_book: models.Book):
+    # TODO: In a future phase, check if book has transactions before deleting.
+    db.delete(db_book)
+    db.commit()
+    return db_book
