@@ -61,7 +61,7 @@ def create_account(db: Session, account: schemas.AccountCreate, group_id: int):
     return db_account
 
 def update_account(db: Session, db_account: models.Account, account_in: schemas.AccountUpdate):
-    update_data = account_in.dict(exclude_unset=True)
+    update_data = account_in.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_account, key, value)
     db.add(db_account)
