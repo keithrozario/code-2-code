@@ -89,3 +89,41 @@ def test_password_hashing(db_session):
     user_in_db = db_session.query(models.User).filter(models.User.id == user_id).first()
     assert user_in_db
     assert user_in_db.hashed_password != "a_very_secret_password"
+
+def test_login_success(db_session):
+    # Create user
+    client.post(
+        "/users/register",
+        json={"username": "logintest", "email": "login@test.com", "password": "password"},
+    )
+    # Attempt to login
+    response = client.post(
+        "/users/login",
+        data={"username": "logintest", "password": "password"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+
+def test_login_invalid_password(db_session):
+    # Create user
+    client.post(
+        "/users/register",
+        json={"username": "logintest2", "email": "login2@test.com", "password": "password"},
+    )
+    # Attempt to login with wrong password
+    response = client.post(
+        "/users/login",
+        data={"username": "logintest2", "password": "wrongpassword"}
+    )
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Incorrect username or password"}
+
+def test_login_invalid_username(db_session):
+    response = client.post(
+        "/users/login",
+        data={"username": "nonexistentuser", "password": "password"}
+    )
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Incorrect username or password"}
