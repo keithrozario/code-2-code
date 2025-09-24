@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 
 from database import Base
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -15,6 +16,7 @@ class User(Base):
     # Relationship to Group
     group = relationship("Group", back_populates="owner", uselist=False)
 
+
 class Group(Base):
     __tablename__ = "groups"
 
@@ -24,6 +26,7 @@ class Group(Base):
 
     owner = relationship("User", back_populates="group")
     accounts = relationship("Account", back_populates="group")
+
 
 class Account(Base):
     __tablename__ = "accounts"
