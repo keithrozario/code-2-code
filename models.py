@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, String, ForeignKey, Numeric
 from sqlalchemy.orm import relationship
 
 from database import Base
@@ -23,3 +23,21 @@ class Group(Base):
     owner_id = Column(Integer, ForeignKey("users.id"))
 
     owner = relationship("User", back_populates="group")
+    accounts = relationship("Account", back_populates="group")
+
+class Account(Base):
+    __tablename__ = "accounts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    type = Column(String)
+    balance = Column(Numeric(10, 2))
+    currencyCode = Column(String)
+    notes = Column(String, nullable=True)
+    enable = Column(Boolean, default=True)
+    include = Column(Boolean, default=True)
+    initialBalance = Column(Numeric(10, 2))
+    creditLimit = Column(Numeric(10, 2), nullable=True)
+    group_id = Column(Integer, ForeignKey("groups.id"))
+
+    group = relationship("Group", back_populates="accounts")
