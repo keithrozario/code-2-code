@@ -4,9 +4,11 @@ from sqlalchemy.orm import Session
 from datetime import timedelta
 
 import crud
+import models
 import schemas
 import security
 from database import get_db
+from dependencies import get_current_user
 
 router = APIRouter()
 
@@ -34,3 +36,7 @@ def login_for_access_token(db: Session = Depends(get_db), form_data: OAuth2Passw
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.get("/me", response_model=schemas.User)
+def read_users_me(current_user: models.User = Depends(get_current_user)):
+    return current_user
