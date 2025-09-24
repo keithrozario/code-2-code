@@ -27,4 +27,4 @@ In version 1 we will retain all functionality in moneynote and only perform a te
 * Use `uv` for the package management, namely
   * Use `uv add` instead of pip install
   * Assume that you are already in the virtual environment
-
+* Execute test by `PYTHONPATH=. pytest` command
