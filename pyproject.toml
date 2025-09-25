@@ -1,0 +1,9 @@
+[project]
+name = "Code to FSD"
+version = "0.1.0"
+description = "Test from Code to DTD"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "mrkdwn-analysis>=0.1.6",
+]
