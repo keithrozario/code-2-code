@@ -2,21 +2,18 @@ from helper_funcs import get_md_analyzer_and_content
 import subprocess
 import os
 
-def run_gemini_prompt(prompt: str)->bool:
 
+def run_gemini_prompt(prompt: str) -> bool:
     try:
-        result = subprocess.run([
-            'gemini',
-            '-y',
-            '-p',
-            prompt
-        ], capture_output=True, text=True, check=True)
+        result = subprocess.run(
+            ["gemini", "-y", "-p", prompt], capture_output=True, text=True, check=True
+        )
         print(result.stdout)
     except subprocess.CalledProcessError as e:
         print(f"Error executing shell command: {e}")
         print(f"Stderr: {e.stderr}")
         return False
-    
+
     return True
 
 
@@ -25,36 +22,36 @@ code_mod_report_data_layer = "customized_report_money_note_detailed_journeys.md"
 code_folder = "moneynote-api/"
 
 analyzer, content = get_md_analyzer_and_content(code_mod_report)
-headers =  analyzer.identify_headers()['Header']
+headers = analyzer.identify_headers()["Header"]
 
 
 # The prompt specifies creating a new section called "User Journeys"
-journey_header = [header for header in headers if "User Journeys" in header['text']][0]
+journey_header = [header for header in headers if "User Journeys" in header["text"]][0]
 
 # Find the next headers with -1 level of heading.
 in_user_journey_section = False
 start_level = 0
 user_journey_header_texts = []
 for header in headers:
-    if header['text'] == "User Journeys":
-        start_level = header['level']
+    if header["text"] == "User Journeys":
+        start_level = header["level"]
         in_user_journey_section = True
-        continue # skip next block and jump to next header
-    
+        continue  # skip next block and jump to next header
+
     if in_user_journey_section:
-        if header['level'] == (start_level+1):
-            user_journey_header_texts.append(header['text'])
-        elif header['level'] <= start_level:
+        if header["level"] == (start_level + 1):
+            user_journey_header_texts.append(header["text"])
+        elif header["level"] <= start_level:
             in_user_journey_section = False
-            break # we're done, avoid duplicate User Journey Sessions
+            break  # we're done, avoid duplicate User Journey Sessions
 
 print("Found the following user_journeys")
 for user_journey_name in user_journey_header_texts:
-    print(user_journey_name) 
+    print(user_journey_name)
 print("\n\n")
 
 for user_journey_name in user_journey_header_texts:
-    file_name = f"{os.getcwd()}/user_journeys/{user_journey_name.replace(' ','_')}.md"
+    file_name = f"{os.getcwd()}/user_journeys/{user_journey_name.replace(' ', '_')}.md"
     prompt = f"""
     Look at the {code_mod_report}.md file, and the {code_mod_report_data_layer} file. 
     These files represent a report for code in moneynote-api directory. 
@@ -142,8 +139,6 @@ Generate the output to markdown, and save the file to the following absolute pat
         print(f"\nNow creating for {user_journey_name}")
         run_gemini_prompt(prompt=prompt)
     print(f"Yay! File created: {file_name}")
-    
-
 
 
 # Run prompt for functional specificaiton introduction

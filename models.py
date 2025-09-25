@@ -46,6 +46,7 @@ class Account(Base):
 
     group = relationship("Group", back_populates="accounts")
 
+
 class Book(Base):
     __tablename__ = "books"
 
@@ -60,6 +61,7 @@ class Book(Base):
     tags = relationship("Tag", back_populates="book")
     payees = relationship("Payee", back_populates="book")
 
+
 class Category(Base):
     __tablename__ = "categories"
 
@@ -73,6 +75,7 @@ class Category(Base):
     parent = relationship("Category", remote_side=[id], back_populates="children")
     children = relationship("Category", back_populates="parent")
 
+
 class Tag(Base):
     __tablename__ = "tags"
 
@@ -81,6 +84,7 @@ class Tag(Base):
     book_id = Column(Integer, ForeignKey("books.id"))
 
     book = relationship("Book", back_populates="tags")
+
 
 class Payee(Base):
     __tablename__ = "payees"
