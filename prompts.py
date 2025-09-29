@@ -96,7 +96,7 @@ user_journey_prompt_string = """
     Refer to the original code for further context
     """
 
-user_journey_prompt_template = Template(user_journey_prompt_string)
+
 
 # Functional Spec Introduction
 
@@ -121,4 +121,12 @@ and all user journey files in this folder.
 
 Save the file to the following absolute path $absolute_file_path file
 """
+
+# Data Layer
+
+
+
+## Templates
+
+user_journey_prompt_template = Template(user_journey_prompt_string)
 functional_specification_intro_prompt_template = Template(functional_specification_intro_prompt_string)
