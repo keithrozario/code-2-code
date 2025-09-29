@@ -124,9 +124,29 @@ Save the file to the following absolute path $absolute_file_path file
 
 # Data Layer
 
+"""
+Args:
+    application_directory: The relative directory of the source code of the existing application
+    absolute_file_path: The absolute file path for saving the introduction for the functional specifications
+"""
 
+database_specification_prompt = f"""
+Look through @docs/** folder, these files describe an application in the $application_directory. Document the database tables and elements of this database in a markdown file.
+
+Create a separate section for each database table. For each column of each table, document the following:
+* Name: The Name of the column
+* Description: A description of the data stored in this column
+* Data type: provide a SQLite3 type and description. Refer to "https://www.sqlite.org/datatype3.html" for more information on SQLite3 datatypes. Estimate based on what the current datatype is.
+* Key Type: Documents if this column is a Primary or Foreign Key
+
+If you need, you can reference the source code in the $application_directory.
+
+Save the file to the following absolute path $absolute_file_path.
+
+"""
 
 ## Templates
 
 user_journey_prompt_template = Template(user_journey_prompt_string)
 functional_specification_intro_prompt_template = Template(functional_specification_intro_prompt_string)
+database_specification_prompt_template = Template(database_specification_prompt)

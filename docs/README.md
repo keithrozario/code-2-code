@@ -140,3 +140,29 @@ The Detail technical documentation should have:
 
 ### assumptions
 * State all assumption
+
+
+Doc Structure:
+├── docs/
+   └── cod_mod_reports/
+      └── cod_mod_functional_user_journeys.md
+      └── cod_mod_data_layer.md
+   └── context_docs/
+      └── context_doc_1
+      └── context_doc_2
+      └── context_doc_n....
+   └── user_journeys/
+      └── user_journey_1
+      └── user_journey_2
+      └── user_journey_n ....
+   └── database_design/
+      └── database_definition.md
+   └── api_design/
+      └── api-dependencies.md
+      └── api-definition.md
+   └── front_end_design/
+      └── fe_design.md
+   └── infra_design/
+      └── infra_design.md
+   └── security_design/
+      └── security_design.md

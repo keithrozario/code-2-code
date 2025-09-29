@@ -2,7 +2,7 @@ import os
 from typing import List
 
 from helper_funcs import get_md_analyzer_and_content, run_till_file_exists
-from prompts import user_journey_prompt_template, functional_specification_intro_prompt_template
+from prompts import user_journey_prompt_template, functional_specification_intro_prompt_template, database_specification_prompt_template
 
 
 codmod_report = "./docs/codmod_reports/customized_report_money_note_detailed_journeys.md"
@@ -68,4 +68,17 @@ run_till_file_exists (
     prompt=prompt,
     absolute_file_path=absolute_file_path,
     step_description=f"\nGenerating functional_specs_introduction.md"
+)
+
+
+# Database Design
+absolute_file_path = f"{os.getcwd()}/docs/database_design/database_definition.md"
+prompt = database_specification_prompt_template.substitute(
+    application_directory="moneynote-api/",
+    absolute_file_path=absolute_file_path
+)
+run_till_file_exists (
+    prompt=prompt,
+    absolute_file_path=absolute_file_path,
+    step_description=f"\nGenerating database_definition.md"
 )
