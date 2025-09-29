@@ -1,3 +1,4 @@
+import subprocess
 from mrkdwn_analysis import MarkdownAnalyzer
 
 def get_md_analyzer_and_content(file_path:str):
@@ -16,3 +17,21 @@ def get_md_analyzer_and_content(file_path:str):
     analyzer = MarkdownAnalyzer(file_path)
 
     return analyzer, content
+
+
+def run_gemini_prompt(prompt: str)->bool:
+
+    try:
+        result = subprocess.run([
+            'gemini',
+            '-y',
+            '-p',
+            prompt
+        ], capture_output=True, text=True, check=True)
+        print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing shell command: {e}")
+        print(f"Stderr: {e.stderr}")
+        return False
+    
+    return True
