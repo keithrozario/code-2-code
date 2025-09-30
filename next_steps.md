@@ -29,6 +29,6 @@ Using prompts. Generate a detail API design doc, that covers building the api.
 * The Backend stack
   * Language and Framework (if you're familiar with node, us that)
   * What package management is used (assume npm or something else)
-  * See if you can prompt the model to build user and authenticaiton APIs.
+  * See if you can prompt the model to build user and authentication APIs as per `api_design/api_plan.md`
   
 
