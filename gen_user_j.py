@@ -1,14 +1,15 @@
 import os
 from typing import List
 
+import prompts
 from helper_funcs import get_md_analyzer_and_content, run_till_file_exists
-from prompts import user_journey_prompt_template, functional_specification_intro_prompt_template, database_specification_prompt_template
+
 
 
 codmod_report = "./docs/codmod_reports/customized_report_money_note_detailed_journeys.md"
 codmod_data_report = "./docs/codmod_reports/customized_report_money_note_data_layer.md"
-user_journey_relative_directory = "docs/user_journeys"
-functional_spec_intro_relative_directory = "docs"
+user_journey_relative_directory = "user_journeys"
+absolute_path_docs_directory = f"{os.getcwd()}/docs"
 
 def get_user_journey_header_texts (codmod_report: str) -> List[str]:
     """
@@ -44,9 +45,10 @@ print("Identified the following user_journeys")
 for user_journey_name in user_journey_header_texts:
     print(user_journey_name) 
 
+user_journey_directory = f"{absolute_path_docs_directory}/{user_journey_relative_directory}"
 for user_journey_name in user_journey_header_texts:
-    absolute_file_path = f"{os.getcwd()}/{user_journey_relative_directory}/{user_journey_name.replace(' ','_')}.md"
-    prompt = user_journey_prompt_template.substitute(
+    absolute_file_path = f"{user_journey_directory}/{user_journey_name.replace(' ','_')}.md"
+    prompt = prompts.user_journey_prompt_template.substitute(
         codmod_detailed_relative_file_path = codmod_report,
         codmod_data_relative_file_path = codmod_data_report,
         user_journey_name = user_journey_name,
@@ -60,25 +62,53 @@ for user_journey_name in user_journey_header_texts:
 
 # Functional Specification Intro   
 
-absolute_file_path = f"{os.getcwd()}/docs/functional_specs_introduction.md"
-prompt = functional_specification_intro_prompt_template.substitute(
-    absolute_file_path = absolute_file_path
+func_specs_file_path = f"{absolute_path_docs_directory}/functional_specs_introduction.md"
+prompt = prompts.functional_specification_intro_prompt_template.substitute(
+    absolute_file_path = func_specs_file_path
 )
 run_till_file_exists (
     prompt=prompt,
-    absolute_file_path=absolute_file_path,
+    absolute_file_path=func_specs_file_path,
     step_description=f"\nGenerating functional_specs_introduction.md"
 )
 
 
 # Database Design
-absolute_file_path = f"{os.getcwd()}/docs/database_design/database_definition.md"
-prompt = database_specification_prompt_template.substitute(
+database_definition_file_path = f"{absolute_path_docs_directory}/database_design/database_definition.md"
+prompt = prompts.database_specification_prompt_template.substitute(
     application_directory="moneynote-api/",
-    absolute_file_path=absolute_file_path
+    absolute_file_path=database_definition_file_path
 )
 run_till_file_exists (
     prompt=prompt,
-    absolute_file_path=absolute_file_path,
+    absolute_file_path=database_definition_file_path,
     step_description=f"\nGenerating database_definition.md"
+)
+
+# Api Definitition
+
+## Api Specification
+api_definition_file_path = f"{absolute_path_docs_directory}/api_design/api_definition.md"
+prompt = prompts.api_specification_prompt_template.substitute(
+    application_directory="moneynote-api/",
+    absolute_file_path=api_definition_file_path
+)
+run_till_file_exists (
+    prompt=prompt,
+    absolute_file_path=api_definition_file_path,
+    step_description=f"\nGenerating api_definition.md"
+)
+
+## Api dependencies
+api_dependencies_file_path = f"{absolute_path_docs_directory}/api_design/api_dependencies.md"
+prompt = prompts.api_dependency_prompt_template.substitute(
+    application_directory="moneynote-api/",
+    user_journey_absolute_directory=user_journey_directory,
+    api_definition_absolute_path=api_definition_file_path,
+    absolute_file_path=api_dependencies_file_path
+)
+run_till_file_exists (
+    prompt=prompt,
+    absolute_file_path=api_dependencies_file_path,
+    step_description=f"\nGenerating api_dependencies.md"
 )

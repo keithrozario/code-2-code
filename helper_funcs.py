@@ -25,10 +25,10 @@ def run_gemini_prompt(prompt: str)->bool:
     try:
         result = subprocess.run([
             'gemini',
-            '-y',
+            '--approval-mode=yolo',
             '-p',
             prompt
-        ], capture_output=True, text=True, check=True)
+        ], text=True, check=True, stderr=subprocess.STDOUT)
         print(result.stdout)
     except subprocess.CalledProcessError as e:
         print(f"Error executing shell command: {e}")

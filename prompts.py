@@ -136,7 +136,8 @@ Look through @docs/** folder, these files describe an application in the $applic
 Create a separate section for each database table. For each column of each table, document the following:
 * Name: The Name of the column
 * Description: A description of the data stored in this column
-* Data type: provide a SQLite3 type and description. Refer to "https://www.sqlite.org/datatype3.html" for more information on SQLite3 datatypes. Estimate based on what the current datatype is.
+* Current Data type: The existing datatype in the current application
+* SQLite Data type: provide a SQLite3 type and description. Refer to "https://www.sqlite.org/datatype3.html" for more information on SQLite3 datatypes. Estimate based on what the current datatype is based on the current data type.
 * Key Type: Documents if this column is a Primary or Foreign Key
 
 If you need, you can reference the source code in the $application_directory.
@@ -145,8 +146,67 @@ Save the file to the following absolute path $absolute_file_path.
 
 """
 
+
+# Api Layer
+
+## API Definition
+
+"""
+Args:
+    application_directory: The relative directory of the source code of the existing application
+    absolute_file_path: The absolute file path for saving the introduction for the functional specifications
+"""
+
+api_specification_prompt = f"""
+Look through @docs/** folder, these files describe an application in the $application_directory. Document All the API calls:
+
+For each API call include the following information:
+* All Request Parameter in the path paremeter, query string parameter or body parameter
+* All Response parameters in the body
+* Any headers that should be set in the request
+* Any headers that should be expected in the response
+
+For each parameter in the request and response document the:
+* Name: The Name of the parameter
+* Description: A description of the parameter from a business context
+* Type: In the path, url or body
+* Data type: The datatype of the parameter
+* Type: One of Path, QueryString, Body
+* Optionality: If the parameter is optional or mandatory
+
+If you need, you can reference the source code in the $application_directory.
+
+
+"""
+
+## API Dependencies
+"""
+Args:
+    application_directory: The relative directory of the source code of the existing application
+    absolute_file_path: The absolute file path for saving the introduction for the functional specifications
+    user_journey_absolute_directory: The relative path to the user journeys
+    api_definition_absolute_path: relative path to the api_definition
+
+"""
+
+api_dependency_prompt = f"""
+The api definition file $api_definition_absolute_path defines a list of API endpoints
+
+For each endpoint look at the parameters it consumes as input and output to determine what dependencies are needed by this api. 
+
+For example:
+* a user must be created before a user can login. Hence any login api depends on the user creation.
+* a transaction must be created before it can be reversed. Hence a reversal api depends on a transaction creation api.
+
+Document all the dependencies for each api endpoint in markdown format. Save the file to the following absolute path $absolute_file_path.
+
+Please generate the complete and final response without stopping or asking for confirmation to continue.
+"""
+
 ## Templates
 
 user_journey_prompt_template = Template(user_journey_prompt_string)
 functional_specification_intro_prompt_template = Template(functional_specification_intro_prompt_string)
 database_specification_prompt_template = Template(database_specification_prompt)
+api_specification_prompt_template = Template(api_specification_prompt)
+api_dependency_prompt_template = Template(api_dependency_prompt)
