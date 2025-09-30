@@ -103,7 +103,6 @@ run_till_file_exists (
 api_dependencies_file_path = f"{absolute_path_docs_directory}/api_design/api_dependencies.md"
 prompt = prompts.api_dependency_prompt_template.substitute(
     application_directory="moneynote-api/",
-    user_journey_absolute_directory=user_journey_directory,
     api_definition_absolute_path=api_definition_file_path,
     absolute_file_path=api_dependencies_file_path
 )
@@ -111,4 +110,17 @@ run_till_file_exists (
     prompt=prompt,
     absolute_file_path=api_dependencies_file_path,
     step_description=f"\nGenerating api_dependencies.md"
+)
+
+## Api plan
+api_plan_file_path = f"{absolute_path_docs_directory}/api_design/api_plan.md"
+prompt = prompts.api_dependency_prompt_template.substitute(
+    api_definition_absolute_path=api_definition_file_path,
+    api_dependencies_file_path=api_dependencies_file_path,
+    absolute_file_path=api_plan_file_path
+)
+run_till_file_exists (
+    prompt=prompt,
+    absolute_file_path=api_plan_file_path,
+    step_description=f"\nGenerating api_plan.md"
 )

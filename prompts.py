@@ -130,7 +130,7 @@ Args:
     absolute_file_path: The absolute file path for saving the introduction for the functional specifications
 """
 
-database_specification_prompt = f"""
+database_specification_prompt_string = f"""
 Look through @docs/** folder, these files describe an application in the $application_directory. Document the database tables and elements of this database in a markdown file.
 
 Create a separate section for each database table. For each column of each table, document the following:
@@ -150,14 +150,13 @@ Save the file to the following absolute path $absolute_file_path.
 # Api Layer
 
 ## API Definition
-
 """
 Args:
     application_directory: The relative directory of the source code of the existing application
     absolute_file_path: The absolute file path for saving the introduction for the functional specifications
 """
 
-api_specification_prompt = f"""
+api_specification_prompt_string = f"""
 Look through @docs/** folder, these files describe an application in the $application_directory. Document All the API calls:
 
 For each API call include the following information:
@@ -175,8 +174,6 @@ For each parameter in the request and response document the:
 * Optionality: If the parameter is optional or mandatory
 
 If you need, you can reference the source code in the $application_directory.
-
-
 """
 
 ## API Dependencies
@@ -186,10 +183,9 @@ Args:
     absolute_file_path: The absolute file path for saving the introduction for the functional specifications
     user_journey_absolute_directory: The relative path to the user journeys
     api_definition_absolute_path: relative path to the api_definition
-
 """
 
-api_dependency_prompt = f"""
+api_dependency_prompt_string = f"""
 The api definition file $api_definition_absolute_path defines a list of API endpoints
 
 For each endpoint look at the parameters it consumes as input and output to determine what dependencies are needed by this api. 
@@ -203,10 +199,31 @@ Document all the dependencies for each api endpoint in markdown format. Save the
 Please generate the complete and final response without stopping or asking for confirmation to continue.
 """
 
-## Templates
+## API Plan
+"""
+Args:
+    absolute_file_path: The absolute file path for saving the introduction for the functional specifications
+    api_definition_absolute_path : The absolute path of the API definition file
+    api_dependency_absolute_path : The absolute path of the api dependency file
+"""
 
+api_plan_prompt_string = f"""
+The api definition file $api_definition_absolute_path defines a list of API endpoints
+
+The api dependency file $api_dependency_absolute_path defines the dependencies between the endpoints.
+
+Using these two input file create a plan to build the backend API endpoints, listing out each API that has to be built in order. To ensure that an API endpoint is only built AFTER it's dependencies are built.
+
+Create the plan in markdown format, and output to $absolute_file_path
+
+Please generate the complete and final response without stopping or asking for confirmation to continue.
+"""
+
+
+## Templates
 user_journey_prompt_template = Template(user_journey_prompt_string)
 functional_specification_intro_prompt_template = Template(functional_specification_intro_prompt_string)
-database_specification_prompt_template = Template(database_specification_prompt)
-api_specification_prompt_template = Template(api_specification_prompt)
-api_dependency_prompt_template = Template(api_dependency_prompt)
+database_specification_prompt_template = Template(database_specification_prompt_string)
+api_specification_prompt_template = Template(api_specification_prompt_string)
+api_dependency_prompt_template = Template(api_dependency_prompt_string)
+api_plan_prompt_template = Template(api_plan_prompt_string)
