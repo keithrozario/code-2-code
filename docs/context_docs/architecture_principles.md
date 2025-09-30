@@ -13,7 +13,6 @@
   * Backends are to be API-Driven built in Python using FastAPI
   * Frontends are to be built in native javascript (do not use frameworks like react or vue)
   * Databases are to RDBMS built on SQLite3.
-  * 
 
 # Backends
 
@@ -21,9 +20,19 @@
   * APIs should be prefixed with `/api/v1` for the first version of the API
   * Use the latest version of Python where possible
   * We use `uv` for package management.
-  * Use `pytest` for generating test cases.
+  * Use `pytest` for executing test cases.
   * Lint all code with `black`
   * All logic and validation will be done by the backend. The backend will assume no validation on the frontend.
+  * Backend functions should not write data to local disk or hold state in memory
+    * Data is stored in the SQLite3 database
+    * Files or Objects are to be stored in a Google Cloud Storage (GCS) bucket.
+  * Use SQLAlchemy as the ORM
+
+# Infrastructure
+
+  * Backend APIs are deployed as Google Cloud Run App
+  * These Cloud Run App should be hosted behind a Google Cloud Load Balancer
+  * As the app runs on a single SQLite3 database, the app cannot scale beyond 1 running instance.
 
 # Databases
 

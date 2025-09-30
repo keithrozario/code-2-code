@@ -10,6 +10,7 @@ codmod_report = "./docs/codmod_reports/customized_report_money_note_detailed_jou
 codmod_data_report = "./docs/codmod_reports/customized_report_money_note_data_layer.md"
 user_journey_relative_directory = "user_journeys"
 absolute_path_docs_directory = f"{os.getcwd()}/docs"
+architecture_principles_absolute_path=f"{absolute_path_docs_directory}/context_docs/architecture_principles.md"
 
 def get_user_journey_header_texts (codmod_report: str) -> List[str]:
     """
@@ -116,7 +117,7 @@ run_till_file_exists (
 api_plan_file_path = f"{absolute_path_docs_directory}/api_design/api_plan.md"
 prompt = prompts.api_dependency_prompt_template.substitute(
     api_definition_absolute_path=api_definition_file_path,
-    api_dependencies_file_path=api_dependencies_file_path,
+    api_dependencies_absolute_path=api_dependencies_file_path,
     absolute_file_path=api_plan_file_path
 )
 run_till_file_exists (
@@ -124,3 +125,19 @@ run_till_file_exists (
     absolute_file_path=api_plan_file_path,
     step_description=f"\nGenerating api_plan.md"
 )
+
+# Api Design Document
+api_detail_design_file_path = f"{absolute_path_docs_directory}/api_design/api_detail_design.md"
+prompt = prompts.api_design_prompt_template.substitute(
+    api_definition_absolute_path=api_definition_file_path,
+    api_dependencies_absolute_path=api_dependencies_file_path,
+    api_plan_absolute_path=api_plan_file_path,
+    architecture_principles_absolute_path=architecture_principles_absolute_path,
+    absolute_file_path=api_detail_design_file_path
+)
+run_till_file_exists (
+    prompt=prompt,
+    absolute_file_path=api_detail_design_file_path,
+    step_description=f"\nGenerating api_detail_design.md"
+)
+

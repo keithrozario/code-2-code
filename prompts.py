@@ -153,7 +153,7 @@ Save the file to the following absolute path $absolute_file_path.
 """
 Args:
     application_directory: The relative directory of the source code of the existing application
-    absolute_file_path: The absolute file path for saving the introduction for the functional specifications
+    absolute_file_path: The absolute file path for api definition file
 """
 
 api_specification_prompt_string = f"""
@@ -180,7 +180,7 @@ If you need, you can reference the source code in the $application_directory.
 """
 Args:
     application_directory: The relative directory of the source code of the existing application
-    absolute_file_path: The absolute file path for saving the introduction for the functional specifications
+    absolute_file_path: The absolute file path of the api dependency file
     user_journey_absolute_directory: The relative path to the user journeys
     api_definition_absolute_path: relative path to the api_definition
 """
@@ -202,17 +202,46 @@ Please generate the complete and final response without stopping or asking for c
 ## API Plan
 """
 Args:
-    absolute_file_path: The absolute file path for saving the introduction for the functional specifications
+    absolute_file_path: The absolute file path of the api plan file
     api_definition_absolute_path : The absolute path of the API definition file
-    api_dependency_absolute_path : The absolute path of the api dependency file
+    api_dependencies_absolute_path : The absolute path of the api dependency file
 """
 
 api_plan_prompt_string = f"""
 The api definition file $api_definition_absolute_path defines a list of API endpoints
 
-The api dependency file $api_dependency_absolute_path defines the dependencies between the endpoints.
+The api dependency file $api_dependencies_absolute_path defines the dependencies between the endpoints.
 
 Using these two input file create a plan to build the backend API endpoints, listing out each API that has to be built in order. To ensure that an API endpoint is only built AFTER it's dependencies are built.
+
+Create the plan in markdown format, and output to $absolute_file_path
+
+Please generate the complete and final response without stopping or asking for confirmation to continue.
+"""
+
+## API Design Document
+"""
+Args:
+    absolute_file_path: The absolute file path for saving the introduction for the api design doc    api_definition_absolute_path : The absolute path of the API definition file
+    api_dependencies_absolute_path : The absolute path of the api dependency file
+    api_plan_absolute_path : The absolute path of the api design document
+"""
+
+api_design_prompt_string = f"""
+The api definition file $api_definition_absolute_path defines a list of API endpoints
+
+The api dependency file $api_dependencies_absolute_path defines the dependencies between the endpoints.
+
+The api plan file $api_plan_absolute_path defines the plan for building the api
+
+The architecture principles document $architecture_principles_absolute_path is are the architecture principles for designing a new API
+
+Using these 3 input files create a design document that outlines the design of a new backend API that follows the architecture principles provided.
+
+The detailed design document should provide:
+* The overall architecture of the API
+* The design considerations
+* The overall structure of files to create for the API
 
 Create the plan in markdown format, and output to $absolute_file_path
 
@@ -227,3 +256,4 @@ database_specification_prompt_template = Template(database_specification_prompt_
 api_specification_prompt_template = Template(api_specification_prompt_string)
 api_dependency_prompt_template = Template(api_dependency_prompt_string)
 api_plan_prompt_template = Template(api_plan_prompt_string)
+api_design_prompt_template = Template(api_design_prompt_string)
