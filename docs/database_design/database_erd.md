@@ -139,33 +139,34 @@ erDiagram
         BigDecimal convertedAmount
     }
 
-    t_user_group |o--|| t_user_user : "has as default"
-    t_user_book |o--|| t_user_user : "has as default"
+    t_user_group }o--|| t_user_user : "is default for"
+    t_user_book }o--|| t_user_user : "is default for"
     t_user_user ||--|{ t_user_balance_flow : "creates"
-    t_user_user ||--|{ t_flow_file : "uploads"
+    t_user_user ||--|{ t_flow_file : "creates"
 
-    t_user_group ||--|{ t_user_book : "organizes"
-    t_user_group ||--|{ t_user_account : "organizes"
-    t_user_group ||--|{ t_user_balance_flow : "organizes"
+    t_user_group ||--|{ t_user_book : "contains"
+    t_user_group ||--|{ t_user_account : "contains"
+    t_user_group ||--|{ t_user_balance_flow : "contains"
 
     t_user_book ||--|{ t_user_balance_flow : "contains"
     t_user_book ||--|{ t_user_category : "defines"
     t_user_book ||--|{ t_user_payee : "defines"
     t_user_book ||--|{ t_user_tag : "defines"
-    t_user_account |o--|| t_user_book : "used as default by"
-    t_user_category |o--|| t_user_book : "used as default by"
+    t_user_account }o--|| t_user_book : "is default for"
+    t_user_category }o--|| t_user_book : "is default for"
 
     t_user_account ||--|{ t_user_balance_flow : "is source for"
-    t_user_account |o--|{ t_user_balance_flow : "is destination for"
+    t_user_account }o--|| t_user_balance_flow : "is destination for"
 
-    t_user_payee |o--|{ t_user_balance_flow : "receives from"
+    t_user_payee }o--|| t_user_balance_flow : "is payee for"
 
-    t_user_balance_flow ||--|{ t_flow_file : "has attachment"
-    t_user_balance_flow ||--|{ t_user_category_relation : "links to"
-    t_user_balance_flow ||--|{ t_user_tag_relation : "links to"
+    t_user_balance_flow ||--|{ t_flow_file : "has"
+    
+    t_user_balance_flow }|--|| t_user_category_relation : "links to"
+    t_user_category }|--|| t_user_category_relation : "linked via"
 
-    t_user_category ||--|{ t_user_category_relation : "linked via"
-    t_user_category }o--|| t_user_category : "has parent"
+    t_user_balance_flow }|--|| t_user_tag_relation : "links to"
+    t_user_tag }|--|| t_user_tag_relation : "linked via"
 
-    t_user_tag ||--|{ t_user_tag_relation : "linked via"
-    t_user_tag }o--|| t_user_tag : "has parent"
+    t_user_category }o--|| t_user_category : "is parent of"
+    t_user_tag }o--|| t_user_tag : "is parent of"

@@ -22,6 +22,7 @@ Doc Structure:
       └── api-definition.md
       └── api-plan.md
       └── api-design.md
+   └── infra_design/
    
 
 # Next steps

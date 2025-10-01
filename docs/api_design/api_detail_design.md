@@ -1,142 +1,142 @@
-# API Detailed Design Document
+# Moneynote API Detailed Design
 
-This document outlines the detailed design for the MoneyNote backend API, synthesizing the API definition, dependencies, and architectural principles.
+This document outlines the detailed design for the Moneynote backend API, based on the provided API definitions, dependencies, build plan, and architecture principles.
 
 ## 1. Overall Architecture
 
-The application will be built using a 3-tier architecture as defined in the architecture principles.
+The Moneynote API will be a Python-based backend built using the **FastAPI** framework, adhering to the specified architecture principles.
 
-*   **Backend**: An API-driven backend built with Python and the **FastAPI** framework. It will handle all business logic, validation, and data processing.
-*   **Database**: A single **SQLite3** relational database will serve as the datastore. The backend will interact with it using the **SQLAlchemy** ORM. As per the principles, the database will not contain any logic (e.g., triggers, stored procedures).
-*   **Frontend**: A web-based frontend built with native JavaScript, which will consume the backend API.
-
-### Deployment & Infrastructure
-
-*   The backend API will be packaged as a container and deployed as a **Google Cloud Run** application.
-*   A **Google Cloud Load Balancer** will be placed in front of the Cloud Run service to manage traffic.
-*   Due to the use of a single file-based SQLite3 database, the backend application is **limited to a single running instance**.
-*   File and object storage (e.g., for transaction attachments) will be handled by a **Google Cloud Storage (GCS)** bucket. The application will store references to these objects, not the files themselves.
-
-### Authentication
-
-*   Authentication will be managed via **JSON Web Tokens (JWTs)**.
-*   The backend will operate under the assumption that an upstream gateway has already validated the JWT.
-*   The backend is responsible for decoding the JWT and extracting the user's identity from the `username` parameter within the token payload to authorize requests.
+-   **Application Type**: Web-based, API-driven backend.
+-   **Deployment**: The application is designed to be deployed as a **Google Cloud Run** service. Due to the use of a single SQLite database file, the service will be configured to run as a single instance.
+-   **API Gateway**: The backend will operate behind an API Gateway (such as a Google Cloud Load Balancer). The gateway is responsible for validating JWTs for authentication. The backend will not perform JWT validation or issuance.
+-   **Database**: A relational database using **SQLite3** will serve as the primary datastore. All data logic will be in the backend, with no triggers or stored procedures in the database itself. **SQLAlchemy** will be used as the ORM for database interactions.
+-   **File Storage**: All file uploads (e.g., receipts, documents associated with transactions) will be stored in a **Google Cloud Storage (GCS)** bucket.
+-   **User Identity**: The backend will infer the user's identity from the `sub` claim within the JWT, which is passed in the `Authorization: Bearer` header by the upstream gateway.
 
 ## 2. Design Considerations
 
-### API Versioning
+### 2.1. Authentication and Authorization
 
-*   All API endpoints will be prefixed with `/api/v1` to ensure clear versioning from the start.
+-   **Authentication**: The API relies on an external identity provider and gateway for authentication. The backend will receive a valid JWT and can trust its contents. The user's unique identifier will be extracted from the `sub` claim of the token. A dependency injection utility will be created in FastAPI to extract the user identity from the request header and make it available to endpoint functions.
+-   **Authorization**: Resource-level protection will be implemented within the backend. Business logic in the service layer will be responsible for verifying that the authenticated user (from the JWT `sub`) has the necessary permissions to access or modify a resource. This is particularly important in a multi-tenant system where users belong to groups and books. For example, before accessing a book's details, the service will verify that the user is a member of the group that owns the book.
 
-### Data Model & Relationships
+### 2.2. Data Model (SQLAlchemy Models)
 
-The API revolves around several core entities with clear dependencies:
+The database schema will be defined using SQLAlchemy ORM models. The primary entities are derived from the API definition:
 
-*   **User**: The central entity. All data is owned by a user.
-*   **Group**: A collaborative space for users. A user can be in multiple groups.
-*   **Book**: A financial ledger that belongs to a user (or a group). It acts as a container for accounts, categories, payees, tags, and transactions.
-*   **Account**: Represents a real-world financial account (e.g., bank account, credit card) and belongs to a book.
-*   **Category, Payee, Tag**: Hierarchical or flat lists used to classify transactions within a book.
-*   **Balance Flow**: The core transaction entity (expense, income, transfer). It belongs to a book, involves one or two accounts, and can be linked to categories, payees, and tags.
-*   **Note Day**: A user-specific reminder or recurring event.
+-   **User**: Stores user information (`id`, `username`, `password_hash`).
+-   **Group**: Represents a collection of users sharing books (`id`, `name`, `owner_id`).
+-   **Book**: A ledger or a collection of financial records (`id`, `name`, `group_id`, `default_currency_code`).
+-   **Account**: Represents a financial account like a bank account or credit card (`id`, `book_id`, `name`, `type`, `balance`).
+-   **Category**: User-defined categories for income/expense (`id`, `book_id`, `name`, `type`, `parent_id`).
+-   **Payee**: Represents the other party in a transaction (`id`, `book_id`, `name`).
+-   **Tag**: User-defined tags for transactions (`id`, `book_id`, `name`).
+-   **BalanceFlow**: The core transaction record (`id`, `book_id`, `account_id`, `amount`, `type`, `create_time`).
+-   **FlowFile**: A record linking a `BalanceFlow` to a file stored in GCS (`id`, `balance_flow_id`, `gcs_object_name`).
+-   **NoteDay**: For recurring reminders or notes.
 
-These entities will be mapped to relational tables in the SQLite database using the SQLAlchemy ORM.
+Relationships will be defined between these models (e.g., one-to-many, many-to-many) to reflect the application's logic, such as the relationship between a `Book` and its `Accounts`.
 
-### Authentication & Authorization
+### 2.3. Configuration
 
-*   A dependency injector in FastAPI will be created to handle JWT decoding and extract the `username`. This will provide a `current_user` object to the endpoint functions.
-*   Authorization will be enforced at the service/CRUD layer. Before any operation, the service will verify that the `current_user` has the necessary permissions to access or modify the requested resource. For example, when fetching a book, the service will check that the book belongs to the user.
+Application configuration will be managed via environment variables, following the twelve-factor app methodology. A Pydantic `Settings` class will be used to load and validate these variables.
 
-### File Handling
+-   `DATABASE_URL`: The connection string for the SQLite database (e.g., `sqlite:///./moneynote.db`).
+-   `GCS_BUCKET_FLOW_FILES`: The name of the Google Cloud Storage bucket for storing transaction-related files.
 
-*   Endpoints that accept files, like `POST /balance-flows/{id}/addFile`, will expect `multipart/form-data` requests.
-*   A dedicated `FileService` will handle the logic of uploading the file content to a GCS bucket and returning the unique object identifier.
-*   The database will store this GCS object identifier in the corresponding table (e.g., `FlowFile`).
-*   When a file is requested, the service will generate a signed URL for the GCS object to grant the user temporary access.
+### 2.4. Error Handling
 
-### Error Handling
+The API will use FastAPI's built-in exception handling capabilities. Custom exception classes will be created for specific business logic errors (e.g., `ResourceNotFound`, `PermissionDenied`). These exceptions will be caught by custom exception handlers to return standardized JSON error responses with appropriate HTTP status codes (e.g., 404, 403, 400).
 
-*   The API will use standard HTTP status codes to indicate the outcome of a request.
-    *   `2xx`: Success
-    *   `400 Bad Request`: For validation errors (e.g., missing fields, invalid data types).
-    *   `401 Unauthorized`: If the JWT is missing or invalid (though validation is primarily the gateway's role).
-    *   `403 Forbidden`: If the user is authenticated but not authorized to perform the action.
-    *   `404 Not Found`: If a requested resource does not exist.
-    *   `500 Internal Server Error`: For unexpected server-side errors.
-*   Error responses will contain a JSON body with a `detail` key explaining the error.
+### 2.5. File Handling
+
+File uploads will be handled via `POST` endpoints that accept `multipart/form-data`. The process will be:
+1.  The API receives the file.
+2.  The service layer generates a unique object name (e.g., using UUID).
+3.  The file is uploaded to the configured GCS bucket using the `google-cloud-storage` Python library.
+4.  A `FlowFile` record is created in the database to associate the GCS object name with the corresponding `BalanceFlow` record.
+File downloads/views will generate a signed URL for the GCS object, allowing the client to securely access the file directly from GCS for a limited time.
 
 ## 3. Overall Structure of Files
 
-To maintain a clean and scalable codebase, the project will follow a modular structure that separates concerns.
+The project will follow a standard FastAPI application structure to organize code logically by feature and layer.
 
 ```
-moneynote-py-api/
+/Users/krozario/projects/trial_4/moneynote_api_py/
 ├── .gitignore
 ├── pyproject.toml
 ├── uv.lock
-├── README.md
-├── main.py                 # FastAPI app entry point, includes main router
-├── core/
+├── main.py                 # FastAPI app instantiation and main router
+├── config.py               # Pydantic settings management for env vars
+├── database.py             # SQLAlchemy engine, session management
+│
+├── alembic/                # Alembic database migration scripts
+│   ├── versions/
+│   └── env.py
+│
+├── moneynote/
 │   ├── __init__.py
-│   ├── config.py           # Manages settings and environment variables (e.g., DB path, GCS bucket)
-│   └── security.py         # Handles JWT decoding and password hashing
-├── db/
-│   ├── __init__.py
-│   ├── database.py         # SQLAlchemy engine, session management
-│   └── base.py             # Declarative base for all ORM models
-├── models/                 # SQLAlchemy ORM model classes
-│   ├── __init__.py
-│   ├── user.py
-│   ├── group.py
-│   ├── book.py
-│   ├── account.py
-│   ├── category.py
-│   ├── payee.py
-│   ├── tag.py
-│   ├── balance_flow.py
-│   └── note_day.py
-├── schemas/                # Pydantic schemas for request/response validation and serialization
-│   ├── __init__.py
-│   ├── user.py
-│   ├── group.py
-│   ├── book.py
-│   ├── account.py
-│   ├── category.py
-│   ├── payee.py
-│   ├── tag.py
-│   ├── balance_flow.py
-│   └── token.py            # Schema for JWT token
-├── crud/                   # CRUD (Create, Read, Update, Delete) database interaction logic
-│   ├── __init__.py
-│   ├── base.py             # Base CRUD class with common methods
-│   ├── crud_user.py
-│   ├── crud_book.py
-│   ├── crud_account.py
-│   └── ...                 # CRUD files for other models
-├── api/
-│   ├── __init__.py
-│   ├── deps.py             # FastAPI dependencies (e.g., get_current_user, get_db_session)
-│   └── v1/
-│       ├── __init__.py
-│       ├── api.py          # Main API router that includes all resource-specific routers
-│       └── endpoints/
-│           ├── __init__.py
-│           ├── login.py
-│           ├── accounts.py
-│           ├── books.py
-│           ├── balance_flows.py
-│           ├── reports.py
-│           └── ...         # Endpoint files for other resources
-├── services/               # Business logic layer, orchestrating CRUD operations and external services
-│   ├── __init__.py
-│   ├── gcs_service.py      # Service for interacting with Google Cloud Storage
-│   └── report_service.py   # Service for generating complex reports
+│   │
+│   ├── crud/               # Low-level database create, read, update, delete functions
+│   │   ├── crud_account.py
+│   │   ├── crud_book.py
+│   │   └── ...
+│   │
+│   ├── models/             # SQLAlchemy ORM models
+│   │   ├── base.py
+│   │   ├── user.py
+│   │   ├── group.py
+│   │   ├── book.py
+│   │   ├── account.py
+│   │   └── ...
+│   │
+│   ├── schemas/            # Pydantic schemas for request/response validation
+│   │   ├── token.py
+│   │   ├── user.py
+│   │   ├── group.py
+│   │   ├── book.py
+│   │   ├── account.py
+│   │   └── ...
+│   │
+│   ├── services/           # Business logic layer
+│   │   ├── user_service.py
+│   │   ├── book_service.py
+│   │   ├── gcs_service.py  # GCS file operations
+│   │   └── ...
+│   │
+│   ├── routers/            # API endpoint definitions (controllers)
+│   │   ├── deps.py         # FastAPI dependencies (e.g., get_current_user)
+│   │   ├── users.py
+│   │   ├── groups.py
+│   │   ├── books.py
+│   │   ├── accounts.py
+│   │   └── ...
+│   │
+│   └── security.py         # Password hashing and utility functions
+│
 └── tests/                  # Pytest tests
     ├── __init__.py
-    ├── conftest.py         # Test fixtures and setup
-    └── api/
-        └── v1/
-            ├── __init__.py
-            └── test_accounts.py # Tests for the accounts API
+    ├── conftest.py         # Pytest fixtures (e.g., test client, db session)
+    │
+    ├── routers/
+    │   ├── test_users.py
+    │   └── ...
+    │
+    └── services/
+        ├── test_user_service.py
+        └── ...
 ```
+
+### Key Components:
+
+-   **`main.py`**: Initializes the FastAPI application and includes the API routers.
+-   **`config.py`**: Defines and loads environment variables.
+-   **`database.py`**: Sets up the SQLAlchemy engine and session factory.
+-   **`models/`**: Contains the database table definitions as Python classes.
+-   **`schemas/`**: Contains Pydantic models for data validation and serialization, ensuring API requests and responses conform to the defined structure.
+-   **`crud/`**: Contains functions that interact directly with the database models to perform CRUD operations. This layer abstracts the database interaction from the business logic.
+-   **`services/`**: The core business logic resides here. Services call CRUD functions and implement the application's rules and features. For example, a service would handle the logic for creating a book and its default accounts.
+-   **`routers/`**: Defines the API paths, parameters, and responses. These modules handle the HTTP layer, calling service functions to perform actions and returning the results.
+-   **`security.py`**: Handles security-related functions like password hashing and verification.
+-   **`tests/`**: Contains all automated tests for the application, mirroring the application's structure.
+-   **`alembic/`**: Manages database schema migrations, allowing for version-controlled changes to the database structure.

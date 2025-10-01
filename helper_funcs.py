@@ -1,6 +1,7 @@
 import os
 import subprocess
 from mrkdwn_analysis import MarkdownAnalyzer
+from typing import List
 
 def get_md_analyzer_and_content(file_path:str):
     """
@@ -55,3 +56,30 @@ def run_till_file_exists(prompt: str, absolute_file_path: str, step_description:
         run_gemini_prompt(prompt=prompt)
     
     return None
+
+
+def get_user_journey_header_texts (codmod_report: str) -> List[str]:
+    """
+    Parses the markdown file and returns the list of headers from the user_journey sections e.g. "Journey 1: Monitoring Financial Situation"
+    """
+    analyzer, content = get_md_analyzer_and_content(codmod_report)
+    headers =  analyzer.identify_headers()['Header']
+
+    # Find the next headers with -1 level of heading.
+    in_user_journey_section = False
+    start_level = 0
+    user_journey_header_texts = []
+    for header in headers:
+        if header['text'] == "User Journeys":
+            start_level = header['level']
+            in_user_journey_section = True
+            continue # skip next block and jump to next header
+        
+        if in_user_journey_section:
+            if header['level'] == (start_level+1):
+                user_journey_header_texts.append(header['text'])
+            elif header['level'] <= start_level:
+                in_user_journey_section = False
+                break # we're done, avoid duplicate User Journey Sessions by breaking here.
+        
+    return user_journey_header_texts

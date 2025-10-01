@@ -94,7 +94,7 @@ user_journey_prompt_string = """
 
     Generate the output to markedown, and save the file to the following absolute path $absolute_file_path file.
     Refer to the original code for further context
-    """
+"""
 
 
 
@@ -102,6 +102,7 @@ user_journey_prompt_string = """
 
 """
 Args:
+    application_directory: The relative directory of the source code of the existing application
     absolute_file_path: The absolute file path for saving the introduction for the functional specifications
 """
 
@@ -122,138 +123,98 @@ and all user journey files in this folder.
 Save the file to the following absolute path $absolute_file_path file
 """
 
-# Data Layer
-
+# BRD Doc Generation
 """
 Args:
-    application_directory: The relative directory of the source code of the existing application
-    absolute_file_path: The absolute file path for saving the introduction for the functional specifications
-"""
-
-database_specification_prompt_string = f"""
-Look through @docs/** folder, these files describe an application in the $application_directory. Document the database tables and elements of this database in a markdown file.
-
-Create a separate section for each database table. For each column of each table, document the following:
-* Name: The Name of the column
-* Description: A description of the data stored in this column
-* Current Data type: The existing datatype in the current application
-* SQLite Data type: provide a SQLite3 type and description. Refer to "https://www.sqlite.org/datatype3.html" for more information on SQLite3 datatypes. Estimate based on what the current datatype is based on the current data type.
-* Key Type: Documents if this column is a Primary or Foreign Key
-
-If you need, you can reference the source code in the $application_directory.
-
-Save the file to the following absolute path $absolute_file_path.
-
+    $user_journey_absolute_path: Absolute path to the specific user_journey
+    $application_directory: Path to the application directory
+    $absolute_file_path: Absolute path of the file for output
 """
 
 
-# Api Layer
+brd_prompt_string = f"""
 
-## API Definition
-"""
-Args:
-    application_directory: The relative directory of the source code of the existing application
-    absolute_file_path: The absolute file path for api definition file
-"""
+You are a senior business analyst, write a detailed business requirement document that covers all the user journeys in the application.
 
-api_specification_prompt_string = f"""
-Look through @docs/** folder, these files describe an application in the $application_directory. Document All the API calls:
+## Context & Sources
 
-For each API call include the following information:
-* All Request Parameter in the path paremeter, query string parameter or body parameter
-* All Response parameters in the body
-* Any headers that should be set in the request
-* Any headers that should be expected in the response
+Source for Business Logic: $user_journey_absolute_path
+Source for Application logic and high level Business Requirements Documents: @docs/codmod_reports/**
+Definitive Reference : $application_directory
 
-For each parameter in the request and response document the:
-* Name: The Name of the parameter
-* Description: A description of the parameter from a business context
-* Type: In the path, url or body
-* Data type: The datatype of the parameter
-* Type: One of Path, QueryString, Body
-* Optionality: If the parameter is optional or mandatory
+Your task is to create a comprehensive Business Requirement Document (BRD) by analyzing and synthesizing information from two provided sources: 
+1) User Journey Documentation
+2) A application level report from a tool called CodMod
+3) The source code of the application
+4) Do not capture requirements that are not documented in the system, do not create new requirements.
+5) Only focus on the specific uiser journey you're given. Do not include requirements that are not related to this user journey.
 
-If you need, you can reference the source code in the $application_directory.
-"""
+The primary objective is to ensure that all business requirements listed in the BRD:
+    * Specific: Clearly and unambiguously state what needs to be accomplished.
+    * Measurable: Define quantifiable criteria for success.
+    * Agreed Upon: Frame the requirement in a way that is ready for stakeholder validation.
+    * Realistic: The requirement must be achievable given the context of the existing system and project constraints.
 
-## API Dependencies
-"""
-Args:
-    application_directory: The relative directory of the source code of the existing application
-    absolute_file_path: The absolute file path of the api dependency file
-    user_journey_absolute_directory: The relative path to the user journeys
-    api_definition_absolute_path: relative path to the api_definition
-"""
+All requirements must be traced by to the actual code that implements it, do not create new requirements.
 
-api_dependency_prompt_string = f"""
-The api definition file $api_definition_absolute_path defines a list of API endpoints
+Instructions:
 
-For each endpoint look at the parameters it consumes as input and output to determine what dependencies are needed by this api. 
+Analyze the User Journey: Extract the "what" and "why" from the user's perspective. Identify user goals, actions, and expected outcomes. This will form the basis of the functional requirements.
 
-For example:
-* a user must be created before a user can login. Hence any login api depends on the user creation.
-* a transaction must be created before it can be reversed. Hence a reversal api depends on a transaction creation api.
+Analyze the Code/System Summary: Understand the current system's capabilities, architecture, and constraints. This will ensure that the proposed requirements are realistic and will inform the non-functional requirements and technical constraints.
 
-Document all the dependencies for each api endpoint in markdown format. Save the file to the following absolute path $absolute_file_path.
+Synthesize and Structure: Generate the BRD using the precise markdown structure provided below. Do not deviate from these sections.
+
+Formulate SMART Requirements: For every requirement in Section 5, write it as a clear, complete SMART statement.
+
+Bad Example: "The user should be able to see their profile."
+
+Good SMART Example: "The user profile page must display the user's full name, email, and profile picture within 1.5 seconds of page load. Success will be measured by a 99% success rate during User Acceptance Testing (UAT). This is achievable using the existing user database and is targeted for completion in the Q4 2025 development sprint."
+
+BRD Structure to Generate
+# Business Requirement Document: [Project Name]
+
+## 1.0 Summary
+(Provide a high-level overview of the project, its purpose, and the key business objectives it aims to achieve. Summarize the problem, the proposed solution, and the expected business value.) 
+
+---
+
+## 2.0 Project Scope
+### 2.1 In-Scope
+(Create a bulleted list of all major features, functionalities, and deliverables that are included in this project, derived directly from the user journey.)
+
+### 2.2 Out-of-Scope
+(Create a bulleted list of features or functionalities that are explicitly not part of this project to prevent scope creep.)
+
+---
+
+## 3.0 Business Requirements
+(This is the most critical section. Analyze the provided documents to formulate the following requirements as SMART statements.)
+
+BR-001: [Insert SMART requirement here] # or follow any requirements ID present in the the input files.
+BR-002: [Insert SMART requirement here]
+BR-003: [Insert SMART requirement here]
+
+### 3.1 Functional Requirements
+(List the specific functionalities the system must have. Each item must be a full SMART requirement.)
+
+FR-001: [Insert SMART requirement here]
+FR-002: [Insert SMART requirement here]
+FR-003: [Insert SMART requirement here]
+
+---
+## 4.0 Assumptions, Constraints, and Dependencies
+### 4.1 Assumptions
+(List any assumptions being made that could impact the project if they turn out to be false.)
+
+### 4.2 Dependencies
+(List any external factors or other projects that this project depends on.)
+
+Create the document in markdown format, and output to $absolute_file_path
 
 Please generate the complete and final response without stopping or asking for confirmation to continue.
 """
 
-## API Plan
-"""
-Args:
-    absolute_file_path: The absolute file path of the api plan file
-    api_definition_absolute_path : The absolute path of the API definition file
-    api_dependencies_absolute_path : The absolute path of the api dependency file
-"""
-
-api_plan_prompt_string = f"""
-The api definition file $api_definition_absolute_path defines a list of API endpoints
-
-The api dependency file $api_dependencies_absolute_path defines the dependencies between the endpoints.
-
-Using these two input file create a plan to build the backend API endpoints, listing out each API that has to be built in order. To ensure that an API endpoint is only built AFTER it's dependencies are built.
-
-Create the plan in markdown format, and output to $absolute_file_path
-
-Please generate the complete and final response without stopping or asking for confirmation to continue.
-"""
-
-## API Design Document
-"""
-Args:
-    absolute_file_path: The absolute file path for saving the introduction for the api design doc    api_definition_absolute_path : The absolute path of the API definition file
-    api_dependencies_absolute_path : The absolute path of the api dependency file
-    api_plan_absolute_path : The absolute path of the api design document
-"""
-
-api_design_prompt_string = f"""
-The api definition file $api_definition_absolute_path defines a list of API endpoints
-
-The api dependency file $api_dependencies_absolute_path defines the dependencies between the endpoints.
-
-The api plan file $api_plan_absolute_path defines the plan for building the api
-
-The architecture principles document $architecture_principles_absolute_path is are the architecture principles for designing a new API
-
-Using these 3 input files create a design document that outlines the design of a new backend API that follows the architecture principles provided.
-
-The detailed design document should provide:
-* The overall architecture of the API
-* The design considerations
-* The overall structure of files to create for the API
-
-Create the plan in markdown format, and output to $absolute_file_path
-
-Please generate the complete and final response without stopping or asking for confirmation to continue.
-"""
-
-
-## Templates
 user_journey_prompt_template = Template(user_journey_prompt_string)
 functional_specification_intro_prompt_template = Template(functional_specification_intro_prompt_string)
-database_specification_prompt_template = Template(database_specification_prompt_string)
-api_specification_prompt_template = Template(api_specification_prompt_string)
-api_dependency_prompt_template = Template(api_dependency_prompt_string)
-api_plan_prompt_template = Template(api_plan_prompt_string)
-api_design_prompt_template = Template(api_design_prompt_string)
+brd_prompt_template = Template(brd_prompt_string)
