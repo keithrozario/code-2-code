@@ -1,171 +1,221 @@
-erDiagram
-    t_user_user {
-        int id PK "User ID"
-        string username
-        string nickName
-        string password
-        string telephone
-        string email
-        string registerIp
-        int defaultGroup_id FK "Default Group ID"
-        int defaultBook_id FK "Default Book ID"
-        boolean enable
-        long registerTime
-        string headimgurl
-    }
+# Database Schema Definition
 
-    t_user_group {
-        int id PK "Group ID"
-        string name
-    }
+This document outlines the database schema for the moneynote application. The schema is derived from the Java entity classes in the `moneynote-api` source code.
 
-    t_user_book {
-        int id PK "Book ID"
-        string name
-        int group_id FK "Group ID"
-        string notes
-        boolean enable
-        int defaultExpenseAccount_id FK "FK to t_user_account"
-        int defaultIncomeAccount_id FK "FK to t_user_account"
-        int defaultTransferFromAccount_id FK "FK to t_user_account"
-        int defaultTransferToAccount_id FK "FK to t_user_account"
-        int defaultExpenseCategory_id FK "FK to t_user_category"
-        int defaultIncomeCategory_id FK "FK to t_user_category"
-        string defaultCurrencyCode
-        long exportAt
-        int sort
-    }
+## Table: t_user_account
 
-    t_user_account {
-        int id PK "Account ID"
-        string name
-        int group_id FK "Group ID"
-        int type
-        string notes
-        boolean enable
-        string no
-        BigDecimal balance
-        boolean include
-        boolean canExpense
-        boolean canIncome
-        boolean canTransferFrom
-        boolean canTransferTo
-        string currencyCode
-        BigDecimal initialBalance
-        BigDecimal creditLimit
-        int billDay
-        BigDecimal apr
-        int sort
-    }
+Represents user accounts.
 
-    t_user_balance_flow {
-        int id PK "Balance Flow ID"
-        int book_id FK "Book ID"
-        int type
-        BigDecimal amount
-        BigDecimal convertedAmount
-        int account_id FK "Account ID"
-        long createTime
-        string title
-        string notes
-        int creator_id FK "Creator User ID"
-        int group_id FK "Group ID"
-        int to_id FK "Destination Account ID"
-        int payee_id FK "Payee ID"
-        boolean confirm
-        boolean include
-        long insertAt
-    }
+| Name | Description | Current Data type | SQLite Data type | Key Type |
+|---|---|---|---|---|
+| id | The unique identifier for the account. | Integer | INTEGER | Primary Key |
+| name | The name of the account. | String | TEXT | |
+| group_id | The ID of the group this account belongs to. | Group | INTEGER | Foreign Key |
+| type | The type of the account (e.g., checking, savings, credit card). | AccountType | INTEGER | |
+| notes | Additional notes about the account. | String | TEXT | |
+| enable | Whether the account is active. | Boolean | INTEGER | |
+| no | The account number. | String | TEXT | |
+| balance | The current balance of the account. | BigDecimal | TEXT | |
+| include | Whether to include this account in total balance calculations. | Boolean | INTEGER | |
+| canExpense | Whether this account can be used for expenses. | Boolean | INTEGER | |
+| canIncome | Whether this account can be used for income. | Boolean | INTEGER | |
+| canTransferFrom | Whether this account can be used as a source for transfers. | Boolean | INTEGER | |
+| canTransferTo | Whether this account can be used as a destination for transfers. | Boolean | INTEGER | |
+| currencyCode | The currency code for the account (e.g., "USD"). | String | TEXT | |
+| initialBalance | The initial balance of the account. | BigDecimal | TEXT | |
+| creditLimit | The credit limit for credit accounts. | BigDecimal | TEXT | |
+| billDay | The day of the month when the bill is generated. | Integer | INTEGER | |
+| apr | The annual percentage rate for credit accounts. | BigDecimal | REAL | |
+| sort | The sort order of the account. | Integer | INTEGER | |
 
-    t_user_category {
-        int id PK "Category ID"
-        string name
-        int parent_id FK "Parent Category ID"
-        int book_id FK "Book ID"
-        string notes
-        boolean enable
-        int type
-        int sort
-    }
+## Table: t_user_balance_flow
 
-    t_user_payee {
-        int id PK "Payee ID"
-        string name
-        int book_id FK "Book ID"
-        string notes
-        boolean enable
-        boolean canExpense
-        boolean canIncome
-        int sort
-    }
+Represents financial transactions (balance flows).
 
-    t_user_tag {
-        int id PK "Tag ID"
-        string name
-        int parent_id FK "Parent Tag ID"
-        int book_id FK "Book ID"
-        string notes
-        boolean enable
-        boolean canExpense
-        boolean canIncome
-        boolean canTransfer
-        int sort
-    }
+| Name | Description | Current Data type | SQLite Data type | Key Type |
+|---|---|---|---|---|
+| id | The unique identifier for the balance flow. | Integer | INTEGER | Primary Key |
+| book_id | The ID of the book this flow belongs to. | Book | INTEGER | Foreign Key |
+| type | The type of flow (e.g., expense, income, transfer). | FlowType | INTEGER | |
+| amount | The amount of the transaction. | BigDecimal | TEXT | |
+| convertedAmount | The amount after currency conversion. | BigDecimal | TEXT | |
+| account_id | The ID of the account for this flow. | Account | INTEGER | Foreign Key |
+| createTime | The timestamp when the flow was created. | Long | INTEGER | |
+| title | A title for the transaction. | String | TEXT | |
+| notes | Additional notes about the transaction. | String | TEXT | |
+| creator_id | The ID of the user who created this flow. | User | INTEGER | Foreign Key |
+| group_id | The ID of the group this flow belongs to. | Group | INTEGER | Foreign Key |
+| to_id | The destination account for transfer flows. | Account | INTEGER | Foreign Key |
+| payee_id | The ID of the payee for this flow. | Payee | INTEGER | Foreign Key |
+| confirm | Whether the transaction is confirmed. | Boolean | INTEGER | |
+| include | Whether to include this transaction in calculations. | Boolean | INTEGER | |
+| insertAt | The timestamp when the record was inserted. | Long | INTEGER | |
 
-    t_flow_file {
-        int id PK "File ID"
-        byte[] data
-        int creator_id FK "Creator User ID"
-        int flow_id FK "Balance Flow ID"
-        long createTime
-        string contentType
-        long size
-        string originalName
-    }
+## Table: t_user_book
 
-    t_user_category_relation {
-        int id PK "Relation ID"
-        int category_id FK "Category ID"
-        int balanceFlow_id FK "Balance Flow ID"
-        BigDecimal amount
-        BigDecimal convertedAmount
-    }
+Represents a collection of accounts and transactions (a book).
 
-    t_user_tag_relation {
-        int id PK "Relation ID"
-        int tag_id FK "Tag ID"
-        int balanceFlow_id FK "Balance Flow ID"
-        BigDecimal amount
-        BigDecimal convertedAmount
-    }
+| Name | Description | Current Data type | SQLite Data type | Key Type |
+|---|---|---|---|---|
+| id | The unique identifier for the book. | Integer | INTEGER | Primary Key |
+| name | The name of the book. | String | TEXT | |
+| group_id | The ID of the group this book belongs to. | Group | INTEGER | Foreign Key |
+| notes | Additional notes about the book. | String | TEXT | |
+| enable | Whether the book is active. | Boolean | INTEGER | |
+| defaultExpenseAccount_id | The default account for expenses in this book. | Account | INTEGER | Foreign Key |
+| defaultIncomeAccount_id | The default account for income in this book. | Account | INTEGER | Foreign Key |
+| defaultTransferFromAccount_id | The default source account for transfers in this book. | Account | INTEGER | Foreign Key |
+| defaultTransferToAccount_id | The default destination account for transfers in this book. | Account | INTEGER | Foreign Key |
+| defaultExpenseCategory_id | The default category for expenses in this book. | Category | INTEGER | Foreign Key |
+| defaultIncomeCategory_id | The default category for income in this book. | Category | INTEGER | Foreign Key |
+| defaultCurrencyCode | The default currency code for this book. | String | TEXT | |
+| exportAt | The timestamp of the last export. | Long | INTEGER | |
+| sort | The sort order of the book. | Integer | INTEGER | |
 
-    t_user_group |o--|| t_user_user : "has as default"
-    t_user_book |o--|| t_user_user : "has as default"
-    t_user_user ||--|{ t_user_balance_flow : "creates"
-    t_user_user ||--|{ t_flow_file : "uploads"
+## Table: t_user_category
 
-    t_user_group ||--|{ t_user_book : "organizes"
-    t_user_group ||--|{ t_user_account : "organizes"
-    t_user_group ||--|{ t_user_balance_flow : "organizes"
+Represents transaction categories.
 
-    t_user_book ||--|{ t_user_balance_flow : "contains"
-    t_user_book ||--|{ t_user_category : "defines"
-    t_user_book ||--|{ t_user_payee : "defines"
-    t_user_book ||--|{ t_user_tag : "defines"
-    t_user_account |o--|| t_user_book : "used as default by"
-    t_user_category |o--|| t_user_book : "used as default by"
+| Name | Description | Current Data type | SQLite Data type | Key Type |
+|---|---|---|---|---|
+| id | The unique identifier for the category. | Integer | INTEGER | Primary Key |
+| parent_id | The ID of the parent category for hierarchical categories. | Category | INTEGER | Foreign Key |
+| name | The name of the category. | String | TEXT | |
+| book_id | The ID of the book this category belongs to. | Book | INTEGER | Foreign Key |
+| notes | Additional notes about the category. | String | TEXT | |
+| enable | Whether the category is active. | Boolean | INTEGER | |
+| type | The type of category (e.g., expense, income). | CategoryType | INTEGER | |
+| sort | The sort order of the category. | Integer | INTEGER | |
 
-    t_user_account ||--|{ t_user_balance_flow : "is source for"
-    t_user_account |o--|{ t_user_balance_flow : "is destination for"
+## Table: t_user_category_relation
 
-    t_user_payee |o--|{ t_user_balance_flow : "receives from"
+Represents the many-to-many relationship between balance flows and categories.
 
-    t_user_balance_flow ||--|{ t_flow_file : "has attachment"
-    t_user_balance_flow ||--|{ t_user_category_relation : "links to"
-    t_user_balance_flow ||--|{ t_user_tag_relation : "links to"
+| Name | Description | Current Data type | SQLite Data type | Key Type |
+|---|---|---|---|---|
+| id | The unique identifier for the relation. | Integer | INTEGER | Primary Key |
+| category_id | The ID of the category. | Category | INTEGER | Foreign Key |
+| balanceFlow_id | The ID of the balance flow. | BalanceFlow | INTEGER | Foreign Key |
+| amount | The amount associated with this category for the transaction. | BigDecimal | TEXT | |
+| convertedAmount | The converted amount for this category. | BigDecimal | TEXT | |
 
-    t_user_category ||--|{ t_user_category_relation : "linked via"
-    t_user_category }o--|| t_user_category : "has parent"
+## Table: t_flow_file
 
-    t_user_tag ||--|{ t_user_tag_relation : "linked via"
-    t_user_tag }o--|| t_user_tag : "has parent"
+Represents files attached to transactions.
+
+| Name | Description | Current Data type | SQLite Data type | Key Type |
+|---|---|---|---|---|
+| id | The unique identifier for the file. | Integer | INTEGER | Primary Key |
+| data | The binary data of the file. | byte[] | BLOB | |
+| user_id | The ID of the user who uploaded the file. | User | INTEGER | Foreign Key |
+| flow_id | The ID of the balance flow this file is attached to. | BalanceFlow | INTEGER | Foreign Key |
+| createTime | The timestamp when the file was uploaded. | Long | INTEGER | |
+| contentType | The MIME type of the file. | String | TEXT | |
+| size | The size of the file in bytes. | Long | INTEGER | |
+| originalName | The original name of the file. | String | TEXT | |
+
+## Table: t_user_group
+
+Represents a group of users who share books.
+
+| Name | Description | Current Data type | SQLite Data type | Key Type |
+|---|---|---|---|---|
+| id | The unique identifier for the group. | Integer | INTEGER | Primary Key |
+| name | The name of the group. | String | TEXT | |
+| notes | Additional notes about the group. | String | TEXT | |
+| enable | Whether the group is active. | Boolean | INTEGER | |
+| creator_id | The ID of the user who created the group. | User | INTEGER | Foreign Key |
+| defaultBook_id | The default book for this group. | Book | INTEGER | Foreign Key |
+| defaultCurrencyCode | The default currency for this group. | String | TEXT | |
+
+## Table: t_user_note_day
+
+Represents daily notes or reminders.
+
+| Name | Description | Current Data type | SQLite Data type | Key Type |
+|---|---|---|---|---|
+| id | The unique identifier for the note. | Integer | INTEGER | Primary Key |
+| user_id | The ID of the user who created the note. | User | INTEGER | Foreign Key |
+| title | The title of the note. | String | TEXT | |
+| notes | The content of the note. | String | TEXT | |
+| startDate | The start date for the note/reminder. | Long | INTEGER | |
+| endDate | The end date for the note/reminder. | Long | INTEGER | |
+| nextDate | The next occurrence date for repeating notes. | Long | INTEGER | |
+| repeatType | The repeat type (e.g., daily, weekly). | Integer | INTEGER | |
+| interval | The interval for repeating notes. | Integer | INTEGER | |
+| totalCount | The total number of occurrences for repeating notes. | Integer | INTEGER | |
+| runCount | The number of times the note has already occurred. | Integer | INTEGER | |
+
+## Table: t_user_payee
+
+Represents payees for transactions.
+
+| Name | Description | Current Data type | SQLite Data type | Key Type |
+|---|---|---|---|---|
+| id | The unique identifier for the payee. | Integer | INTEGER | Primary Key |
+| name | The name of the payee. | String | TEXT | |
+| book_id | The ID of the book this payee belongs to. | Book | INTEGER | Foreign Key |
+| notes | Additional notes about the payee. | String | TEXT | |
+| enable | Whether the payee is active. | Boolean | INTEGER | |
+| canExpense | Whether this payee can be used for expenses. | Boolean | INTEGER | |
+| canIncome | Whether this payee can be used for income. | Boolean | INTEGER | |
+| sort | The sort order of the payee. | Integer | INTEGER | |
+
+## Table: t_user_tag
+
+Represents tags for transactions.
+
+| Name | Description | Current Data type | SQLite Data type | Key Type |
+|---|---|---|---|---|
+| id | The unique identifier for the tag. | Integer | INTEGER | Primary Key |
+| parent_id | The ID of the parent tag for hierarchical tags. | Tag | INTEGER | Foreign Key |
+| name | The name of the tag. | String | TEXT | |
+| book_id | The ID of the book this tag belongs to. | Book | INTEGER | Foreign Key |
+| notes | Additional notes about the tag. | String | TEXT | |
+| enable | Whether the tag is active. | Boolean | INTEGER | |
+| canExpense | Whether this tag can be used for expenses. | Boolean | INTEGER | |
+| canIncome | Whether this tag can be used for income. | Boolean | INTEGER | |
+| canTransfer | Whether this tag can be used for transfers. | Boolean | INTEGER | |
+| sort | The sort order of the tag. | Integer | INTEGER | |
+
+## Table: t_user_tag_relation
+
+Represents the many-to-many relationship between balance flows and tags.
+
+| Name | Description | Current Data type | SQLite Data type | Key Type |
+|---|---|---|---|---|
+| id | The unique identifier for the relation. | Integer | INTEGER | Primary Key |
+| tag_id | The ID of the tag. | Tag | INTEGER | Foreign Key |
+| balanceFlow_id | The ID of the balance flow. | BalanceFlow | INTEGER | Foreign Key |
+| amount | The amount associated with this tag for the transaction. | BigDecimal | TEXT | |
+| convertedAmount | The converted amount for this tag. | BigDecimal | TEXT | |
+
+## Table: t_user_user
+
+Represents application users.
+
+| Name | Description | Current Data type | SQLite Data type | Key Type |
+|---|---|---|---|---|
+| id | The unique identifier for the user. | Integer | INTEGER | Primary Key |
+| username | The username for login. | String | TEXT | |
+| nickName | The user's nickname. | String | TEXT | |
+| password | The user's hashed password. | String | TEXT | |
+| telephone | The user's telephone number. | String | TEXT | |
+| email | The user's email address. | String | TEXT | |
+| registerIp | The IP address used for registration. | String | TEXT | |
+| defaultGroup_id | The user's default group. | Group | INTEGER | Foreign Key |
+| defaultBook_id | The user's default book. | Book | INTEGER | Foreign Key |
+| enable | Whether the user account is active. | Boolean | INTEGER | |
+| registerTime | The timestamp of user registration. | Long | INTEGER | |
+| headimgurl | The URL of the user's profile picture. | String | TEXT | |
+
+## Table: t_user_user_group_relation
+
+Represents the many-to-many relationship between users and groups.
+
+| Name | Description | Current Data type | SQLite Data type | Key Type |
+|---|---|---|---|---|
+| id | The unique identifier for the relation. | Integer | INTEGER | Primary Key |
+| user_id | The ID of the user. | User | INTEGER | Foreign Key |
+| group_id | The ID of the group. | Group | INTEGER | Foreign Key |
+| role | The user's role in the group (e.g., owner, member). | Integer | INTEGER | |
