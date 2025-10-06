@@ -39,7 +39,7 @@
 ## Authentication
 
   * Authentication of backed is handled by a separate service like Auth0 or Identity Platform. Users will authenticate there and a JWT will be set in a header of requests.
-  * The application does not have to store username/password or register users. Users are automatically registered in the system if a new user is detected.
+  * The application does not have to store username/password or register users. Users are automatically registered in the system if a new user is detected. No separate API for registration is required.
   * Users present a JWT that is validated by the API Gateway. The application will only read the username from the `sub` parameter of the OIDC compliant JWT token.
   
 

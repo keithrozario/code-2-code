@@ -2,28 +2,32 @@
 
 ## 1. Goal & Scope
 
-**Goal:** To establish the foundational, independent API endpoints for the Moneynote application.
+**Goal:** To establish the foundational, non-dependent API endpoints required for the Moneynote application's basic operation and configuration.
 
-**Scope:** This phase focuses on delivering five core, non-dependent endpoints that are essential for basic application setup and user onboarding. This includes application versioning, user registration, and the retrieval of static configuration data like currencies and book templates. This PRD covers only the backend API implementation for Phase 1 as defined in the `api_plan.md`.
+**Scope:** This PRD covers the implementation of four fundamental, read-only API endpoints as defined in Phase 1 of the API Development Plan. These endpoints provide essential metadata to client applications, such as application version, available currencies, and book templates, without any dependencies on other business logic or user data.
 
 ---
 
 ## 2. Functional Specifications
 
-- **FS-001:** The system shall provide an endpoint to return its current version.
-- **FS-002:** The system shall provide a test endpoint that returns the application's base URL.
-- **FS-003:** The system shall allow a new user to register for the application.
-- **FS-004:** The system shall provide a list of all supported currencies.
-- **FS-005:** The system shall provide a list of all available book templates.
+The following functionalities will be delivered in Phase 1:
+
+*   **FS-001: Retrieve Application Version:** The API shall provide an endpoint to retrieve the current running version of the backend application.
+*   **FS-002: Retrieve Base URL:** The API shall provide a test endpoint that returns the base URL of the application, which can be used by clients for configuration.
+*   **FS-003: List All Currencies:** The API shall provide an endpoint that returns a complete list of all supported currencies and their exchange rates, which are pre-loaded into the system.
+*   **FS-004: List All Book Templates:** The API shall provide an endpoint that returns a list of all available book templates, which users can use to create new financial books with predefined settings.
 
 ---
 
 ## 3. UI / UX Flow
 
-This document pertains exclusively to the backend API. No user interface is being developed in this phase. The user flow consists of API clients making requests to the specified endpoints and receiving JSON responses.
+As this document pertains to the backend API, there is no direct UI/UX flow. However, these endpoints are critical for the frontend to initialize itself:
 
-- **Registration Flow:** A client sends a `POST` request with user credentials. The API validates the data, creates a new user record, and returns a success or error response.
-- **Data Retrieval Flow:** A client sends a `GET` request to the version, test, currency, or book template endpoint. The API returns the requested data in a JSON format.
+1.  A client application starts.
+2.  It might call `GET /version` to check for compatibility.
+3.  It calls `GET /currencies/all` to populate currency selection dropdowns throughout the application (e.g., when creating a new account or book).
+4.  It calls `GET /book-templates/all` to display the list of available templates when a user decides to create a new book.
+5.  The `GET /test3` endpoint can be used in development or CI/CD environments to verify connectivity and retrieve the application's base URL.
 
 ---
 
@@ -31,133 +35,127 @@ This document pertains exclusively to the backend API. No user interface is bein
 
 ### 4.1 API Logic
 
-#### 4.1.1 `GET /version`
+#### **Endpoint 1: `GET /version`**
 
--   **Description:** Returns the static application version. This is a simple endpoint for health checks and version tracking.
--   **Request Parameters:** None.
--   **Responses:**
-    -   **200 OK:**
+*   **Description:** Returns the application's current version. This is useful for client-side compatibility checks and debugging.
+*   **Business Logic:** The endpoint retrieves a static version string defined within the application's build configuration or properties.
+*   **Request:**
+    *   **Method:** `GET`
+    *   **Path:** `/version`
+    *   **Headers:**
+        *   `Authorization: Bearer <JWT_TOKEN>` (Mandatory)
+*   **Responses:**
+    *   **200 OK:** Successful request.
         ```json
         {
           "data": "1.0.0"
         }
         ```
-    -   **401 Unauthorized:** If the JWT token is missing or invalid.
--   **Database CRUD:** None.
--   **SQL Statements:** None.
+    *   **401 Unauthorized:** The JWT token is missing or invalid.
+*   **Database CRUD:** None. This is a read-only operation from application metadata.
+*   **SQL Statements:** N/A.
 
-#### 4.1.2 `GET /test3`
+---
 
--   **Description:** A test endpoint that returns the base URL of the application. Used for connectivity and configuration testing.
--   **Request Parameters:** None.
--   **Responses:**
-    -   **200 OK:**
+#### **Endpoint 2: `GET /test3`**
+
+*   **Description:** A simple test endpoint that returns the base URL of the application.
+*   **Business Logic:** The endpoint constructs and returns the base URL from the incoming request's context.
+*   **Request:**
+    *   **Method:** `GET`
+    *   **Path:** `/test3`
+    *   **Headers:**
+        *   `Authorization: Bearer <JWT_TOKEN>` (Mandatory)
+*   **Responses:**
+    *   **200 OK:** Successful request.
         ```json
         {
           "data": "http://localhost:8080"
         }
         ```
-    -   **401 Unauthorized:** If the JWT token is missing or invalid.
--   **Database CRUD:** None.
--   **SQL Statements:** None.
+    *   **401 Unauthorized:** The JWT token is missing or invalid.
+*   **Database CRUD:** None.
+*   **SQL Statements:** N/A.
 
-#### 4.1.3 `POST /register`
+---
 
--   **Description:** Registers a new user in the system. It takes a username and password, hashes the password, and creates a new user record. This endpoint does not require authentication.
--   **Request Parameters:**
-    | Name | Description | Data type | Optionality |
-    | :--- | :--- | :--- | :--- |
-    | `username` | User's desired username | String | Mandatory |
-    | `password` | User's desired password | String | Mandatory |
-    | `inviteCode`| Invitation code | String | Mandatory |
--   **API Logic:**
-    1.  Validate that `username` and `password` are not empty.
-    2.  Check if a user with the given `username` already exists in the database. If so, return an error.
-    3.  (Assumption) Validate the `inviteCode`. If invalid, return an error.
-    4.  Hash the provided `password` using a secure hashing algorithm (e.g., bcrypt).
-    5.  Create a new `User` entity with the `username` and `hashed_password`.
-    6.  Save the new `User` entity to the database.
--   **Responses:**
-    -   **200 OK:** On successful registration. The response body is empty.
-    -   **400 Bad Request:** If `username` or `password` are missing, or if the `username` already exists.
-        ```json
-        {
-          "error": "Username already exists."
-        }
-        ```
--   **Database CRUD:** `CREATE`
--   **SQL Statements:**
-    ```sql
-    -- Check for existing user
-    SELECT * FROM "user" WHERE username = '<username>';
+#### **Endpoint 3: `GET /currencies/all`**
 
-    -- Insert new user
-    INSERT INTO "user" (username, hashed_password, email, is_active) VALUES ('<username>', '<hashed_password>', NULL, true);
-    ```
-
-#### 4.1.4 `GET /currencies/all`
-
--   **Description:** Retrieves a list of all supported currencies and their exchange rates. The data is loaded into memory from the `currency.json` file at application startup.
--   **Request Parameters:** None.
--   **Responses:**
-    -   **200 OK:**
+*   **Description:** Retrieves a list of all currencies supported by the application.
+*   **Business Logic:** On application startup, the system loads currency data from a local `currency.json` file into an in-memory cache. This endpoint reads from that cache. The data is not fetched from the database.
+*   **Request:**
+    *   **Method:** `GET`
+    *   **Path:** `/currencies/all`
+    *   **Headers:**
+        *   `Authorization: Bearer <JWT_TOKEN>` (Mandatory)
+*   **Responses:**
+    *   **200 OK:** Successful request. The response is a JSON array of currency objects.
         ```json
         [
           {
             "id": 1,
             "name": "USD",
             "description": "United States Dollar",
-            "rate": 1.0
+            "rate": 1.0,
+            "rate2": null
           },
           {
             "id": 2,
             "name": "EUR",
             "description": "Euro",
-            "rate": 0.92
+            "rate": 0.92,
+            "rate2": null
           }
         ]
         ```
-    -   **401 Unauthorized:** If the JWT token is missing or invalid.
--   **Database CRUD:** None. Data is read from in-memory cache.
--   **SQL Statements:** None.
+    *   **401 Unauthorized:** The JWT token is missing or invalid.
+*   **Database CRUD:** None. The data is read from the filesystem (`src/main/resources/currency.json`) on startup.
+*   **SQL Statements:** N/A.
 
-#### 4.1.5 `GET /book-templates/all`
+---
 
--   **Description:** Retrieves a list of all available book templates. The data is loaded from the `book_tpl.json` file.
--   **Request Parameters:** None.
--   **Responses:**
-    -   **200 OK:**
+#### **Endpoint 4: `GET /book-templates/all`**
+
+*   **Description:** Retrieves a list of all available book templates.
+*   **Business Logic:** On application startup, the system loads book template data from a local `book_tpl.json` file. This endpoint serves the loaded data. This allows users to create new books with a predefined set of categories, tags, and payees.
+*   **Request:**
+    *   **Method:** `GET`
+    *   **Path:** `/book-templates/all`
+    *   **Headers:**
+        *   `Authorization: Bearer <JWT_TOKEN>` (Mandatory)
+*   **Responses:**
+    *   **200 OK:** Successful request. The response is a JSON array of book template objects.
         ```json
         [
           {
             "id": 1,
-            "name": "Default Template"
+            "name": "Daily Life"
           },
           {
             "id": 2,
-            "name": "Business Template"
+            "name": "Restaurant"
           }
         ]
         ```
-    -   **401 Unauthorized:** If the JWT token is missing or invalid.
--   **Database CRUD:** None. Data is read from a JSON file.
--   **SQL Statements:** None.
+    *   **401 Unauthorized:** The JWT token is missing or invalid.
+*   **Database CRUD:** None. The data is read from the filesystem (`src/main/resources/book_tpl.json`) on startup.
+*   **SQL Statements:** N/A.
 
 ---
 
 ## 5. Data Model
 
-This phase primarily introduces the `User` data model.
+This phase does not introduce any new database tables. It relies on data loaded from local JSON files into in-memory objects.
 
-### `User` Entity (`user` table)
+*   **Currency Model (`CurrencyDetails`)**:
+    *   `id` (Integer): Unique identifier.
+    *   `name` (String): 3-letter currency code (e.g., "USD").
+    *   `description` (String): Full currency name.
+    *   `rate` (Double): Exchange rate against the base currency (USD).
 
-| Attribute | Data Type | Constraints | Description |
-| :--- | :--- | :--- | :--- |
-| `id` | `Integer` | `PRIMARY KEY` | Unique identifier for the user. |
-| `username` | `String` | `NOT NULL`, `UNIQUE` | The user's chosen username. |
-| `hashed_password` | `String` | `NOT NULL` | The securely hashed password. |
-| `email` | `String` | `UNIQUE` | The user's email address (optional). |
-| `is_active` | `Boolean` | `NOT NULL` | Flag to indicate if the user account is active. |
+*   **Book Template Model (`IdAndNameDetails`)**:
+    *   `id` (Integer): Unique identifier for the template.
+    *   `name` (String): The display name of the template (e.g., "Daily Life").
 
 ---
 
@@ -165,186 +163,180 @@ This phase primarily introduces the `User` data model.
 
 | Test Case ID | Endpoint | Feature | Test Steps | Expected Result |
 | :--- | :--- | :--- | :--- | :--- |
-| **TC-P1-01** | `GET /version` | Version Check | Make a GET request to `/version`. | HTTP 200 OK. Response body contains the version string. |
-| **TC-P1-02** | `GET /test3` | Test Endpoint | Make a GET request to `/test3`. | HTTP 200 OK. Response body contains the base URL. |
-| **TC-P1-03** | `POST /register` | User Registration (Happy Path) | Make a POST request with a unique username and password. | HTTP 200 OK. A new user record is created in the database. |
-| **TC-P1-04** | `POST /register` | User Registration (Duplicate) | Make a POST request with a username that already exists. | HTTP 400 Bad Request. Error message indicating the username is taken. |
-| **TC-P1-05** | `POST /register` | User Registration (Validation) | Make a POST request with a missing password. | HTTP 400 Bad Request. Error message indicating a missing field. |
-| **TC-P1-06** | `GET /currencies/all` | Get Currencies | Make a GET request to `/currencies/all`. | HTTP 200 OK. Response body is a JSON array of currency objects. |
-| **TC-P1-07** | `GET /book-templates/all`| Get Book Templates | Make a GET request to `/book-templates/all`. | HTTP 200 OK. Response body is a JSON array of book template objects. |
+| **TC-P1-01** | `GET /version` | Happy Path | Make a GET request with a valid auth token. | HTTP 200 OK. Response body contains a `data` field with a version string. |
+| **TC-P1-02** | `GET /version` | Unauthorized | Make a GET request without an auth token. | HTTP 401 Unauthorized. |
+| **TC-P1-03** | `GET /test3` | Happy Path | Make a GET request with a valid auth token. | HTTP 200 OK. Response body contains a `data` field with the application's base URL. |
+| **TC-P1-04** | `GET /currencies/all` | Happy Path | Make a GET request with a valid auth token. | HTTP 200 OK. Response body is a JSON array of currency objects, matching the content of `currency.json`. |
+| **TC-P1-05** | `GET /currencies/all` | Unauthorized | Make a GET request without an auth token. | HTTP 401 Unauthorized. |
+| **TC-P1-06** | `GET /book-templates/all` | Happy Path | Make a GET request with a valid auth token. | HTTP 200 OK. Response body is a JSON array of book template objects, matching the content of `book_tpl.json`. |
+| **TC-P1-07** | `GET /book-templates/all` | Unauthorized | Make a GET request without an auth token. | HTTP 401 Unauthorized. |
 
 ---
 
 ## 7. Risks & Mitigations
 
-| Risk | Mitigation |
-| :--- | :--- |
-| **Undefined Invite Code Logic:** The validation logic for the `inviteCode` on registration is not specified. | **Mitigation:** For Phase 1, any non-empty string will be considered valid. This will be flagged as an open question for clarification in a future phase. |
-| **Hardcoded Configuration:** The version number and base URL may be hardcoded. | **Mitigation:** These values should be loaded from a configuration file to allow for easier updates without code changes. |
-| **File Dependencies:** The system depends on `currency.json` and `book_tpl.json` being present at startup. | **Mitigation:** The application should implement a robust startup check that verifies the existence and validity of these files, logging a clear error if they are missing or corrupt. |
+| Risk | Likelihood | Impact | Mitigation |
+| :--- | :--- | :--- | :--- |
+| `currency.json` or `book_tpl.json` is missing or malformed. | Low | High | The application will fail to start. Implement robust error handling on startup to log a clear error message. Add file validation to the CI/CD pipeline. |
+| The version number is not updated during the build process. | Medium | Low | The `GET /version` endpoint will return an outdated version. Automate version bumping as part of the release process. |
 
 ---
 
 ## 8. Open Questions
 
-1.  What is the definitive validation logic for the `inviteCode` during registration? Is it a static value, or is it dynamically generated?
-2.  What is the source of truth for the application version returned by `GET /version`? (e.g., a build file, a config file).
+1.  Should the version number be sourced from a Maven/Gradle property, a git tag, or a static file? (Assuming build tool property is best practice).
+2.  Is there a future requirement to make currencies or book templates manageable via an admin API instead of static JSON files? (For now, no, but good to keep in mind for future architecture).
 
 ---
 
 ## 9. Task Seeds (for Agent Decomposition)
 
-1.  **Task 1.1:** Implement the `GET /version` endpoint to return a static version string from a configuration file.
-2.  **Task 1.2:** Implement the `GET /test3` endpoint to return the application's base URL from a configuration file.
-3.  **Task 1.3:** Implement the `User` data model (SQLAlchemy or equivalent) corresponding to the `user` table.
-4.  **Task 1.4:** Implement the `POST /register` endpoint, including username existence check and password hashing.
-5.  **Task 1.5:** Implement the in-memory loading mechanism for `currency.json`.
-6.  **Task 1.6:** Implement the `GET /currencies/all` endpoint to serve data from the in-memory currency cache.
-7.  **Task 1.7:** Implement the loading mechanism for `book_tpl.json`.
-8.  **Task 1.8:** Implement the `GET /book-templates/all` endpoint to serve data from the book template file.
-9.  **Task 1.9:** Write unit and integration tests covering all test cases outlined in section 6.
+1.  **Task 1.1:** Implement `GET /version` endpoint in `TestController`.
+    *   Define a version property in the build configuration (`build.gradle`/`pom.xml`).
+    *   Read the property in the controller and return it in the specified JSON format.
+2.  **Task 1.2:** Implement `GET /test3` endpoint in `TestController`.
+    *   Inject the `HttpServletRequest` to dynamically determine the base URL.
+    *   Return the URL in the specified JSON format.
+3.  **Task 1.3:** Implement `CurrencyDataLoader` to load `currency.json`.
+    *   Create a service/bean to hold the currency list in memory (`ApplicationScopeBean`).
+    *   On application startup (`@PostConstruct`), read `src/main/resources/currency.json`, parse it, and populate the in-memory list.
+4.  **Task 1.4:** Implement `GET /currencies/all` endpoint in `CurrencyController`.
+    *   Create the controller and endpoint.
+    *   Inject the currency data service and return the list of all currencies.
+5.  **Task 1.5:** Implement data loader for `book_tpl.json`.
+    *   Similar to currencies, create a service to hold the book templates in memory.
+    *   On startup, read `src/main/resources/book_tpl.json`, parse it, and populate the list.
+6.  **Task 1.6:** Implement `GET /book-templates/all` endpoint in `BookTemplateController`.
+    *   Create the controller and endpoint.
+    *   Return the list of all loaded book templates.
+7.  **Task 1.7:** Add unit and integration tests for all four endpoints.
+    *   Verify correct responses for happy paths.
+    *   Verify `401 Unauthorized` responses when the auth token is missing.
+    *   Mock file loading to test data parsing logic.
 
 
-# Moneynote API Detailed Design
+  # Moneynote API - Detailed Design Document
 
-This document outlines the detailed design for the Moneynote backend API, based on the provided API definitions, dependencies, build plan, and architecture principles.
+## 1. Introduction
 
-## 1. Overall Architecture
+This document provides a detailed design for the Moneynote backend API. It is based on the API definition, dependencies, development plan, and the established architecture principles. The goal is to create a scalable, secure, and maintainable API using Python, FastAPI, and Google Cloud Platform.
 
-The Moneynote API will be a Python-based backend built using the **FastAPI** framework, adhering to the specified architecture principles.
+## 2. Overall Architecture
 
--   **Application Type**: Web-based, API-driven backend.
--   **Deployment**: The application is designed to be deployed as a **Google Cloud Run** service. Due to the use of a single SQLite database file, the service will be configured to run as a single instance.
--   **API Gateway**: The backend will operate behind an API Gateway (such as a Google Cloud Load Balancer). The gateway is responsible for validating JWTs for authentication. The backend will not perform JWT validation or issuance.
--   **Database**: A relational database using **SQLite3** will serve as the primary datastore. All data logic will be in the backend, with no triggers or stored procedures in the database itself. **SQLAlchemy** will be used as the ORM for database interactions.
--   **File Storage**: All file uploads (e.g., receipts, documents associated with transactions) will be stored in a **Google Cloud Storage (GCS)** bucket.
--   **User Identity**: The backend will infer the user's identity from the `sub` claim within the JWT, which is passed in the `Authorization: Bearer` header by the upstream gateway.
+The API will be a monolithic backend service built with Python and the FastAPI framework, following the principles of a modern, stateless, API-driven application.
 
-## 2. Design Considerations
+### 2.1. Application Architecture
 
-### 2.1. Authentication and Authorization
+The system is composed of three primary components:
 
--   **Authentication**: The API relies on an external identity provider and gateway for authentication. The backend will receive a valid JWT and can trust its contents. The user's unique identifier will be extracted from the `sub` claim of the token. A dependency injection utility will be created in FastAPI to extract the user identity from the request header and make it available to endpoint functions.
--   **Authorization**: Resource-level protection will be implemented within the backend. Business logic in the service layer will be responsible for verifying that the authenticated user (from the JWT `sub`) has the necessary permissions to access or modify a resource. This is particularly important in a multi-tenant system where users belong to groups and books. For example, before accessing a book's details, the service will verify that the user is a member of the group that owns the book.
+1.  **Backend (This API):** A Python/FastAPI application responsible for all business logic, data processing, and validation. It serves data to the frontend and interacts with the database and file storage.
+2.  **Database:** A single SQLite3 database file. The backend interacts with the database via the SQLAlchemy ORM. The database is treated as a pure data store, with no business logic (triggers, stored procedures).
+3.  **File Storage:** Google Cloud Storage (GCS) will be used for storing all user-uploaded files, such as attachments to balance flow records.
 
-### 2.2. Data Model (SQLAlchemy Models)
+### 2.2. Deployment and Infrastructure
 
-The database schema will be defined using SQLAlchemy ORM models. The primary entities are derived from the API definition:
+The backend is designed to be deployed as a containerized application on **Google Cloud Run**.
 
--   **User**: Stores user information (`id`, `username`, `password_hash`).
--   **Group**: Represents a collection of users sharing books (`id`, `name`, `owner_id`).
--   **Book**: A ledger or a collection of financial records (`id`, `name`, `group_id`, `default_currency_code`).
--   **Account**: Represents a financial account like a bank account or credit card (`id`, `book_id`, `name`, `type`, `balance`).
--   **Category**: User-defined categories for income/expense (`id`, `book_id`, `name`, `type`, `parent_id`).
--   **Payee**: Represents the other party in a transaction (`id`, `book_id`, `name`).
--   **Tag**: User-defined tags for transactions (`id`, `book_id`, `name`).
--   **BalanceFlow**: The core transaction record (`id`, `book_id`, `account_id`, `amount`, `type`, `create_time`).
--   **FlowFile**: A record linking a `BalanceFlow` to a file stored in GCS (`id`, `balance_flow_id`, `gcs_object_name`).
--   **NoteDay**: For recurring reminders or notes.
+-   **Scalability:** The application itself is stateless. However, due to the use of a single SQLite3 database file, the Cloud Run service will be configured to run as a **single instance**.
+-   **Network:** The service will operate within a VPC, accessible only by the API Gateway.
+-   **API Gateway:** An external-facing Load Balancer will route traffic to an API Gateway (e.g., Kong), which then routes requests to the Cloud Run backend.
 
-Relationships will be defined between these models (e.g., one-to-many, many-to-many) to reflect the application's logic, such as the relationship between a `Book` and its `Accounts`.
+### 2.3. Authentication and Authorization
 
-### 2.3. Configuration
+Authentication is handled externally, promoting a decoupled and secure architecture.
 
-Application configuration will be managed via environment variables, following the twelve-factor app methodology. A Pydantic `Settings` class will be used to load and validate these variables.
+-   **JWT Handling:** An external Identity Provider (e.g., Auth0, Google Identity Platform) is responsible for user authentication and issuing JSON Web Tokens (JWTs).
+-   **Gateway Validation:** The API Gateway is responsible for validating the signature and expiration of the JWT on all incoming requests. The backend will **not** perform JWT validation.
+-   **User Identification:** The backend will receive validated JWTs and extract the user's identity from the `sub` (subject) claim. This identity will be used for all resource-level access control.
+-   **Implicit Registration:** If a request is received with a valid JWT for a user not yet in the database, a new user record will be created automatically.
+-   **Access Control:** All endpoints (unless explicitly public, like `/login` or `/register`) will require a valid JWT. Business logic will ensure that users can only access resources they own or have been granted access to (e.g., through Group membership).
 
--   `DATABASE_URL`: The connection string for the SQLite database (e.g., `sqlite:///./moneynote.db`).
--   `GCS_BUCKET_FLOW_FILES`: The name of the Google Cloud Storage bucket for storing transaction-related files.
+## 3. Design Considerations
 
-### 2.4. Error Handling
+### 3.1. RESTful Principles
 
-The API will use FastAPI's built-in exception handling capabilities. Custom exception classes will be created for specific business logic errors (e.g., `ResourceNotFound`, `PermissionDenied`). These exceptions will be caught by custom exception handlers to return standardized JSON error responses with appropriate HTTP status codes (e.g., 404, 403, 400).
+The API will adhere to RESTful design principles:
 
-### 2.5. File Handling
+-   **Resource-Based URLs:** Endpoints are structured around resources (e.g., `/books`, `/accounts`, `/balance-flows`).
+-   **Standard HTTP Methods:** Correct use of HTTP verbs (GET, POST, PUT, PATCH, DELETE) for interacting with resources.
+-   **Statelessness:** Each request from a client will contain all the information needed to service the request. The server will not store any client context between requests.
 
-File uploads will be handled via `POST` endpoints that accept `multipart/form-data`. The process will be:
-1.  The API receives the file.
-2.  The service layer generates a unique object name (e.g., using UUID).
-3.  The file is uploaded to the configured GCS bucket using the `google-cloud-storage` Python library.
-4.  A `FlowFile` record is created in the database to associate the GCS object name with the corresponding `BalanceFlow` record.
-File downloads/views will generate a signed URL for the GCS object, allowing the client to securely access the file directly from GCS for a limited time.
+### 3.2. Data Modeling and Persistence
 
-## 3. Overall Structure of Files
+-   **ORM:** **SQLAlchemy** will be used as the Object-Relational Mapper to define database models and interact with the SQLite database.
+-   **Models:** Each primary resource (User, Group, Book, Account, Category, Tag, Payee, BalanceFlow) will have a corresponding SQLAlchemy model class. These models will define the table structure and relationships.
+-   **Database Migrations:** `Alembic` will be used to manage database schema migrations, allowing for version-controlled changes to the database structure.
 
-The project will follow a standard FastAPI application structure to organize code logically by feature and layer.
+### 3.3. Data Validation
+
+-   **Pydantic Schemas:** FastAPI's native integration with Pydantic will be used for robust data validation. For each API endpoint that accepts a request body, a Pydantic schema will be defined to validate the incoming data's type, format, and constraints. This provides automatic request validation and clear error messages for invalid payloads.
+-   **Backend Authority:** All validation will be performed on the backend, which will never trust data coming from the frontend, even if the frontend has its own validation.
+
+### 3.4. File Handling
+
+-   **Google Cloud Storage (GCS):** All file uploads (e.g., for `FlowFile`) will be handled by a dedicated service that interacts with the Google Cloud Storage Python SDK.
+-   **Process:** When a file is uploaded to an endpoint like `POST /balance-flows/{id}/addFile`, the backend will stream the file directly to a designated GCS bucket. A reference to the file (e.g., its GCS path or a unique ID) will be stored in the `FlowFile` database table. File downloads will be served via signed URLs to ensure secure, temporary access.
+
+### 3.5. Configuration
+
+-   All external configurations will be managed via environment variables, as expected by the Cloud Run environment. This includes:
+    -   `DATABASE_URL`: The connection string for the SQLite database.
+    -   `GCS_BUCKET_NAME`: The name of the Google Cloud Storage bucket for file uploads.
+
+## 4. Overall File Structure
+
+The project will follow a standard FastAPI application structure to ensure modularity and maintainability. This structure separates concerns (API routing, business logic, data access, and data models).
 
 ```
-/Users/krozario/projects/trial_4/moneynote_api_py/
-├── .gitignore
-├── pyproject.toml
-├── uv.lock
-├── main.py                 # FastAPI app instantiation and main router
-├── config.py               # Pydantic settings management for env vars
-├── database.py             # SQLAlchemy engine, session management
-│
-├── alembic/                # Alembic database migration scripts
+/new_app/
+├── alembic/                  # Database migration scripts
 │   ├── versions/
 │   └── env.py
-│
-├── moneynote/
+├── moneynote/                # Main application source code
 │   ├── __init__.py
+│   ├── main.py               # FastAPI app instantiation, middleware, API router inclusion
+│   ├── config.py             # Pydantic settings model to load env variables
+│   ├── database.py           # SQLAlchemy engine, session management
+│   ├── security.py           # JWT processing, user identity extraction
 │   │
-│   ├── crud/               # Low-level database create, read, update, delete functions
-│   │   ├── crud_account.py
+│   ├── crud/                 # Create, Read, Update, Delete database operations
+│   │   ├── __init__.py
+│   │   ├── crud_user.py
 │   │   ├── crud_book.py
-│   │   └── ...
+│   │   └── ... (one file per model)
 │   │
-│   ├── models/             # SQLAlchemy ORM models
-│   │   ├── base.py
+│   ├── models/               # SQLAlchemy ORM models (database tables)
+│   │   ├── __init__.py
 │   │   ├── user.py
-│   │   ├── group.py
 │   │   ├── book.py
-│   │   ├── account.py
-│   │   └── ...
+│   │   └── ... (one file per resource)
 │   │
-│   ├── schemas/            # Pydantic schemas for request/response validation
-│   │   ├── token.py
-│   │   ├── user.py
-│   │   ├── group.py
-│   │   ├── book.py
-│   │   ├── account.py
-│   │   └── ...
-│   │
-│   ├── services/           # Business logic layer
-│   │   ├── user_service.py
-│   │   ├── book_service.py
-│   │   ├── gcs_service.py  # GCS file operations
-│   │   └── ...
-│   │
-│   ├── routers/            # API endpoint definitions (controllers)
-│   │   ├── deps.py         # FastAPI dependencies (e.g., get_current_user)
+│   ├── routers/              # API endpoint definitions (the "Controllers")
+│   │   ├── __init__.py
+│   │   ├── deps.py             # FastAPI dependencies (e.g., get_current_user)
 │   │   ├── users.py
-│   │   ├── groups.py
 │   │   ├── books.py
 │   │   ├── accounts.py
-│   │   └── ...
+│   │   └── ... (one file per resource/controller)
 │   │
-│   └── security.py         # Password hashing and utility functions
+│   ├── schemas/              # Pydantic models for data validation and serialization
+│   │   ├── __init__.py
+│   │   ├── user.py
+│   │   ├── book.py
+│   │   ├── token.py
+│   │   └── ... (one file per resource)
+│   │
+│   └── services/             # Business logic layer
+│       ├── __init__.py
+│       ├── user_service.py
+│       ├── book_service.py
+│       └── gcs_service.py      # Logic for interacting with Google Cloud Storage
 │
-└── tests/                  # Pytest tests
+└── tests/                    # Pytest tests
     ├── __init__.py
-    ├── conftest.py         # Pytest fixtures (e.g., test client, db session)
-    │
-    ├── routers/
-    │   ├── test_users.py
-    │   └── ...
-    │
-    └── services/
-        ├── test_user_service.py
-        └── ...
+    ├── conftest.py
+    └── routers/
+        └── test_users.py
+        └── ... (tests mirroring the app structure)
 ```
-
-### Key Components:
-
--   **`main.py`**: Initializes the FastAPI application and includes the API routers.
--   **`config.py`**: Defines and loads environment variables.
--   **`database.py`**: Sets up the SQLAlchemy engine and session factory.
--   **`models/`**: Contains the database table definitions as Python classes.
--   **`schemas/`**: Contains Pydantic models for data validation and serialization, ensuring API requests and responses conform to the defined structure.
--   **`crud/`**: Contains functions that interact directly with the database models to perform CRUD operations. This layer abstracts the database interaction from the business logic.
--   **`services/`**: The core business logic resides here. Services call CRUD functions and implement the application's rules and features. For example, a service would handle the logic for creating a book and its default accounts.
--   **`routers/`**: Defines the API paths, parameters, and responses. These modules handle the HTTP layer, calling service functions to perform actions and returning the results.
--   **`security.py`**: Handles security-related functions like password hashing and verification.
--   **`tests/`**: Contains all automated tests for the application, mirroring the application's structure.
--   **`alembic/`**: Manages database schema migrations, allowing for version-controlled changes to the database structure.
 

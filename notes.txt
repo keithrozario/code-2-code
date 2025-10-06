@@ -6,3 +6,9 @@ All resources in database have a ownership column that defines the owner for aut
 
 For PRDs into task master, send in DTD for that component -- AND the latest list of task.
 
+
+
+### Steps
+
+after generating API-plan, I made modifications to remove /login, /register as we don't need these.
+

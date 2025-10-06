@@ -165,7 +165,7 @@ run_till_file_exists(
 )
 
 # PRD
-for phase in range(1, 4):
+for phase in range(1, 2):
     prd_file_path = f"{absolute_path_docs_directory}/prds/prd_phase_{phase}.md"
     prompt = prompts.prd_generation.prd_prompt_template.substitute(
         absolute_file_path=prd_file_path,

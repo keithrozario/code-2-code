@@ -10,7 +10,6 @@ This phase establishes the most basic and independent endpoints.
 
 - **`GET /version`**: Returns the application version.
 - **`GET /test3`**: Returns the base URL of the application for testing.
-- **`POST /register`**: Registers a new user.
 - **`GET /currencies/all`**: Gets all supported currencies.
 - **`GET /book-templates/all`**: Gets all available book templates.
 
@@ -20,9 +19,6 @@ This phase establishes the most basic and independent endpoints.
 
 This phase focuses on user login and session management.
 
-- **`POST /login`**: Logs in a user and returns an access token.
-- **`POST /logout`**: Logs out the current user.
-- **`PATCH /changePassword`**: Changes the password for the current user.
 - **`PUT /bind`**: Binds a username to the current user.
 - **`GET /initState`**: Gets the initial state for the current user.
 
