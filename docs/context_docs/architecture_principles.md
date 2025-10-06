@@ -35,6 +35,12 @@
       * The SQLAlchemy engine configuration should be stored as descriptive environment variables
   * When interacting with Google Cloud Infrastructure (e.g. GCS buckets, PubSub, VertexAI) use the relevant google python SDKs.
   * As much as possible use Cloud Native functionality
+
+## Authentication
+
+  * Authentication of backed is handled by a separate service like Auth0 or Identity Platform. Users will authenticate there and a JWT will be set in a header of requests.
+  * The application does not have to store username/password or register users. Users are automatically registered in the system if a new user is detected.
+  * Users present a JWT that is validated by the API Gateway. The application will only read the username from the `sub` parameter of the OIDC compliant JWT token.
   
 
 # Infrastructure

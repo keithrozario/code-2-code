@@ -7,7 +7,7 @@ Args:
     absolute_file_path: The absolute file path for api definition file
 """
 
-api_specification_prompt_string = f"""
+api_specification_prompt_string = """
 Look through @docs/** folder, these files describe an application in the $application_directory.
 
 Document All the API calls:
@@ -40,7 +40,7 @@ Args:
     api_definition_absolute_path: relative path to the api_definition
 """
 
-api_dependency_prompt_string = f"""
+api_dependency_prompt_string = """
 The api definition file $api_definition_absolute_path defines a list of API endpoints
 
 For each endpoint look at the parameters it consumes as input and output to determine what dependencies are needed by this api. 
@@ -62,7 +62,7 @@ Args:
     api_dependencies_absolute_path : The absolute path of the api dependency file
 """
 
-api_plan_prompt_string = f"""
+api_plan_prompt_string = """
 The api definition file $api_definition_absolute_path defines a list of API endpoints
 
 The api dependency file $api_dependencies_absolute_path defines the dependencies between the endpoints.
@@ -88,7 +88,7 @@ Args:
     api_plan_absolute_path : The absolute path of the api design document
 """
 
-api_design_prompt_string = f"""
+api_design_prompt_string = """
 The api definition file $api_definition_absolute_path defines a list of API endpoints
 
 The api dependency file $api_dependencies_absolute_path defines the dependencies between the endpoints.
@@ -115,5 +115,3 @@ api_specification_prompt_template = Template(api_specification_prompt_string)
 api_dependency_prompt_template = Template(api_dependency_prompt_string)
 api_plan_prompt_template = Template(api_plan_prompt_string)
 api_design_prompt_template = Template(api_design_prompt_string)
-
-

@@ -7,11 +7,13 @@ Args:
     $example_prd_file_path: Example PRD File Path
 """
 
-prd_prompt_string = f"""
+prd_prompt_string = """
 
 You are a Senior Developer. Your task is to create a Product Requirement documentation for a backend API. 
 
-The API is to be built in phases, and currently we're in Phase $phase_number
+The API is to be built in phases, and currently we're in Phase $phase_number. All previous phases have been committed are reside in the directory location $new_app_directory.
+
+Refer to this directory to ensure we build on it.
 
 ## Context & Sources
 

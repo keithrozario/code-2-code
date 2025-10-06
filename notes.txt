@@ -1,0 +1,8 @@
+Ask the application to assume we use something like Auth0, firebase Auth or Cognito.
+
+No username/password/registration in the system. User table is light, just username and last login.
+
+All resources in database have a ownership column that defines the owner for authorization.
+
+For PRDs into task master, send in DTD for that component -- AND the latest list of task.
+
