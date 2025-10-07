@@ -1,30 +1,41 @@
 #!/bin/bash
 
-# This script loads all variables from config.sh and runs the analysis.
-# It is NOT interactive.
+# This script loads variables from config.sh and saves the output
+# to the folder where the script was originally executed.
 
-# Load the configuration file. Make sure config.sh is in the same directory.
+EXECUTION_PATH=$(pwd)
+# --------------------------------------------------------------------
+
+# Load the configuration file.
 source config.sh
 
 # -------------------------------------------------------------
 
 echo "--- API Inventory Generator ---"
-echo "Workspace: $WORKSPACE_PATH"
-echo "Repository: $REPO_PATH"
+echo "Script is running from: $EXECUTION_PATH"
+echo "Setting workspace to: $WORKSPACE_PATH"
+echo "Analyzing Repository: $REPO_PATH"
 echo
 
-# 1. Change into the workspace directory defined in config.sh
+# Change into the workspace directory for the Gemini CLI to function correctly.
 cd "$WORKSPACE_PATH" || exit 1
 
-# 2. Construct the prompt using variables from the config file.
-PROMPT_TEXT="You are an expert code analyst. Analyze the repository at '$REPO_PATH' and generate a comprehensive API inventory, grouped by functionality.
+# Ask for the sub-folders to scan within the repository.
+#echo "Enter the specific sub-folders to scan within the repo (e.g., src/main/java):"
+#read -p "> " FOLDERS_TO_SCAN
 
-For each functionality group, provide a one-sentence description, followed by a Markdown table listing its APIs with columns for: \`HTTP Method\`, \`Endpoint Path\`, and \`Description\`."
+# Construct the prompt using the variables from the config file.
+PROMPT_TEXT="You are an expert code analyst. Analyze the repository at '$REPO_PATH'.
+
+Constraint: Focus your analysis ONLY on the sub-directories: '$FOLDERS_TO_SCAN'.
+
+Your task is to generate a complete inventory of all defined API endpoints..." # (rest of prompt)
 
 echo "Running analysis..."
 
-# 3. Execute the command, using the output file name from the config.
-gemini chat "$PROMPT_TEXT" > "$API_INVENTORY_FILE"
+# --- FIX: Use the captured execution path for the output file ---
+gemini chat "$PROMPT_TEXT" > "$EXECUTION_PATH/$API_INVENTORY_FILE"
+# -----------------------------------------------------------------
 
 echo
-echo "✅ Done! API inventory saved to '$WORKSPACE_PATH/$API_INVENTORY_FILE'."
+echo "✅ Done! API inventory saved to '$EXECUTION_PATH/$API_INVENTORY_FILE'."
