@@ -1,0 +1,140 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 31,
+        "title": "Define Group Model and Schema & Update Book Model",
+        "description": "Create the foundational data structures for Groups and update the existing Book structure to associate it with a Group. This involves creating a new SQLAlchemy model and corresponding Pydantic schemas for Groups, and modifying the Book model to include a foreign key to the Group.",
+        "details": "In `moneynote/models/`, create `group.py` with a `Group` class mapping to `t_user_group`. Add attributes for `name`, `owner_id`, `notes`, `defaultCurrencyCode`. In `moneynote/schemas/`, create `group.py` with `Group`, `GroupCreate`, and `GroupInDB` schemas. Update `moneynote/models/book.py` to add a `group_id` foreign key and a `group` relationship. Update `moneynote/schemas/book.py` to reflect this new relationship.",
+        "testStrategy": "Code will be validated by the Alembic migration in the next task and through integration tests of the endpoints that use these models. No dedicated unit tests are needed for these data classes.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 32,
+        "title": "Create Alembic Migration for Group/Book Changes",
+        "description": "Generate and refine an Alembic migration script to apply the data model changes to the database schema. This script will create the new 't_user_group' table and add the necessary columns and constraints to the 't_user_book' table.",
+        "details": "Run `alembic revision --autogenerate` to create a new migration file. Edit the generated file in `alembic/versions/` to ensure it correctly creates the `t_user_group` table. Verify it adds the `group_id` foreign key to `t_user_book`. Manually add the `op.create_unique_constraint()` for the `(group_id, name)` combination on the `t_user_book` table as specified in the PRD's risk mitigation section.",
+        "testStrategy": "Apply the migration to a local development database (`alembic upgrade head`) and inspect the schema to confirm the new table, columns, and unique constraint are created correctly. Test the downgrade path as well (`alembic downgrade -1`).",
+        "priority": "high",
+        "dependencies": [
+          31
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 33,
+        "title": "Implement CRUD Functions for Group and Book",
+        "description": "Create the low-level database interaction functions for the new Group model and update the existing Book CRUD functions. These functions will provide the core database operations (Create, Read) needed by the service layer.",
+        "details": "Create a new file `moneynote/crud/crud_group.py`. Implement a `create` function that takes a `GroupCreate` schema and a user ID, and saves a new `Group` to the database. In `moneynote/crud/crud_book.py`, update the `create` function to accept a `group_id`. Add new functions like `get_by_name_and_group` and `count_by_group` to support business rule validation.",
+        "testStrategy": "These functions will be tested indirectly via the integration tests for the API endpoints. Ensure that all new CRUD functions are called by the service layer tasks.",
+        "priority": "high",
+        "dependencies": [
+          31
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 34,
+        "title": "Implement Service and Endpoint for POST /books (New Empty Book)",
+        "description": "Implement the API endpoint for creating a new, empty book within a user's current group. This involves creating the business logic in a service layer and exposing it via a FastAPI router.",
+        "details": "Create `moneynote/services/book_service.py`. Implement a `create_empty_book` method that takes a `BookAddForm`, `group_id`, and performs validations (name uniqueness, book limits) by calling CRUD functions. In `moneynote/routers/`, create `books.py` and define the `POST /books` endpoint. The endpoint will use the `get_current_user` dependency to determine the active group and call the book service.",
+        "testStrategy": "Write an integration test for `POST /books` covering the happy path (TC-BOOK-001) and failure cases like a duplicate name (TC-BOOK-002) and missing required fields.",
+        "priority": "medium",
+        "dependencies": [
+          33
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 35,
+        "title": "Implement Service and Endpoint for POST /books/template",
+        "description": "Implement the functionality to create a new book from a predefined template. This requires reading template data and creating multiple associated entities (categories, tags, payees) in a single transaction.",
+        "details": "In `BookService`, create a `create_book_from_template` method. This method will use the existing data loading service to get template data from `book_tpl.json`. It will first create the `Book` record, then iterate through the template's categories, tags, and payees, creating new database records for each associated with the new book's ID. Wrap the entire operation in a single database transaction. Add the `POST /books/template` endpoint to `routers/books.py` to expose this service method.",
+        "testStrategy": "Write an integration test for `POST /books/template` (TC-TPL-001). After a successful API call, query the database to verify that the book and all its associated categories, tags, and payees have been created correctly.",
+        "priority": "medium",
+        "dependencies": [
+          34
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 36,
+        "title": "Implement Service and Endpoint for POST /books/copy",
+        "description": "Implement the functionality to create a new book by duplicating an existing one, including all its categories, tags, and payees. This operation must be transactional.",
+        "details": "In `BookService`, create a `create_book_by_copying` method. The method will validate that the source book exists and is accessible by the user. It will then create the new `Book` record. Next, it will query all `Category`, `Tag`, and `Payee` entities from the source book and create new copies associated with the new book's ID. Use bulk insert statements if possible for performance. Ensure the process is transactional. Add the `POST /books/copy` endpoint to `routers/books.py`.",
+        "testStrategy": "Write integration tests for `POST /books/copy`. Test the happy path (TC-COPY-001) and verify the new book's sub-entities match the source. Test the failure case where the source `bookId` does not exist (TC-COPY-002).",
+        "priority": "medium",
+        "dependencies": [
+          34
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 37,
+        "title": "Implement Service and Endpoint for POST /groups",
+        "description": "Implement the endpoint to create a new group. This is a composite operation that also creates the group's first book using a specified template, all within a single transaction.",
+        "details": "Create `moneynote/services/group_service.py` with a `create_group` method. This method will first call `crud_group.create` to create the group. Then, it will immediately call `BookService.create_book_from_template` to create the initial book. The entire service method must be transactional. Create `moneynote/routers/groups.py` and define the `POST /groups` endpoint which accepts `GroupAddForm` and calls this service method.",
+        "testStrategy": "Write integration tests for `POST /groups`. Test the happy path (TC-GRP-001) and verify both the group and its initial book are created. Test the failure case where an invalid `templateId` is provided (TC-GRP-002), ensuring the transaction is rolled back and no group is created.",
+        "priority": "high",
+        "dependencies": [
+          35
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 38,
+        "title": "Write Integration Tests for Group Creation Endpoint",
+        "description": "Create a dedicated test suite for the group creation endpoint (`POST /groups`) to ensure its correctness and robustness, covering all scenarios outlined in the PRD.",
+        "details": "In `tests/routers/`, create `test_groups.py`. Implement `TC-GRP-001`: a successful request that creates a group and its first book. Verify the 200 response and the state of the database. Implement `TC-GRP-002`: a request with a non-existent `templateId` that should result in a 400 Bad Request. Also test for missing mandatory fields like `name`.",
+        "testStrategy": "Use `pytest` and the `TestClient` from FastAPI. Set up test fixtures to provide an authenticated user and a clean database state for each test.",
+        "priority": "medium",
+        "dependencies": [
+          37
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 39,
+        "title": "Write Integration Tests for Book Creation Endpoints",
+        "description": "Write a comprehensive test suite for the book creation endpoints (`POST /books` and `POST /books/template`) to validate their functionality.",
+        "details": "In `tests/routers/`, create `test_books.py`. Implement `TC-BOOK-001`: successful creation of an empty book. Implement `TC-BOOK-002`: attempting to create a book with a duplicate name in the same group, expecting a 400 error. Implement `TC-TPL-001`: successful creation of a book from a template, verifying the sub-entities are also created.",
+        "testStrategy": "Use `pytest` and `TestClient`. Fixtures will be needed to create a user and a group to create books within. Assert against response status codes and database state.",
+        "priority": "medium",
+        "dependencies": [
+          34,
+          35
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 40,
+        "title": "Write Integration Tests for Book Copy Endpoint",
+        "description": "Write a test suite for the book copying endpoint (`POST /books/copy`) to ensure it correctly duplicates a book and handles error cases.",
+        "details": "Add tests to `tests/routers/test_books.py`. Implement `TC-COPY-001`: create a source book with several categories/tags, then call the endpoint to copy it. Verify the new book and its copied sub-entities exist. Implement `TC-COPY-002`: attempt to copy a book using a non-existent `bookId`, expecting a 404 Not Found error.",
+        "testStrategy": "Use `pytest` and `TestClient`. The test setup for the happy path will involve creating a user, a group, and a source book with associated entities before calling the copy endpoint.",
+        "priority": "medium",
+        "dependencies": [
+          36
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-10-06T09:23:47.731Z",
+      "updated": "2025-10-08T03:47:18.585Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

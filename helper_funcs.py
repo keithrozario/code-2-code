@@ -1,7 +1,11 @@
 import os
+import json
 import subprocess
 from mrkdwn_analysis import MarkdownAnalyzer
 from typing import List
+
+task_master_status_file: str="./.taskmaster/current_status.md"
+task_master_json_file: str="./.taskmaster/tasks/tasks.json"
 
 def get_md_analyzer_and_content(file_path:str):
     """
@@ -36,6 +40,22 @@ def run_gemini_prompt(prompt: str)->bool:
         print(f"Stderr: {e.stderr}")
         return False
     
+    return True
+
+def gen_task_from_prd(prd_filepath: str):
+
+    try:
+        result = subprocess.run([
+            'tm',
+            'parse-prd',
+            prd_filepath
+        ], text=True, check=True, stderr=subprocess.STDOUT)
+        print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing shell command: {e}")
+        print(f"Stderr: {e.stderr}")
+        return False
+
     return True
 
 
@@ -83,3 +103,39 @@ def get_user_journey_header_texts (codmod_report: str) -> List[str]:
                 break # we're done, avoid duplicate User Journey Sessions by breaking here.
         
     return user_journey_header_texts
+
+def create_taskmaster_status_file():
+    """
+    Creates a taskmaster status if one doesn't exists.
+    Populates the intro for the file
+    """
+    task_status_intro = f"""
+## Completed Task so far
+
+The following task have been executed and completed, do not repeat them, assume their output is ready for use for tasks in the future:
+    """
+    
+    if not os.path.exists(task_master_status_file):
+        with open(task_master_status_file, 'w') as status_file:
+            status_file.write(task_status_intro)
+
+    return None
+
+def set_task_status_from_taskmaster():
+    """
+    Sets the latest task from taskmaster, and writes status to taskmaster status file
+    Taskmaster status is a custom file we create to store state across invocations of taskmaster.
+    Be sure to commit this to version control.
+    """
+    
+    create_taskmaster_status_file()
+    with open(task_master_json_file, "r") as task_file:
+        tasks = json.loads(task_file.read())['master']['tasks']
+
+    task_titles = [task['title'] for task in tasks]
+    task_titles_status = "\n".join([f"- [✔] {title}" for title in task_titles])
+
+    with open(task_master_status_file, 'a') as status_file:
+        status_file.write(task_titles_status)
+
+    return None 

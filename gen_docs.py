@@ -3,7 +3,7 @@ import os
 import prompts.user_journey
 import prompts.database_design
 import prompts.api_design
-import prompts.prd_generation
+
 from helper_funcs import run_till_file_exists, get_user_journey_header_texts
 
 user_journey_relative_directory = "user_journeys"
@@ -164,17 +164,4 @@ run_till_file_exists(
     step_description="\nGenerating api_detail_design.md",
 )
 
-# PRD
-for phase in range(1, 2):
-    prd_file_path = f"{absolute_path_docs_directory}/prds/prd_phase_{phase}.md"
-    prompt = prompts.prd_generation.prd_prompt_template.substitute(
-        absolute_file_path=prd_file_path,
-        phase_number=phase,
-        example_prd_file_path=f"{absolute_path_docs_directory}/prds/example.md",
-        new_app_directory=f"{os.getcwd()}/new_app",
-    )
-    run_till_file_exists(
-        prompt=prompt,
-        absolute_file_path=prd_file_path,
-        step_description=f"\nGenerating {prd_file_path}",
-    )
+

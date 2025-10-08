@@ -215,7 +215,9 @@ This phase does not introduce any new database tables. It relies on data loaded 
     *   Mock file loading to test data parsing logic.
 
 
-  # Moneynote API - Detailed Design Document
+# Appendix
+
+# Moneynote API - Detailed Design Document
 
 ## 1. Introduction
 
