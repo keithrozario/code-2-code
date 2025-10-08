@@ -24,6 +24,7 @@ API_BUSINESSLOGIC="api_businesslogic.md"
 API_DATAMODELS="api_datamodels.md"
 API_SCHEMA="api_schema.md"
 API_AUTHFLOWS="api_authflows.md"
+API_ANALYZE="api_analyze.md"
 
 # 4. Write the variables to a new config.sh file.
 cat > config.sh << EOL
@@ -43,6 +44,7 @@ export API_BUSINESSLOGIC="$API_BUSINESSLOGIC"
 export API_DATAMODELS="$API_DATAMODELS"
 export API_SCHEMA="$API_SCHEMA"
 export API_AUTHFLOWS="$API_AUTHFLOWS"
+export API_ANALYZE="$API_ANALYZE"
 EOL
 
 echo
