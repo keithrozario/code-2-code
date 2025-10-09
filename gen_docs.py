@@ -163,5 +163,3 @@ run_till_file_exists(
     absolute_file_path=api_detail_design_file_path,
     step_description="\nGenerating api_detail_design.md",
 )
-
-

@@ -2,32 +2,28 @@
 
 ## 1. Goal & Scope
 
-**Goal:** To establish the foundational, non-dependent API endpoints required for the Moneynote application's basic operation and configuration.
+**Goal:** To establish the foundational, dependency-free endpoints for the Moneynote API.
 
-**Scope:** This PRD covers the implementation of four fundamental, read-only API endpoints as defined in Phase 1 of the API Development Plan. These endpoints provide essential metadata to client applications, such as application version, available currencies, and book templates, without any dependencies on other business logic or user data.
+**Scope:** This phase focuses on delivering a set of core, read-only APIs that provide essential metadata and configuration required by client applications. The scope is strictly limited to four endpoints that have no dependencies on other API functionalities, ensuring they can be developed and deployed independently as the first building block of the system.
 
 ---
 
 ## 2. Functional Specifications
 
-The following functionalities will be delivered in Phase 1:
-
-*   **FS-001: Retrieve Application Version:** The API shall provide an endpoint to retrieve the current running version of the backend application.
-*   **FS-002: Retrieve Base URL:** The API shall provide a test endpoint that returns the base URL of the application, which can be used by clients for configuration.
-*   **FS-003: List All Currencies:** The API shall provide an endpoint that returns a complete list of all supported currencies and their exchange rates, which are pre-loaded into the system.
-*   **FS-004: List All Book Templates:** The API shall provide an endpoint that returns a list of all available book templates, which users can use to create new financial books with predefined settings.
+*   **FS-001: Provide Application Version:** The API must expose an endpoint to return the current version of the backend application.
+*   **FS-002: Provide Test URL:** The API must expose an endpoint for testing purposes that returns the application's base URL.
+*   **FS-003: List Supported Currencies:** The API must provide a list of all supported currencies and their exchange rates, which are pre-loaded into the system.
+*   **FS-004: List Book Templates:** The API must provide a list of all available book templates, which can be used to create new financial books with pre-defined settings.
 
 ---
 
 ## 3. UI / UX Flow
 
-As this document pertains to the backend API, there is no direct UI/UX flow. However, these endpoints are critical for the frontend to initialize itself:
+This PRD pertains exclusively to the backend API. There is no direct UI/UX flow associated with this phase. However, the endpoints are designed to be consumed by a client application in the following manner:
 
-1.  A client application starts.
-2.  It might call `GET /version` to check for compatibility.
-3.  It calls `GET /currencies/all` to populate currency selection dropdowns throughout the application (e.g., when creating a new account or book).
-4.  It calls `GET /book-templates/all` to display the list of available templates when a user decides to create a new book.
-5.  The `GET /test3` endpoint can be used in development or CI/CD environments to verify connectivity and retrieve the application's base URL.
+*   The `GET /currencies/all` endpoint would be used to populate a dropdown menu where users select a currency when creating a new account or book.
+*   The `GET /book-templates/all` endpoint would be used to display a list of available templates (e.g., "Personal," "Business") that a user can choose from to quickly set up a new financial book.
+*   The `GET /version` and `GET /test3` endpoints are primarily for diagnostics, testing, and client-side compatibility checks.
 
 ---
 
@@ -35,188 +31,175 @@ As this document pertains to the backend API, there is no direct UI/UX flow. How
 
 ### 4.1 API Logic
 
+Authentication: All endpoints in this phase require a valid JWT `Authorization: Bearer <token>` header.
+
 #### **Endpoint 1: `GET /version`**
 
-*   **Description:** Returns the application's current version. This is useful for client-side compatibility checks and debugging.
-*   **Business Logic:** The endpoint retrieves a static version string defined within the application's build configuration or properties.
-*   **Request:**
-    *   **Method:** `GET`
-    *   **Path:** `/version`
+*   **Description:** Returns the current version of the application.
+*   **Business Logic:** This endpoint provides a simple mechanism for clients to check the version of the API they are communicating with. The version is typically a static value defined in the application's build configuration.
+*   **Request Parameters:**
     *   **Headers:**
-        *   `Authorization: Bearer <JWT_TOKEN>` (Mandatory)
-*   **Responses:**
-    *   **200 OK:** Successful request.
+        | Name | Description | Data type | Optionality |
+        |---|---|---|---|
+        | `Authorization` | Bearer token | String | Mandatory |
+*   **Responses & Scenarios:**
+    *   **200 OK:** The request is successful.
         ```json
         {
           "data": "1.0.0"
         }
         ```
-    *   **401 Unauthorized:** The JWT token is missing or invalid.
-*   **Database CRUD:** None. This is a read-only operation from application metadata.
-*   **SQL Statements:** N/A.
-
----
+    *   **401 Unauthorized:** The request lacks a valid authentication token.
+*   **Database CRUD Operations:** None.
+*   **Database SQL Statements:** None.
 
 #### **Endpoint 2: `GET /test3`**
 
-*   **Description:** A simple test endpoint that returns the base URL of the application.
-*   **Business Logic:** The endpoint constructs and returns the base URL from the incoming request's context.
-*   **Request:**
-    *   **Method:** `GET`
-    *   **Path:** `/test3`
+*   **Description:** Returns the base URL of the application.
+*   **Business Logic:** This endpoint is used for connectivity testing and diagnostics, allowing clients to confirm the base URL of the API.
+*   **Request Parameters:**
     *   **Headers:**
-        *   `Authorization: Bearer <JWT_TOKEN>` (Mandatory)
-*   **Responses:**
-    *   **200 OK:** Successful request.
+        | Name | Description | Data type | Optionality |
+        |---|---|---|---|
+        | `Authorization` | Bearer token | String | Mandatory |
+*   **Responses & Scenarios:**
+    *   **200 OK:** The request is successful.
         ```json
         {
           "data": "http://localhost:8080"
         }
         ```
-    *   **401 Unauthorized:** The JWT token is missing or invalid.
-*   **Database CRUD:** None.
-*   **SQL Statements:** N/A.
-
----
+    *   **401 Unauthorized:** The request lacks a valid authentication token.
+*   **Database CRUD Operations:** None.
+*   **Database SQL Statements:** None.
 
 #### **Endpoint 3: `GET /currencies/all`**
 
-*   **Description:** Retrieves a list of all currencies supported by the application.
-*   **Business Logic:** On application startup, the system loads currency data from a local `currency.json` file into an in-memory cache. This endpoint reads from that cache. The data is not fetched from the database.
-*   **Request:**
-    *   **Method:** `GET`
-    *   **Path:** `/currencies/all`
+*   **Description:** Gets all supported currencies.
+*   **Business Logic:** The system loads a list of currencies from a local `currency.json` file into an in-memory cache upon startup. This endpoint retrieves and returns the cached list. This provides clients with all necessary currency information without requiring a database query.
+*   **Request Parameters:**
     *   **Headers:**
-        *   `Authorization: Bearer <JWT_TOKEN>` (Mandatory)
-*   **Responses:**
-    *   **200 OK:** Successful request. The response is a JSON array of currency objects.
+        | Name | Description | Data type | Optionality |
+        |---|---|---|---|
+        | `Authorization` | Bearer token | String | Mandatory |
+*   **Responses & Scenarios:**
+    *   **200 OK:** The request is successful. The response is a list of currency objects.
         ```json
         [
           {
             "id": 1,
             "name": "USD",
             "description": "United States Dollar",
-            "rate": 1.0,
-            "rate2": null
+            "rate": 1.0
           },
           {
             "id": 2,
             "name": "EUR",
             "description": "Euro",
-            "rate": 0.92,
-            "rate2": null
+            "rate": 0.92
           }
         ]
         ```
-    *   **401 Unauthorized:** The JWT token is missing or invalid.
-*   **Database CRUD:** None. The data is read from the filesystem (`src/main/resources/currency.json`) on startup.
-*   **SQL Statements:** N/A.
-
----
+    *   **401 Unauthorized:** The request lacks a valid authentication token.
+*   **Database CRUD Operations:** None. This is a read operation from an in-memory data structure.
+*   **Database SQL Statements:** None.
 
 #### **Endpoint 4: `GET /book-templates/all`**
 
-*   **Description:** Retrieves a list of all available book templates.
-*   **Business Logic:** On application startup, the system loads book template data from a local `book_tpl.json` file. This endpoint serves the loaded data. This allows users to create new books with a predefined set of categories, tags, and payees.
-*   **Request:**
-    *   **Method:** `GET`
-    *   **Path:** `/book-templates/all`
+*   **Description:** Gets all available book templates.
+*   **Business Logic:** Similar to currencies, the system loads book templates from a local `book_tpl.json` file into memory on startup. This endpoint returns the list of cached templates, which contain predefined categories, tags, and payees for different types of financial books (e.g., personal, business).
+*   **Request Parameters:**
     *   **Headers:**
-        *   `Authorization: Bearer <JWT_TOKEN>` (Mandatory)
-*   **Responses:**
-    *   **200 OK:** Successful request. The response is a JSON array of book template objects.
+        | Name | Description | Data type | Optionality |
+        |---|---|---|---|
+        | `Authorization` | Bearer token | String | Mandatory |
+*   **Responses & Scenarios:**
+    *   **200 OK:** The request is successful. The response is a list of book template objects.
         ```json
         [
           {
             "id": 1,
-            "name": "Daily Life"
+            "name": "Daily Life",
+            "description": "Template for personal daily expenses"
           },
           {
             "id": 2,
-            "name": "Restaurant"
+            "name": "Restaurant",
+            "description": "Template for a small restaurant business"
           }
         ]
         ```
-    *   **401 Unauthorized:** The JWT token is missing or invalid.
-*   **Database CRUD:** None. The data is read from the filesystem (`src/main/resources/book_tpl.json`) on startup.
-*   **SQL Statements:** N/A.
+    *   **401 Unauthorized:** The request lacks a valid authentication token.
+*   **Database CRUD Operations:** None. This is a read operation from an in-memory data structure.
+*   **Database SQL Statements:** None.
 
 ---
 
 ## 5. Data Model
 
-This phase does not introduce any new database tables. It relies on data loaded from local JSON files into in-memory objects.
+No database tables are directly created or modified in this phase. The data models are transient, in-memory representations loaded from local JSON files.
 
-*   **Currency Model (`CurrencyDetails`)**:
-    *   `id` (Integer): Unique identifier.
-    *   `name` (String): 3-letter currency code (e.g., "USD").
-    *   `description` (String): Full currency name.
-    *   `rate` (Double): Exchange rate against the base currency (USD).
+*   **Currency Model (In-Memory)**
+    | Attribute | Data Type | Description |
+    |---|---|---|
+    | `id` | Integer | Unique identifier. |
+    | `name` | String | The 3-letter currency code (e.g., "USD"). |
+    | `description` | String | Human-readable name (e.g., "United States Dollar"). |
+    | `rate` | Double | The exchange rate against the base currency (USD). |
 
-*   **Book Template Model (`IdAndNameDetails`)**:
-    *   `id` (Integer): Unique identifier for the template.
-    *   `name` (String): The display name of the template (e.g., "Daily Life").
+*   **Book Template Model (In-Memory)**
+    | Attribute | Data Type | Description |
+    |---|---|---|
+    | `id` | Integer | Unique identifier. |
+    | `name` | String | The name of the template (e.g., "Daily Life"). |
+    | `description` | String | A brief description of the template's purpose. |
+    | `categories`| Array | List of predefined categories. |
+    | `tags` | Array | List of predefined tags. |
+    | `payees` | Array | List of predefined payees. |
 
 ---
 
 ## 6. Test Cases
 
 | Test Case ID | Endpoint | Feature | Test Steps | Expected Result |
-| :--- | :--- | :--- | :--- | :--- |
-| **TC-P1-01** | `GET /version` | Happy Path | Make a GET request with a valid auth token. | HTTP 200 OK. Response body contains a `data` field with a version string. |
-| **TC-P1-02** | `GET /version` | Unauthorized | Make a GET request without an auth token. | HTTP 401 Unauthorized. |
-| **TC-P1-03** | `GET /test3` | Happy Path | Make a GET request with a valid auth token. | HTTP 200 OK. Response body contains a `data` field with the application's base URL. |
-| **TC-P1-04** | `GET /currencies/all` | Happy Path | Make a GET request with a valid auth token. | HTTP 200 OK. Response body is a JSON array of currency objects, matching the content of `currency.json`. |
-| **TC-P1-05** | `GET /currencies/all` | Unauthorized | Make a GET request without an auth token. | HTTP 401 Unauthorized. |
-| **TC-P1-06** | `GET /book-templates/all` | Happy Path | Make a GET request with a valid auth token. | HTTP 200 OK. Response body is a JSON array of book template objects, matching the content of `book_tpl.json`. |
-| **TC-P1-07** | `GET /book-templates/all` | Unauthorized | Make a GET request without an auth token. | HTTP 401 Unauthorized. |
+|---|---|---|---|---|
+| TC-P1-01 | `GET /version` | Happy Path | Send an authenticated GET request to `/version`. | HTTP 200 OK. Response body contains a `data` field with a version string. |
+| TC-P1-02 | `GET /version` | Unauthorized | Send a GET request to `/version` without an Authorization header. | HTTP 401 Unauthorized. |
+| TC-P1-03 | `GET /test3` | Happy Path | Send an authenticated GET request to `/test3`. | HTTP 200 OK. Response body contains a `data` field with a URL string. |
+| TC-P1-04 | `GET /currencies/all` | Happy Path | Send an authenticated GET request to `/currencies/all`. | HTTP 200 OK. Response body is a non-empty array of currency objects. |
+| TC-P1-05 | `GET /currencies/all` | Data Verification | Check the response from TC-P1-04. | The array contains entries for "USD", "EUR", and "CNY". |
+| TC-P1-06 | `GET /book-templates/all` | Happy Path | Send an authenticated GET request to `/book-templates/all`. | HTTP 200 OK. Response body is a non-empty array of book template objects. |
+| TC-P1-07 | `GET /book-templates/all` | Unauthorized | Send a GET request to `/book-templates/all` without an Authorization header. | HTTP 401 Unauthorized. |
 
 ---
 
 ## 7. Risks & Mitigations
 
 | Risk | Likelihood | Impact | Mitigation |
-| :--- | :--- | :--- | :--- |
-| `currency.json` or `book_tpl.json` is missing or malformed. | Low | High | The application will fail to start. Implement robust error handling on startup to log a clear error message. Add file validation to the CI/CD pipeline. |
-| The version number is not updated during the build process. | Medium | Low | The `GET /version` endpoint will return an outdated version. Automate version bumping as part of the release process. |
+|---|---|---|---|
+| Configuration files (`currency.json`, `book_tpl.json`) are missing or malformed. | Low | High | The application should fail to start with a clear, descriptive error message pointing to the problematic file. Implement schema validation for the JSON files as part of the build process. |
+| In-memory caching strategy is not suitable for a horizontally scaled, distributed environment. | Medium | Medium | This is acceptable for initial phases. For future scalability, plan to migrate the cache to a distributed solution like Redis or rely on a database source-of-truth. |
+| Hardcoded version and URL information becomes stale. | High | Low | The version and URL should be loaded from a central configuration file or environment variables rather than being hardcoded in the controller logic. |
 
 ---
 
 ## 8. Open Questions
 
-1.  Should the version number be sourced from a Maven/Gradle property, a git tag, or a static file? (Assuming build tool property is best practice).
-2.  Is there a future requirement to make currencies or book templates manageable via an admin API instead of static JSON files? (For now, no, but good to keep in mind for future architecture).
+1.  Should the application version be read dynamically from a build file (e.g., `pyproject.toml`, `build.gradle`) to ensure it is always synchronized with the release, or is a static value sufficient?
+2.  Is the current in-memory caching strategy for currencies and templates acceptable for the projected v1 user load, or should a move to a distributed cache be prioritized in an earlier phase?
 
 ---
 
 ## 9. Task Seeds (for Agent Decomposition)
 
-1.  **Task 1.1:** Implement `GET /version` endpoint in `TestController`.
-    *   Define a version property in the build configuration (`build.gradle`/`pom.xml`).
-    *   Read the property in the controller and return it in the specified JSON format.
-2.  **Task 1.2:** Implement `GET /test3` endpoint in `TestController`.
-    *   Inject the `HttpServletRequest` to dynamically determine the base URL.
-    *   Return the URL in the specified JSON format.
-3.  **Task 1.3:** Implement `CurrencyDataLoader` to load `currency.json`.
-    *   Create a service/bean to hold the currency list in memory (`ApplicationScopeBean`).
-    *   On application startup (`@PostConstruct`), read `src/main/resources/currency.json`, parse it, and populate the in-memory list.
-4.  **Task 1.4:** Implement `GET /currencies/all` endpoint in `CurrencyController`.
-    *   Create the controller and endpoint.
-    *   Inject the currency data service and return the list of all currencies.
-5.  **Task 1.5:** Implement data loader for `book_tpl.json`.
-    *   Similar to currencies, create a service to hold the book templates in memory.
-    *   On startup, read `src/main/resources/book_tpl.json`, parse it, and populate the list.
-6.  **Task 1.6:** Implement `GET /book-templates/all` endpoint in `BookTemplateController`.
-    *   Create the controller and endpoint.
-    *   Return the list of all loaded book templates.
-7.  **Task 1.7:** Add unit and integration tests for all four endpoints.
-    *   Verify correct responses for happy paths.
-    *   Verify `401 Unauthorized` responses when the auth token is missing.
-    *   Mock file loading to test data parsing logic.
-
-
-# Appendix
-
+*   **Task 1.1:** Implement the `GET /version` endpoint in the `TestController` to return a static version string.
+*   **Task 1.2:** Implement the `GET /test3` endpoint in the `TestController` to return the application's base URL from a configuration property.
+*   **Task 1.3:** Create a `CurrencyDataLoader` service to read `currency.json` and populate an in-memory list of `CurrencyDetails` objects at application startup.
+*   **Task 1.4:** Implement the `GET /currencies/all` endpoint in the `CurrencyController` to return the list of currencies from the in-memory cache.
+*   **Task 1.5:** Create a `BookTemplateDataLoader` service to read `book_tpl.json` and populate an in-memory list of book templates at application startup.
+*   **Task 1.6:** Implement the `GET /book-templates/all` endpoint in the `BookTemplateController` to return the list of templates from the in-memory cache.
+*   **Task 1.7:** Write unit tests for all services and controllers created in this phase, mocking dependencies where necessary.
+*   **Task 1.8:** Write integration tests to verify that all four endpoints require authentication and return the expected data structures and status codes.
 # Moneynote API - Detailed Design Document
 
 ## 1. Introduction
@@ -341,4 +324,3 @@ The project will follow a standard FastAPI application structure to ensure modul
         └── test_users.py
         └── ... (tests mirroring the app structure)
 ```
-

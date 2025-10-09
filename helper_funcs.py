@@ -46,9 +46,25 @@ def gen_task_from_prd(prd_filepath: str):
 
     try:
         result = subprocess.run([
-            'tm',
+            'task-master',
             'parse-prd',
             prd_filepath
+        ], text=True, check=True, stderr=subprocess.STDOUT)
+        print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing shell command: {e}")
+        print(f"Stderr: {e.stderr}")
+        return False
+
+    return True
+
+
+def expand_task_master_task(task_id: int)->bool:
+    try:
+        result = subprocess.run([
+            'task-master',
+            'expand',
+            f'--id={task_id}'
         ], text=True, check=True, stderr=subprocess.STDOUT)
         print(result.stdout)
     except subprocess.CalledProcessError as e:
@@ -113,7 +129,7 @@ def create_taskmaster_status_file():
 ## Completed Task so far
 
 The following task have been executed and completed, do not repeat them, assume their output is ready for use for tasks in the future:
-    """
+"""
     
     if not os.path.exists(task_master_status_file):
         with open(task_master_status_file, 'w') as status_file:
@@ -127,10 +143,13 @@ def set_task_status_from_taskmaster():
     Taskmaster status is a custom file we create to store state across invocations of taskmaster.
     Be sure to commit this to version control.
     """
-    
-    create_taskmaster_status_file()
-    with open(task_master_json_file, "r") as task_file:
-        tasks = json.loads(task_file.read())['master']['tasks']
+    try:
+        with open(task_master_json_file, "r") as task_file:
+            tasks = json.loads(task_file.read())['master']['tasks']
+        create_taskmaster_status_file()
+    except FileNotFoundError:
+        # file not found, do not proceed
+        return None
 
     task_titles = [task['title'] for task in tasks]
     task_titles_status = "\n".join([f"- [✔] {title}" for title in task_titles])
@@ -138,4 +157,17 @@ def set_task_status_from_taskmaster():
     with open(task_master_status_file, 'a') as status_file:
         status_file.write(task_titles_status)
 
-    return None 
+    return None
+
+def expand_all_task_master_tasks():
+    """
+    Expands all task master tasks to subtask
+    """
+    with open(task_master_json_file, "r") as task_file:
+        tasks = json.loads(task_file.read())['master']['tasks']
+    
+    task_ids = [task['id'] for task in tasks]
+    for task_id in task_ids:
+        expand_task_master_task(task_id)
+    
+    return None

@@ -2,138 +2,659 @@
   "master": {
     "tasks": [
       {
-        "id": 31,
-        "title": "Define Group Model and Schema & Update Book Model",
-        "description": "Create the foundational data structures for Groups and update the existing Book structure to associate it with a Group. This involves creating a new SQLAlchemy model and corresponding Pydantic schemas for Groups, and modifying the Book model to include a foreign key to the Group.",
-        "details": "In `moneynote/models/`, create `group.py` with a `Group` class mapping to `t_user_group`. Add attributes for `name`, `owner_id`, `notes`, `defaultCurrencyCode`. In `moneynote/schemas/`, create `group.py` with `Group`, `GroupCreate`, and `GroupInDB` schemas. Update `moneynote/models/book.py` to add a `group_id` foreign key and a `group` relationship. Update `moneynote/schemas/book.py` to reflect this new relationship.",
-        "testStrategy": "Code will be validated by the Alembic migration in the next task and through integration tests of the endpoints that use these models. No dedicated unit tests are needed for these data classes.",
+        "id": 1,
+        "title": "Create Static Data Source Files",
+        "description": "Create the `currency.json` and `book_tpl.json` files within the project. These files will serve as the source of truth for the currency and book template data loaded into memory at startup.",
+        "details": "Based on the PRD, `currency.json` should contain a list of currency objects with `id`, `name`, `description`, and `rate`. `book_tpl.json` should contain a list of template objects with `id`, `name`, `description`, and potentially empty arrays for `categories`, `tags`, and `payees`. Place these files in a suitable directory, for example, `moneynote/data/`.",
+        "testStrategy": "Manually verify the files are created with valid JSON content that matches the structure defined in the PRD's Data Model section. A linter or schema validator can be used in the CI/CD pipeline later.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create 'data' directory within 'moneynote'",
+            "description": "Create a new directory named 'data' inside the 'moneynote' source directory. This directory will serve as the designated location for all static data files used by the application.",
+            "dependencies": [],
+            "details": "Based on the project structure, the new directory path should be `moneynote/data`. This follows the convention suggested in the task description and provides a logical grouping for data source files.",
+            "status": "done",
+            "testStrategy": "Manually verify the creation of the `moneynote/data` directory in the file system."
+          },
+          {
+            "id": 2,
+            "title": "Create and structure the currency.json file",
+            "description": "Create a new file named `currency.json` within the `moneynote/data` directory. Initialize it with an empty JSON array to hold currency objects.",
+            "dependencies": [],
+            "details": "The file path will be `moneynote/data/currency.json`. The initial content of the file should be `[]`. This sets up the file structure before populating it with data.",
+            "status": "done",
+            "testStrategy": "Verify the file `moneynote/data/currency.json` exists and contains `[]`."
+          },
+          {
+            "id": 3,
+            "title": "Populate currency.json with initial data",
+            "description": "Add at least three currency objects to the `currency.json` file. Each object must include `id`, `name`, `description`, and `rate` fields.",
+            "dependencies": [],
+            "details": "Add objects for USD (rate: 1.0), EUR, and JPY. The `id` should be the currency code (e.g., 'USD'). The `name` and `description` should be descriptive strings. The `rate` should be a float relative to a base currency like USD.",
+            "status": "done",
+            "testStrategy": "Manually inspect `currency.json` to ensure it contains a valid JSON array of currency objects, each with the correct fields and data types. Use a JSON linter to validate syntax."
+          },
+          {
+            "id": 4,
+            "title": "Create and structure the book_tpl.json file",
+            "description": "Create a new file named `book_tpl.json` within the `moneynote/data` directory. Initialize it with an empty JSON array to hold book template objects.",
+            "dependencies": [],
+            "details": "The file path will be `moneynote/data/book_tpl.json`. The initial content should be `[]`. Each template object will have fields for `id`, `name`, `description`, `categories`, `tags`, and `payees`.",
+            "status": "done",
+            "testStrategy": "Verify the file `moneynote/data/book_tpl.json` exists and contains `[]`."
+          },
+          {
+            "id": 5,
+            "title": "Populate book_tpl.json with initial data",
+            "description": "Add at least two book template objects to the `book_tpl.json` file, such as 'Personal Finance' and 'Small Business'.",
+            "dependencies": [],
+            "details": "Each template object must have a unique `id` (e.g., 'personal_v1'), a `name`, and a `description`. The `categories`, `tags`, and `payees` fields should be present as empty arrays `[]` as specified in the task description.",
+            "status": "done",
+            "testStrategy": "Manually inspect `book_tpl.json` to ensure it contains a valid JSON array of template objects, each with the correct fields and empty arrays for `categories`, `tags`, and `payees`. Use a JSON linter for validation."
+          }
+        ]
       },
       {
-        "id": 32,
-        "title": "Create Alembic Migration for Group/Book Changes",
-        "description": "Generate and refine an Alembic migration script to apply the data model changes to the database schema. This script will create the new 't_user_group' table and add the necessary columns and constraints to the 't_user_book' table.",
-        "details": "Run `alembic revision --autogenerate` to create a new migration file. Edit the generated file in `alembic/versions/` to ensure it correctly creates the `t_user_group` table. Verify it adds the `group_id` foreign key to `t_user_book`. Manually add the `op.create_unique_constraint()` for the `(group_id, name)` combination on the `t_user_book` table as specified in the PRD's risk mitigation section.",
-        "testStrategy": "Apply the migration to a local development database (`alembic upgrade head`) and inspect the schema to confirm the new table, columns, and unique constraint are created correctly. Test the downgrade path as well (`alembic downgrade -1`).",
+        "id": 2,
+        "title": "Implement Configuration for Version and URL",
+        "description": "Update the `moneynote/config.py` file to load the application version and base URL from environment variables, mitigating the risk of stale, hardcoded values.",
+        "details": "Use Pydantic's `BaseSettings` in `config.py` to define `APP_VERSION: str` and `BASE_URL: str`. The application should read these values from environment variables or a `.env` file. Provide default values as fallbacks (e.g., '1.0.0' for version).",
+        "testStrategy": "Write a unit test to ensure that the settings object correctly loads values from environment variables when they are set, and uses default values when they are not.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Update Settings Class in config.py",
+            "description": "Modify the existing `Settings` class in `moneynote/config.py` to include the `APP_VERSION` and `BASE_URL` fields. These fields should be defined as strings with default fallback values.",
+            "dependencies": [],
+            "details": "In `moneynote/config.py`, add `APP_VERSION: str = '1.0.0'` and `BASE_URL: str = 'http://localhost:8000'` to the `Settings` class, which inherits from `pydantic_settings.BaseSettings`.",
+            "status": "done",
+            "testStrategy": "This change will be tested in subsequent subtasks that verify the loading of default and environment-specific values."
+          },
+          {
+            "id": 2,
+            "title": "Create .env.example File",
+            "description": "Create a `.env.example` file in the project root to document the new environment variables for developers.",
+            "dependencies": [
+              "2.1"
+            ],
+            "details": "The `.env.example` file should contain the keys `APP_VERSION` and `BASE_URL` with placeholder values, demonstrating how to configure the application. For example:\n# Application Version\nAPP_VERSION=1.0.1\n\n# Base URL for the application\nBASE_URL=http://api.example.com",
+            "status": "done",
+            "testStrategy": "This is a documentation file and does not require a dedicated automated test. Its presence and correctness can be verified during code review."
+          },
+          {
+            "id": 3,
+            "title": "Create Test File for Configuration",
+            "description": "Create a new test file `tests/test_config.py` to house the unit tests for the application's configuration settings.",
+            "dependencies": [],
+            "details": "Create the file `tests/test_config.py`. Add initial imports for `pytest` and `os`. This file will be populated with tests in the following subtasks.",
+            "status": "done",
+            "testStrategy": "This subtask sets up the testing structure. The actual tests will be implemented in subsequent subtasks."
+          },
+          {
+            "id": 4,
+            "title": "Implement Test for Default Configuration Values",
+            "description": "Write a unit test to verify that the `Settings` class correctly loads the default values for `APP_VERSION` and `BASE_URL` when no environment variables are set.",
+            "dependencies": [
+              "2.1",
+              "2.3"
+            ],
+            "details": "In `tests/test_config.py`, create a test function. Use `pytest`'s `monkeypatch` fixture to delete the `APP_VERSION` and `BASE_URL` environment variables if they exist, ensuring a clean state. Then, import the `Settings` class from `moneynote.config` *within the test function* to force a re-evaluation, and assert that its `APP_VERSION` and `BASE_URL` attributes match the default values ('1.0.0' and 'http://localhost:8000').",
+            "status": "done",
+            "testStrategy": "This test ensures the fallback mechanism works as intended."
+          },
+          {
+            "id": 5,
+            "title": "Implement Test for Environment Variable Overrides",
+            "description": "Write a unit test to confirm that the `Settings` class correctly overrides default values with those loaded from environment variables.",
+            "dependencies": [
+              "2.1",
+              "2.3"
+            ],
+            "details": "In `tests/test_config.py`, create a new test function. Use `pytest`'s `monkeypatch` fixture to set the `APP_VERSION` and `BASE_URL` environment variables to custom test values (e.g., '2.0.0-test' and 'https://test.host'). Import the `Settings` class from `moneynote.config` *within the test function* to ensure it re-reads the environment. Assert that the `Settings` object's attributes match the custom values set by `monkeypatch`.",
+            "status": "done",
+            "testStrategy": "This test validates the primary goal of loading configuration from the environment."
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Implement JWT Authentication Dependency",
+        "description": "Create a reusable FastAPI dependency for handling JWT authentication, which will be used to protect all endpoints in this phase.",
+        "details": "In `moneynote/security.py`, define a function that expects an `Authorization: Bearer <token>` header. As per the design doc, the backend will not validate the token but will extract the user's identity (e.g., from the `sub` claim). Create a dependency in `moneynote/routers/deps.py` (e.g., `get_current_user`) that uses this function. For this initial phase, the dependency can simply ensure the header exists and is not empty.",
+        "testStrategy": "Unit test the dependency by mocking requests with and without the `Authorization` header to ensure it raises `HTTPException` for missing tokens and successfully proceeds for valid ones.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create `security.py` and Define `OAuth2PasswordBearer` Scheme",
+            "description": "Create a new file `moneynote/security.py` and define the `OAuth2PasswordBearer` security scheme. This scheme is the first step for FastAPI to identify and require `Authorization: Bearer <token>` headers.",
+            "dependencies": [],
+            "details": "In the new file `moneynote/security.py`, import `OAuth2PasswordBearer` from `fastapi.security`. Instantiate it as `oauth2_scheme = OAuth2PasswordBearer(tokenUrl='token')`. The `tokenUrl` can be a dummy value as we are not implementing the token generation endpoint in this task.",
+            "status": "done",
+            "testStrategy": "No direct tests for this subtask. It will be implicitly tested by subtasks that use the scheme."
+          },
+          {
+            "id": 2,
+            "title": "Implement JWT Decoding Function in `security.py`",
+            "description": "In `moneynote/security.py`, create a function to decode a JWT string and extract the user's identity from the 'sub' claim. This function will not validate the token's signature, as per the initial requirements.",
+            "dependencies": [
+              "3.1"
+            ],
+            "details": "Define a function `get_user_identity_from_token(token: str) -> str`. Use the `PyJWT` library to decode the token with signature verification disabled (`jwt.decode(token, options={'verify_signature': False})`). Extract and return the 'sub' claim. Wrap the decoding logic in a try/except block to catch `jwt.PyJWTError` and raise an `HTTPException` with status code 401 and detail 'Invalid token' if decoding fails. Note: This will require adding `PyJWT` to the project's dependencies.",
+            "status": "done",
+            "testStrategy": "This function will be unit tested via the dependency in a later subtask."
+          },
+          {
+            "id": 3,
+            "title": "Create `deps.py` and Implement `get_current_user` Dependency",
+            "description": "Create a new file `moneynote/routers/deps.py` to house reusable dependencies. Implement the primary authentication dependency, `get_current_user`, which will be used to protect endpoints.",
+            "dependencies": [
+              "3.1",
+              "3.2"
+            ],
+            "details": "In the new file `moneynote/routers/deps.py`, define an async function `get_current_user(token: str = Depends(oauth2_scheme))`. This function will take the token provided by FastAPI's dependency injection system. It should call the `get_user_identity_from_token` function from `moneynote.security` with the token and return the resulting user identity string.",
+            "status": "done",
+            "testStrategy": "The dependency will be tested in the following subtasks."
+          },
+          {
+            "id": 4,
+            "title": "Create Unit Tests for Missing or Invalid Tokens",
+            "description": "Create a new test file `tests/routers/test_deps.py` and implement unit tests for the `get_current_user` dependency, focusing on failure scenarios where the token is missing, malformed, or not a valid JWT.",
+            "dependencies": [
+              "3.3"
+            ],
+            "details": "Set up a minimal FastAPI test app with a single endpoint protected by `Depends(get_current_user)`. Using `TestClient`, write tests for the following cases: 1) No `Authorization` header provided. 2) Header provided but not in 'Bearer <token>' format. 3) A non-JWT string is provided as the token. All tests should assert that the API returns a 401 Unauthorized status code.",
+            "status": "done",
+            "testStrategy": "Use `pytest` and FastAPI's `TestClient` to make requests and assert the expected HTTP status codes and response bodies."
+          },
+          {
+            "id": 5,
+            "title": "Implement Positive Path Unit Test for Valid Token",
+            "description": "In `tests/routers/test_deps.py`, add a unit test to verify that the `get_current_user` dependency correctly processes a validly formatted JWT and extracts the user identity.",
+            "dependencies": [
+              "3.3"
+            ],
+            "details": "Generate a sample, unsigned JWT with a specific 'sub' claim (e.g., `{'sub': 'test-user-id'}`). The test endpoint should be modified to return the identity provided by the dependency. Make a request to the protected endpoint with the header `Authorization: Bearer <sample_jwt>`. Assert that the response is 200 OK and that the response body contains the 'sub' value from the sample token.",
+            "status": "done",
+            "testStrategy": "Use the `PyJWT` library to create a test token. The test will confirm the dependency successfully extracts and returns the 'sub' claim."
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Implement System Endpoints: /version and /test3",
+        "description": "Create a new router for system-level endpoints and implement `GET /version` and `GET /test3`.",
+        "details": "Create a new file `moneynote/routers/system.py`. Add two endpoints. `GET /version` should return the `APP_VERSION` from the configuration settings. `GET /test3` should return the `BASE_URL`. Both endpoints must be protected using the authentication dependency from Task 3.",
+        "testStrategy": "Write integration tests for both endpoints. One test for each should use a valid mock token and assert a 200 OK response with the correct data structure. Another test for each should omit the token and assert a 401 Unauthorized response.",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create `system.py` and Implement `GET /version` Endpoint",
+            "description": "Create a new file `moneynote/routers/system.py`. In this file, initialize a FastAPI `APIRouter` and implement the `GET /version` endpoint. This endpoint should be protected by the authentication dependency and return the `APP_VERSION` from the configuration.",
+            "dependencies": [],
+            "details": "Create `moneynote/routers/system.py`. Import `APIRouter`, `Depends` from `fastapi`, `get_settings` from `moneynote.config`, and `get_current_user` from `moneynote.routers.deps`. Instantiate the router: `router = APIRouter()`. Define the function for `GET /version` using the `@router.get('/version')` decorator, ensuring it includes `Depends(get_current_user)`. The function should access settings via `Depends(get_settings)` and return `{\"version\": settings.APP_VERSION}`.",
+            "status": "done",
+            "testStrategy": "Testing for this endpoint will be covered in a subsequent subtask."
+          },
+          {
+            "id": 2,
+            "title": "Implement `GET /test3` Endpoint",
+            "description": "In the `moneynote/routers/system.py` file, add the `GET /test3` endpoint. This endpoint must also be protected by the authentication dependency and should return the `BASE_URL` from the configuration.",
+            "dependencies": [
+              "4.1"
+            ],
+            "details": "In `moneynote/routers/system.py`, add a new route using the `@router.get('/test3')` decorator. The function for this route must include `Depends(get_current_user)` for protection. It should access settings via `Depends(get_settings)` and return a JSON object with the base URL, like `{\"base_url\": settings.BASE_URL}`.",
+            "status": "done",
+            "testStrategy": "Testing for this endpoint will be covered in a subsequent subtask."
+          },
+          {
+            "id": 3,
+            "title": "Integrate System Router into Main Application",
+            "description": "Modify `moneynote/main.py` to import and include the newly created system router, making the `/version` and `/test3` endpoints available through the application.",
+            "dependencies": [
+              "4.2"
+            ],
+            "details": "In `moneynote/main.py`, add `from moneynote.routers import system` at the top. After the `app` instance is created, register the router using `app.include_router(system.router, tags=['System'])`. Adding the 'System' tag will group these endpoints in the API documentation.",
+            "status": "done",
+            "testStrategy": "Manual verification by running the app and checking the interactive docs at `/docs` for the new endpoints."
+          },
+          {
+            "id": 4,
+            "title": "Write Integration Tests for `/version` Endpoint",
+            "description": "Create a new test file and write integration tests for the `GET /version` endpoint, covering both authenticated and unauthenticated scenarios.",
+            "dependencies": [
+              "4.3"
+            ],
+            "details": "Create a new file, e.g., `tests/test_system_router.py`. Using `TestClient`, write a test that sends a request to `/version` with a valid `Authorization: Bearer <token>` header and asserts a 200 OK status and the correct version in the response. Write a second test that sends a request without the header and asserts a 401 Unauthorized status.",
+            "status": "done",
+            "testStrategy": "Run `pytest tests/test_system_router.py` to confirm both test cases pass."
+          },
+          {
+            "id": 5,
+            "title": "Write Integration Tests for `/test3` Endpoint",
+            "description": "In the system router test file, add integration tests for the `GET /test3` endpoint, covering both authenticated and unauthenticated scenarios.",
+            "dependencies": [
+              "4.3"
+            ],
+            "details": "In `tests/test_system_router.py`, add a test that sends a request to `/test3` with a valid `Authorization` header and asserts a 200 OK status and the correct base URL in the response. Add another test that sends a request without the header and asserts a 401 Unauthorized status.",
+            "status": "done",
+            "testStrategy": "Run `pytest tests/test_system_router.py` to confirm all test cases for the system router pass."
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Create Data Loaders for In-Memory Caching",
+        "description": "Implement services to read `currency.json` and `book_tpl.json` at application startup and load their contents into in-memory variables.",
+        "details": "Create a new file, e.g., `moneynote/services/data_loader.py`. Define two functions or a class with two methods: one to load `currency.json` and another for `book_tpl.json`. These functions should parse the JSON and store the resulting lists in module-level variables to act as a simple in-memory cache. Implement error handling for missing or malformed files, causing the app to fail on startup with a clear error message.",
+        "testStrategy": "Unit test the loader functions. Provide mock JSON files (both valid and malformed) to verify correct parsing and robust error handling.",
         "priority": "high",
         "dependencies": [
-          31
+          1
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create `data_loader.py` and Define Cache Variables",
+            "description": "Create the new file `moneynote/services/data_loader.py` and define the module-level variables that will serve as the in-memory cache for the application's static data.",
+            "dependencies": [],
+            "details": "In the `moneynote/services/` directory, create a new Python file named `data_loader.py`. Inside this file, declare two empty list variables, `CURRENCIES: list = []` and `BOOK_TEMPLATES: list = []`. These variables will be populated during application startup and will hold the data from the JSON files.",
+            "status": "done",
+            "testStrategy": "N/A for this subtask, as it only involves file creation and variable declaration. A linter can verify syntax."
+          },
+          {
+            "id": 2,
+            "title": "Implement a Generic JSON Loading Utility with Error Handling",
+            "description": "In `data_loader.py`, create a private utility function to handle the logic of finding, reading, and parsing a JSON file from the `moneynote/data/` directory. This function must include robust error handling.",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "Implement a function `_load_json_from_data_dir(filename: str) -> list`. This function should use `pathlib` to construct the correct path to the file located in `moneynote/data/`. It must handle `FileNotFoundError` and `json.JSONDecodeError`. If either error occurs, it should raise a `RuntimeError` with a clear, descriptive message (e.g., 'Failed to load or parse {filename}: {error}'), which will cause the application to fail on startup.",
+            "status": "done",
+            "testStrategy": "Unit test this utility function by passing it filenames for a valid JSON file, a non-existent file, and a malformed JSON file. Assert that it returns a list for the valid case and raises `RuntimeError` for the error cases."
+          },
+          {
+            "id": 3,
+            "title": "Implement the `currency.json` Loader Function",
+            "description": "Create the public function responsible for loading the currency data into its respective cache variable.",
+            "dependencies": [
+              "5.2"
+            ],
+            "details": "In `data_loader.py`, define a public function `load_currencies()`. This function will call the `_load_json_from_data_dir` utility with `\"currency.json\"` as the argument. It will then assign the returned list of currency objects to the module-level `CURRENCIES` variable.",
+            "status": "done",
+            "testStrategy": "Unit test `load_currencies()` by mocking `_load_json_from_data_dir` to return a sample list of currencies. After calling the function, assert that the `data_loader.CURRENCIES` variable has been updated with the sample list."
+          },
+          {
+            "id": 4,
+            "title": "Implement the `book_tpl.json` Loader Function",
+            "description": "Create the public function responsible for loading the book template data into its respective cache variable.",
+            "dependencies": [
+              "5.2"
+            ],
+            "details": "In `data_loader.py`, define a public function `load_book_templates()`. This function will call the `_load_json_from_data_dir` utility with `\"book_tpl.json\"` as the argument. It will then assign the returned list of book template objects to the module-level `BOOK_TEMPLATES` variable.",
+            "status": "done",
+            "testStrategy": "Unit test `load_book_templates()` by mocking `_load_json_from_data_dir` to return a sample list of book templates. After calling the function, assert that the `data_loader.BOOK_TEMPLATES` variable has been updated with the sample list."
+          },
+          {
+            "id": 5,
+            "title": "Integrate Data Loaders into Application Startup Sequence",
+            "description": "Modify the main application file to call the data loader functions when the FastAPI application starts up.",
+            "dependencies": [
+              "5.3",
+              "5.4"
+            ],
+            "details": "Open `moneynote/main.py`. Import the `load_currencies` and `load_book_templates` functions from `moneynote.services.data_loader`. Within the `@app.on_event(\"startup\")` decorated function, add calls to both `load_currencies()` and `load_book_templates()`. This ensures the data is loaded into memory at application start and that any loading failure will prevent the app from starting successfully.",
+            "status": "done",
+            "testStrategy": "This is best tested via integration. When running the application, verify that no errors are logged during startup. Manually trigger a `FileNotFoundError` by temporarily renaming `currency.json` and confirm that the application fails to start with the expected `RuntimeError`."
+          }
+        ]
       },
       {
-        "id": 33,
-        "title": "Implement CRUD Functions for Group and Book",
-        "description": "Create the low-level database interaction functions for the new Group model and update the existing Book CRUD functions. These functions will provide the core database operations (Create, Read) needed by the service layer.",
-        "details": "Create a new file `moneynote/crud/crud_group.py`. Implement a `create` function that takes a `GroupCreate` schema and a user ID, and saves a new `Group` to the database. In `moneynote/crud/crud_book.py`, update the `create` function to accept a `group_id`. Add new functions like `get_by_name_and_group` and `count_by_group` to support business rule validation.",
-        "testStrategy": "These functions will be tested indirectly via the integration tests for the API endpoints. Ensure that all new CRUD functions are called by the service layer tasks.",
-        "priority": "high",
-        "dependencies": [
-          31
-        ],
-        "status": "pending",
-        "subtasks": []
+        "id": 6,
+        "title": "Define Schemas for Currency and Book Templates",
+        "description": "Create the Pydantic schemas required for the currency and book template API responses.",
+        "details": "In `moneynote/schemas/currency.py`, define a `Currency` schema matching the PRD's data model (`id`, `name`, `description`, `rate`). In `moneynote/schemas/book_template.py`, define a `BookTemplate` schema (`id`, `name`, `description`, `categories`, `tags`, `payees`). These will be used for response validation and serialization.",
+        "testStrategy": "Pydantic's own validation is sufficient. No explicit tests are needed for the schema definitions themselves, but they will be implicitly tested by the endpoint tests.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create `currency.py` and Import BaseModel",
+            "description": "Create a new file at `moneynote/schemas/currency.py`. In this file, add the necessary import statement for `BaseModel` from the `pydantic` library to prepare for the schema definition.",
+            "dependencies": [],
+            "details": "Based on the existing `moneynote/schemas/info.py`, a new file should be created to house the currency-related schema. The first step is to create the file and add `from pydantic import BaseModel`.",
+            "status": "done",
+            "testStrategy": "Verify the file `moneynote/schemas/currency.py` is created and contains the correct import statement."
+          },
+          {
+            "id": 2,
+            "title": "Define the Currency Schema",
+            "description": "In `moneynote/schemas/currency.py`, define a class `Currency` that inherits from `BaseModel`. Add the fields `id` (int), `name` (str), `description` (str), and `rate` (float) with their corresponding Python types.",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "Following the pattern in `moneynote/schemas/info.py`, create the `Currency` class. The fields should be `id: int`, `name: str`, `description: str`, and `rate: float`. Include a docstring explaining the schema's purpose.",
+            "status": "done",
+            "testStrategy": "Pydantic's built-in validation is sufficient. The schema will be implicitly tested by the endpoint implementation in a later task."
+          },
+          {
+            "id": 3,
+            "title": "Create `book_template.py` and Import Dependencies",
+            "description": "Create a new file at `moneynote/schemas/book_template.py`. Add the necessary import statements for `BaseModel` from `pydantic` and `List` from the `typing` module.",
+            "dependencies": [],
+            "details": "This file will contain the schema for book templates. It requires `BaseModel` for the schema definition and `List` for the array-like fields (`categories`, `tags`, `payees`).",
+            "status": "done",
+            "testStrategy": "Verify the file `moneynote/schemas/book_template.py` is created and contains the correct import statements."
+          },
+          {
+            "id": 4,
+            "title": "Define the BookTemplate Schema with Basic Fields",
+            "description": "In `moneynote/schemas/book_template.py`, define a class `BookTemplate` that inherits from `BaseModel`. Add the basic fields: `id` (int), `name` (str), and `description` (str).",
+            "dependencies": [
+              "6.3"
+            ],
+            "details": "Start the `BookTemplate` schema definition by adding the simple, non-list fields. The fields should be typed as `id: int`, `name: str`, and `description: str`. Include a docstring for the class.",
+            "status": "done",
+            "testStrategy": "Pydantic's built-in validation is sufficient. The schema will be implicitly tested by endpoint implementations."
+          },
+          {
+            "id": 5,
+            "title": "Add List-Based Fields to BookTemplate Schema",
+            "description": "In `moneynote/schemas/book_template.py`, complete the `BookTemplate` schema by adding the remaining fields: `categories` (List[str]), `tags` (List[str]), and `payees` (List[str]).",
+            "dependencies": [
+              "6.4"
+            ],
+            "details": "Finalize the `BookTemplate` schema by adding the fields that are expected to be lists of strings. The fields should be typed as `categories: List[str]`, `tags: List[str]`, and `payees: List[str]`.",
+            "status": "done",
+            "testStrategy": "Pydantic's built-in validation is sufficient. The schema will be implicitly tested by endpoint implementations."
+          }
+        ]
       },
       {
-        "id": 34,
-        "title": "Implement Service and Endpoint for POST /books (New Empty Book)",
-        "description": "Implement the API endpoint for creating a new, empty book within a user's current group. This involves creating the business logic in a service layer and exposing it via a FastAPI router.",
-        "details": "Create `moneynote/services/book_service.py`. Implement a `create_empty_book` method that takes a `BookAddForm`, `group_id`, and performs validations (name uniqueness, book limits) by calling CRUD functions. In `moneynote/routers/`, create `books.py` and define the `POST /books` endpoint. The endpoint will use the `get_current_user` dependency to determine the active group and call the book service.",
-        "testStrategy": "Write an integration test for `POST /books` covering the happy path (TC-BOOK-001) and failure cases like a duplicate name (TC-BOOK-002) and missing required fields.",
+        "id": 7,
+        "title": "Implement Endpoint GET /currencies/all",
+        "description": "Create the API endpoint to return the list of all supported currencies from the in-memory cache.",
+        "details": "Create a new router file `moneynote/routers/currencies.py`. Define a `GET /currencies/all` endpoint. The endpoint should use the authentication dependency, and its implementation should simply return the list of currencies loaded by the data loader service (Task 5). Use the `Currency` schema (Task 6) as the `response_model`.",
+        "testStrategy": "Write an integration test (TC-P1-04, TC-P1-05) that sends an authenticated request and verifies the 200 OK response contains a non-empty array of currency objects matching the schema. Also test for a 401 Unauthorized response.",
         "priority": "medium",
         "dependencies": [
-          33
+          3,
+          5,
+          6
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create and Initialize the Currencies Router",
+            "description": "Create a new file at `moneynote/routers/currencies.py`. In this file, import `APIRouter` from `fastapi` and instantiate it, setting the appropriate prefix and tags for currency-related endpoints.",
+            "dependencies": [],
+            "details": "Based on the pattern in `moneynote/routers/system.py`, the new router should be initialized as `router = APIRouter(prefix=\"/currencies\", tags=[\"currencies\"])`. This ensures consistent URL structure and API documentation grouping.",
+            "status": "done",
+            "testStrategy": "N/A for this subtask. Verification will happen when the router is registered and an endpoint is added."
+          },
+          {
+            "id": 2,
+            "title": "Define the GET /all Endpoint with Response Model",
+            "description": "In `moneynote/routers/currencies.py`, define an asynchronous function for the `GET /all` endpoint using the `@router.get` decorator. Import the `Currency` schema from `moneynote.schemas.currency` and set the `response_model` to `list[Currency]` to ensure the response is a list of currency objects.",
+            "dependencies": [
+              "7.1"
+            ],
+            "details": "The endpoint decorator should be `@router.get(\"/all\", response_model=list[Currency])`. You will need to import `Currency` from `moneynote.schemas.currency`. The function can have a placeholder implementation like `return []` for now.",
+            "status": "done",
+            "testStrategy": "This will be tested as part of the full endpoint integration test, which will validate the response schema."
+          },
+          {
+            "id": 3,
+            "title": "Secure the Endpoint with the Authentication Dependency",
+            "description": "Protect the `GET /currencies/all` endpoint by requiring authentication. Import the `get_current_user` dependency from `moneynote.routers.deps` and add it to the endpoint's function signature using `Depends`.",
+            "dependencies": [
+              "7.2"
+            ],
+            "details": "Import `Depends` from `fastapi` and `get_current_user` from `moneynote.routers.deps`. The function signature should be updated to include a parameter like `current_user: dict = Depends(get_current_user)`. Using `dict` as a placeholder type is acceptable as the user model might not be fully defined yet, but the dependency itself is the key part.",
+            "status": "done",
+            "testStrategy": "An integration test will be written to send a request without an `Authorization` header and assert that a 401 Unauthorized response is returned."
+          },
+          {
+            "id": 4,
+            "title": "Implement Logic to Return Currencies from Data Loader",
+            "description": "Implement the body of the `get_all_currencies` function to return the list of supported currencies. This involves accessing the in-memory data loaded by the data loader service (from Task 5).",
+            "dependencies": [
+              "7.3"
+            ],
+            "details": "The data loader service is expected to be available via a dependency. Import `get_data_loader` from `moneynote.routers.deps` and add it to the endpoint signature: `data_loader: DataLoader = Depends(get_data_loader)`. The function body should then call a method on this service, such as `return data_loader.get_currencies()`, to fetch and return the data.",
+            "status": "done",
+            "testStrategy": "The main integration test will verify this by sending an authenticated request and checking that the response body contains a non-empty array of currency objects."
+          },
+          {
+            "id": 5,
+            "title": "Register the Currencies Router in main.py",
+            "description": "Integrate the new currencies router into the main FastAPI application by importing it and including it in the app instance in `moneynote/main.py`.",
+            "dependencies": [
+              "7.1"
+            ],
+            "details": "In `moneynote/main.py`, add `from moneynote.routers import currencies` alongside other router imports. Then, register it with the main app instance using `app.include_router(currencies.router)`. This makes the `/currencies/all` endpoint live.",
+            "status": "done",
+            "testStrategy": "Successful execution of the integration tests for this endpoint will confirm that the router has been correctly registered."
+          }
+        ]
       },
       {
-        "id": 35,
-        "title": "Implement Service and Endpoint for POST /books/template",
-        "description": "Implement the functionality to create a new book from a predefined template. This requires reading template data and creating multiple associated entities (categories, tags, payees) in a single transaction.",
-        "details": "In `BookService`, create a `create_book_from_template` method. This method will use the existing data loading service to get template data from `book_tpl.json`. It will first create the `Book` record, then iterate through the template's categories, tags, and payees, creating new database records for each associated with the new book's ID. Wrap the entire operation in a single database transaction. Add the `POST /books/template` endpoint to `routers/books.py` to expose this service method.",
-        "testStrategy": "Write an integration test for `POST /books/template` (TC-TPL-001). After a successful API call, query the database to verify that the book and all its associated categories, tags, and payees have been created correctly.",
+        "id": 8,
+        "title": "Implement Endpoint GET /book-templates/all",
+        "description": "Create the API endpoint to return the list of all available book templates from the in-memory cache.",
+        "details": "Create a new router file `moneynote/routers/book_templates.py`. Define a `GET /book-templates/all` endpoint. Protect it with the authentication dependency. The implementation should return the list of book templates loaded by the data loader service (Task 5). Use the `BookTemplate` schema (Task 6) as the `response_model`.",
+        "testStrategy": "Write an integration test (TC-P1-06, TC-P1-07) that sends an authenticated request and verifies the 200 OK response contains a non-empty array of template objects. Also test for a 401 Unauthorized response.",
         "priority": "medium",
         "dependencies": [
-          34
+          3,
+          5,
+          6
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create the book_templates.py router file",
+            "description": "Create a new file named `book_templates.py` inside the `moneynote/routers/` directory. Initialize it with the necessary imports for FastAPI's APIRouter and create a router instance.",
+            "dependencies": [],
+            "details": "In the `moneynote/routers/` directory, create `book_templates.py`. Add the following initial code:\n```python\nfrom fastapi import APIRouter\n\nrouter = APIRouter()\n```\nThis sets up the foundation for the new endpoints related to book templates.",
+            "status": "done",
+            "testStrategy": "Verify the file `moneynote/routers/book_templates.py` is created and contains the basic router instantiation."
+          },
+          {
+            "id": 2,
+            "title": "Define the GET /all endpoint with the correct response model",
+            "description": "In `moneynote/routers/book_templates.py`, define an async function for the `GET /all` endpoint. Annotate it with the `@router.get` decorator, and specify the `response_model` using the `BookTemplate` schema.",
+            "dependencies": [
+              "8.1"
+            ],
+            "details": "Import `List` from `typing` and `BookTemplate` from `..schemas`. Define the endpoint signature like this:\n```python\nfrom typing import List\nfrom ..schemas import BookTemplate\n\n@router.get(\"/all\", response_model=List[BookTemplate])\nasync def get_all_book_templates():\n    # Implementation to be added in a later subtask\n    pass\n```",
+            "status": "done",
+            "testStrategy": "Review the code to ensure the endpoint path, response model, and function signature are correctly defined."
+          },
+          {
+            "id": 3,
+            "title": "Apply the authentication dependency to the endpoint",
+            "description": "Secure the `GET /all` endpoint by adding the authentication dependency. Import `Depends` from `fastapi` and the `get_current_user` dependency from `..routers.deps`.",
+            "dependencies": [
+              "8.2"
+            ],
+            "details": "Update the `@router.get` decorator to include the `dependencies` parameter. The existing `system.py` and `currencies.py` routers serve as a reference for this pattern.\n```python\nfrom fastapi import Depends\nfrom .deps import get_current_user\n\n@router.get(\n    \"/all\",\n    response_model=List[BookTemplate],\n    dependencies=[Depends(get_current_user)]\n)\nasync def get_all_book_templates():\n    # ...\n```",
+            "status": "done",
+            "testStrategy": "Check that the `Depends(get_current_user)` is correctly imported and added to the endpoint's decorator."
+          },
+          {
+            "id": 4,
+            "title": "Implement the endpoint logic to return book templates",
+            "description": "Implement the body of the `get_all_book_templates` function. It should import the `data_loader` service and return the list of book templates.",
+            "dependencies": [
+              "8.3"
+            ],
+            "details": "Import the singleton `data_loader` instance from `..services.data_loader`. The function should call the appropriate method on the data loader (e.g., `data_loader.get_book_templates()`) and return the result. The final function should look similar to this:\n```python\nfrom ..services.data_loader import data_loader\n\n# ... (inside the router file)\n\nasync def get_all_book_templates():\n    \"\"\"\n    Returns all available book templates.\n    \"\"\"\n    return data_loader.get_book_templates()\n```",
+            "status": "done",
+            "testStrategy": "Perform a code review to ensure the `data_loader` is imported and its method for retrieving book templates is called and returned."
+          },
+          {
+            "id": 5,
+            "title": "Integrate the book_templates router into the main FastAPI app",
+            "description": "In `moneynote/main.py`, import the new `book_templates` router and include it in the main FastAPI application instance, setting an appropriate prefix and tag.",
+            "dependencies": [
+              "8.1"
+            ],
+            "details": "Open `moneynote/main.py`. Add `from .routers import book_templates` to the imports. Then, add the following line to register the router with the app, similar to how the `system` and `currencies` routers are included:\n```python\napp.include_router(book_templates.router, prefix=\"/book-templates\", tags=[\"book-templates\"])\n```\nThis will make the `GET /book-templates/all` endpoint accessible.",
+            "status": "done",
+            "testStrategy": "After this change, running the application and checking the OpenAPI docs (e.g., at `/docs`) should show the new `/book-templates/all` endpoint under the 'book-templates' tag."
+          }
+        ]
       },
       {
-        "id": 36,
-        "title": "Implement Service and Endpoint for POST /books/copy",
-        "description": "Implement the functionality to create a new book by duplicating an existing one, including all its categories, tags, and payees. This operation must be transactional.",
-        "details": "In `BookService`, create a `create_book_by_copying` method. The method will validate that the source book exists and is accessible by the user. It will then create the new `Book` record. Next, it will query all `Category`, `Tag`, and `Payee` entities from the source book and create new copies associated with the new book's ID. Use bulk insert statements if possible for performance. Ensure the process is transactional. Add the `POST /books/copy` endpoint to `routers/books.py`.",
-        "testStrategy": "Write integration tests for `POST /books/copy`. Test the happy path (TC-COPY-001) and verify the new book's sub-entities match the source. Test the failure case where the source `bookId` does not exist (TC-COPY-002).",
+        "id": 9,
+        "title": "Integrate New Routers and Startup Logic",
+        "description": "Wire the new routers and data loading logic into the main FastAPI application.",
+        "details": "In `moneynote/main.py`, import and include the routers created in tasks 4, 7, and 8 using `app.include_router()`. Create a startup event handler (`@app.on_event('startup')`) and call the data loading functions from Task 5 within it to ensure data is cached before the application starts serving requests.",
+        "testStrategy": "Run the application locally and manually test all four endpoints using an API client like Postman or curl to ensure they are registered and functioning as expected. This serves as a final integration check before automated testing.",
+        "priority": "low",
+        "dependencies": [
+          4,
+          7,
+          8
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Startup Event Handler in main.py",
+            "description": "In `moneynote/main.py`, define an asynchronous function and decorate it with `@app.on_event('startup')`. This function will serve as the container for logic that must execute before the application starts serving requests.",
+            "dependencies": [],
+            "details": "Based on the analysis of `moneynote/main.py`, the file currently contains a basic FastAPI app instance. Add a new async function, for example `startup_event`, and decorate it with `@app.on_event('startup')`. The function body will be populated in the next subtask.",
+            "status": "done",
+            "testStrategy": "Verify the application still runs without errors after adding the empty startup handler."
+          },
+          {
+            "id": 2,
+            "title": "Integrate Data Loaders into Startup Event",
+            "description": "Import and call the data loading functions from `moneynote.services.data_loader` within the newly created startup event handler to pre-cache data.",
+            "dependencies": [
+              "9.1"
+            ],
+            "details": "In `moneynote/main.py`, import `load_currencies` and `load_book_templates` from `moneynote.services.data_loader`. Inside the `startup_event` function, call both of these functions. This will ensure that the data from `currency.json` and `book_tpl.json` is loaded into memory when the application starts, as per the implementation in `data_loader.py`.",
+            "status": "done",
+            "testStrategy": "Run the application and check the logs for the 'Successfully loaded...' messages from the data loader functions. If the data files are missing, the application should fail to start, which is the expected behavior."
+          },
+          {
+            "id": 3,
+            "title": "Import and Include System Router",
+            "description": "In `moneynote/main.py`, import and register the router for the system endpoints from Task 4.",
+            "dependencies": [],
+            "details": "Import the `router` object from `moneynote.routers.system`. A good practice is to use an alias, e.g., `from moneynote.routers import system as system_router`. Then, register it with the FastAPI app instance using `app.include_router(system_router.router, tags=['System'])`. The tag will group these endpoints in the OpenAPI documentation.",
+            "status": "done",
+            "testStrategy": "After implementation, run the application and navigate to `/docs`. Verify that the `/version` and `/test3` endpoints are listed under the 'System' tag."
+          },
+          {
+            "id": 4,
+            "title": "Import and Include Currencies Router",
+            "description": "In `moneynote/main.py`, add the necessary import and registration for the currencies router created in Task 8.",
+            "dependencies": [],
+            "details": "Following the pattern from the previous subtask, add an import for the router from `moneynote.routers.currencies` (e.g., `from moneynote.routers import currencies as currencies_router`). Register it using `app.include_router(currencies_router.router, tags=['Currencies'])`. This assumes the router from Task 8 is in `moneynote/routers/currencies.py`.",
+            "status": "done",
+            "testStrategy": "Run the application and check the `/docs` page to ensure the `/currencies` endpoint is available under the 'Currencies' tag."
+          },
+          {
+            "id": 5,
+            "title": "Import and Include Book Templates Router",
+            "description": "In `moneynote/main.py`, import and register the router for the book template endpoints from Task 7.",
+            "dependencies": [],
+            "details": "Add an import for the router from `moneynote.routers.book_templates` (e.g., `from moneynote.routers import book_templates as book_templates_router`). Register it with the app using `app.include_router(book_templates_router.router, tags=['Book Templates'])`. This assumes the router from Task 7 is in `moneynote/routers/book_templates.py`.",
+            "status": "done",
+            "testStrategy": "Run the application and verify in the `/docs` that the `/book-templates` and `/book-templates/{template_id}` endpoints are correctly registered under the 'Book Templates' tag."
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Write Comprehensive Test Suite",
+        "description": "Implement the full suite of unit and integration tests for all new components and endpoints as defined in the PRD.",
+        "details": "In the `tests/` directory, create corresponding test files (e.g., `tests/routers/test_system.py`, `tests/services/test_data_loader.py`). Implement all test cases from the PRD (TC-P1-01 to TC-P1-07). Ensure tests cover authentication, response codes, and data integrity for all four endpoints.",
+        "testStrategy": "Run the entire test suite using `pytest`. The suite should pass with 100% success, confirming all requirements for this phase have been met and are verified.",
         "priority": "medium",
         "dependencies": [
-          34
+          9
         ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 37,
-        "title": "Implement Service and Endpoint for POST /groups",
-        "description": "Implement the endpoint to create a new group. This is a composite operation that also creates the group's first book using a specified template, all within a single transaction.",
-        "details": "Create `moneynote/services/group_service.py` with a `create_group` method. This method will first call `crud_group.create` to create the group. Then, it will immediately call `BookService.create_book_from_template` to create the initial book. The entire service method must be transactional. Create `moneynote/routers/groups.py` and define the `POST /groups` endpoint which accepts `GroupAddForm` and calls this service method.",
-        "testStrategy": "Write integration tests for `POST /groups`. Test the happy path (TC-GRP-001) and verify both the group and its initial book are created. Test the failure case where an invalid `templateId` is provided (TC-GRP-002), ensuring the transaction is rolled back and no group is created.",
-        "priority": "high",
-        "dependencies": [
-          35
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 38,
-        "title": "Write Integration Tests for Group Creation Endpoint",
-        "description": "Create a dedicated test suite for the group creation endpoint (`POST /groups`) to ensure its correctness and robustness, covering all scenarios outlined in the PRD.",
-        "details": "In `tests/routers/`, create `test_groups.py`. Implement `TC-GRP-001`: a successful request that creates a group and its first book. Verify the 200 response and the state of the database. Implement `TC-GRP-002`: a request with a non-existent `templateId` that should result in a 400 Bad Request. Also test for missing mandatory fields like `name`.",
-        "testStrategy": "Use `pytest` and the `TestClient` from FastAPI. Set up test fixtures to provide an authenticated user and a clean database state for each test.",
-        "priority": "medium",
-        "dependencies": [
-          37
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 39,
-        "title": "Write Integration Tests for Book Creation Endpoints",
-        "description": "Write a comprehensive test suite for the book creation endpoints (`POST /books` and `POST /books/template`) to validate their functionality.",
-        "details": "In `tests/routers/`, create `test_books.py`. Implement `TC-BOOK-001`: successful creation of an empty book. Implement `TC-BOOK-002`: attempting to create a book with a duplicate name in the same group, expecting a 400 error. Implement `TC-TPL-001`: successful creation of a book from a template, verifying the sub-entities are also created.",
-        "testStrategy": "Use `pytest` and `TestClient`. Fixtures will be needed to create a user and a group to create books within. Assert against response status codes and database state.",
-        "priority": "medium",
-        "dependencies": [
-          34,
-          35
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 40,
-        "title": "Write Integration Tests for Book Copy Endpoint",
-        "description": "Write a test suite for the book copying endpoint (`POST /books/copy`) to ensure it correctly duplicates a book and handles error cases.",
-        "details": "Add tests to `tests/routers/test_books.py`. Implement `TC-COPY-001`: create a source book with several categories/tags, then call the endpoint to copy it. Verify the new book and its copied sub-entities exist. Implement `TC-COPY-002`: attempt to copy a book using a non-existent `bookId`, expecting a 404 Not Found error.",
-        "testStrategy": "Use `pytest` and `TestClient`. The test setup for the happy path will involve creating a user, a group, and a source book with associated entities before calling the copy endpoint.",
-        "priority": "medium",
-        "dependencies": [
-          36
-        ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Tests for System Endpoints (/health, /info)",
+            "description": "Update the existing test file `tests/routers/test_system.py` to include tests for all system endpoints. Verify the existing `test_health_check` and add a new test for the `GET /system/info` endpoint, covering test cases TC-P1-01 and TC-P1-02.",
+            "dependencies": [],
+            "details": "In `tests/routers/test_system.py`, add a new test function `test_info_endpoint`. This test should use the `client` fixture to make a GET request to `/system/info`. Assert that the response status code is 200 OK. Further, assert that the JSON response body is a dictionary containing `app_version` and `base_url` keys, whose values should match the expected configuration.",
+            "status": "done",
+            "testStrategy": "Use the `client: TestClient` fixture provided in `tests/conftest.py`. For the `/info` test, you may need to set environment variables for `APP_VERSION` and `BASE_URL` to ensure the test is predictable and doesn't rely on default values."
+          },
+          {
+            "id": 2,
+            "title": "Implement Unit Tests for DataLoader Service",
+            "description": "Create a new test file `tests/services/test_data_loader.py` to unit test the `DataLoader` service. The tests should ensure that data is loaded correctly from JSON files and that the service methods return the expected data.",
+            "dependencies": [],
+            "details": "Create the directory `tests/services/`. Inside, create `test_data_loader.py`. Write test functions for the `DataLoader` class. Use `unittest.mock.patch` to mock `open` and `json.load` to provide controlled test data without relying on the actual `data/*.json` files. Test that `load_data()` populates the internal class variables and that `get_currencies()` and `get_book_templates()` return lists of the correct Pydantic model instances.",
+            "status": "done",
+            "testStrategy": "Focus on testing the class in isolation. Create mock JSON data as strings within the test file. Use `patch('builtins.open', new_callable=mock_open, read_data=...)` to simulate file reading."
+          },
+          {
+            "id": 3,
+            "title": "Implement Integration Tests for GET /currencies/all Endpoint",
+            "description": "Create a new test file `tests/routers/test_currencies.py` to test the `GET /currencies/all` endpoint. Implement tests for both authenticated and unauthenticated requests, covering test cases TC-P1-04 and TC-P1-05.",
+            "dependencies": [],
+            "details": "Create `tests/routers/test_currencies.py`. Add `test_get_all_currencies_unauthenticated` which makes a request without an `Authorization` header and asserts a 401 status code. Add `test_get_all_currencies_authenticated` which includes a header like `{'Authorization': 'Bearer testtoken'}`. This test should assert a 200 OK status code. The `DataLoader` should be triggered by the app startup during testing, populating the data.",
+            "status": "done",
+            "testStrategy": "Use the `client: TestClient` fixture. For the authenticated test, pass a non-empty bearer token in the headers. The current implementation of the auth dependency only checks for presence, not validity."
+          },
+          {
+            "id": 4,
+            "title": "Implement Integration Tests for GET /book-templates/all Endpoint",
+            "description": "Create a new test file `tests/routers/test_book_templates.py` to test the `GET /book-templates/all` endpoint. Implement tests for both authenticated and unauthenticated requests, covering test cases TC-P1-06 and TC-P1-07.",
+            "dependencies": [],
+            "details": "Create `tests/routers/test_book_templates.py`. Similar to the currencies tests, add two test functions. `test_get_all_book_templates_unauthenticated` should assert a 401 status code for requests lacking an `Authorization` header. `test_get_all_book_templates_authenticated` should provide a bearer token and assert a 200 OK status code.",
+            "status": "done",
+            "testStrategy": "Follow the same pattern as the currencies endpoint test. Use the `client` fixture and manipulate the `Authorization` header to test both authentication scenarios."
+          },
+          {
+            "id": 5,
+            "title": "Enhance Endpoint Tests with Data Integrity and Schema Checks",
+            "description": "Refactor the authenticated tests for `/currencies/all` and `/book-templates/all` to include comprehensive data integrity checks. Ensure the response payload is not just present, but is correctly structured and matches the defined Pydantic schemas.",
+            "dependencies": [
+              "10.3",
+              "10.4"
+            ],
+            "details": "In `tests/routers/test_currencies.py` and `tests/routers/test_book_templates.py`, update the authenticated tests. After asserting a 200 OK status, parse the JSON response. Assert that the response is a list. Assert that the list is not empty. Iterate through the items in the list and validate each one against its corresponding Pydantic schema (`Currency` or `BookTemplate`) to ensure all fields are present and correctly typed.",
+            "status": "done",
+            "testStrategy": "Import the `Currency` and `BookTemplate` schemas from `moneynote.schemas`. In the test, you can loop through the response data and instantiate the schema for each item, e.g., `[Currency(**item) for item in response.json()]`. A successful instantiation without a `ValidationError` confirms data integrity."
+          }
+        ]
       }
     ],
     "metadata": {
-      "created": "2025-10-06T09:23:47.731Z",
-      "updated": "2025-10-08T03:47:18.585Z",
+      "created": "2025-10-08T08:23:31.360Z",
+      "updated": "2025-10-08T09:25:04.390Z",
       "description": "Tasks for master context"
     }
   }

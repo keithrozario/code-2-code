@@ -1,6 +1,7 @@
 import os
 import prompts.prd_generation
-from helper_funcs import run_till_file_exists, set_task_status_from_taskmaster, task_master_status_file
+from helper_funcs import run_till_file_exists, set_task_status_from_taskmaster, gen_task_from_prd, expand_all_task_master_tasks
+from helper_funcs import task_master_status_file
 
 absolute_path_docs_directory = f"{os.getcwd()}/docs"
 api_detail_design = f"{absolute_path_docs_directory}/api_design/api_detail_design.md"
@@ -46,8 +47,7 @@ def get_next_phase(directory: str) -> int:
     else:
         return latest_phase + 1   # No gaps, so return the next number
 
-# PRD
-
+## PRD
 phase = get_next_phase(f"{absolute_path_docs_directory}/prds/")
 prd_file_path = f"{absolute_path_docs_directory}/prds/prd_phase_{phase}.md"
 
@@ -63,15 +63,19 @@ run_till_file_exists(
     step_description=f"\nGenerating {prd_file_path}",
 )
 
+# Generate Task from PRD
 set_task_status_from_taskmaster()
-if phase > 1:
-    # Get PRD status
+try:
     with open(task_master_status_file, 'r') as status:
         status_as_md = status.read()
-    # Get detail_design
-    with open(api_detail_design, 'r') as api_detail_design:
-        api_detail_design_as_md = api_detail_design.read()
-    # Update the PRD
-    with open(prd_file_path, 'a') as prd_file:
-        prd_file.write(status_as_md)
-        prd_file.write(api_detail_design_as_md)
+except FileNotFoundError:
+    status_as_md = ""
+# Get detail_design
+with open(api_detail_design, 'r') as api_detail_design:
+    api_detail_design_as_md = api_detail_design.read()
+# Update the PRD
+with open(prd_file_path, 'a') as prd_file:
+    prd_file.write(status_as_md)
+    prd_file.write(api_detail_design_as_md)
+gen_task_from_prd(prd_file_path)
+expand_all_task_master_tasks()
