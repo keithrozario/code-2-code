@@ -1,0 +1,20 @@
+[
+  {
+    "id": "USD",
+    "name": "United States Dollar",
+    "description": "The official currency of the United States and its territories.",
+    "rate": 1.0
+  },
+  {
+    "id": "EUR",
+    "name": "Euro",
+    "description": "The official currency of 19 of the 27 member states of the European Union.",
+    "rate": 0.92
+  },
+  {
+    "id": "JPY",
+    "name": "Japanese Yen",
+    "description": "The official currency of Japan.",
+    "rate": 157.65
+  }
+]
