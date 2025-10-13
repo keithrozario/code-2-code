@@ -4,6 +4,7 @@ import subprocess
 from mrkdwn_analysis import MarkdownAnalyzer
 from typing import List
 import config
+from string import Template
 
 def get_md_analyzer_and_content(file_path:str):
     """
@@ -91,7 +92,7 @@ def run_till_file_exists(prompt: str, absolute_file_path: str, step_description:
     
     return None
 
-def generate_doc_file(file_path: str, prompt_template: any, step_description: str, substitutions: dict):
+def generate_doc_file(file_path: str, prompt_template: Template, step_description: str, substitutions: dict):
     """
     Generates a documentation file using a prompt template and substitutions.
 
