@@ -1,5 +1,3 @@
-import os
-
 import prompts.user_journey
 import prompts.database_design
 import prompts.api_design
@@ -9,7 +7,9 @@ from helper_funcs import generate_doc_file, get_user_journey_header_texts
 
 ## User Journeys
 
-user_journey_header_texts = get_user_journey_header_texts(codmod_report=config.CODMOD_REPORT_PATH)
+user_journey_header_texts = get_user_journey_header_texts(
+    codmod_report=config.CODMOD_REPORT_PATH
+)
 print("Identified the following user_journeys")
 for user_journey_name in user_journey_header_texts:
     print(user_journey_name)
@@ -48,88 +48,75 @@ for user_journey_file in user_journey_file_paths:
         },
     )
 
-
-# Functional Specification Intro
-generate_doc_file(
-    file_path=config.FUNCTIONAL_SPECS_PATH,
-    prompt_template=prompts.user_journey.functional_specification_intro_prompt_template,
-    step_description="\nGenerating functional_specs_introduction.md",
-    substitutions={"absolute_file_path": config.FUNCTIONAL_SPECS_PATH},
-)
-
-
-# Database
-
-## Database Design
-generate_doc_file(
-    file_path=config.DATABASE_DEFINITION_PATH,
-    prompt_template=prompts.database_design.database_specification_prompt_template,
-    step_description="\nGenerating database_definition.md",
-    substitutions={
-        "application_directory": "moneynote-api/",
-        "absolute_file_path": config.DATABASE_DEFINITION_PATH,
+doc_generation_configs = [
+    {
+        "file_path": config.FUNCTIONAL_SPECS_PATH,
+        "prompt_template": prompts.user_journey.functional_specification_intro_prompt_template,
+        "step_description": "\nGenerating functional_specs_introduction.md",
+        "substitutions": {"absolute_file_path": config.FUNCTIONAL_SPECS_PATH},
     },
-)
-
-## Database ERD
-generate_doc_file(
-    file_path=config.DATABASE_ERD_PATH,
-    prompt_template=prompts.database_design.database_erd_prompt_template,
-    step_description="\nGenerating database_erd.md",
-    substitutions={
-        "application_directory": "moneynote-api/",
-        "absolute_file_path": config.DATABASE_ERD_PATH,
-        "database_design_absolute_file_path": config.DATABASE_ERD_PATH,
+    {
+        "file_path": config.DATABASE_DEFINITION_PATH,
+        "prompt_template": prompts.database_design.database_specification_prompt_template,
+        "step_description": "\nGenerating database_definition.md",
+        "substitutions": {
+            "application_directory": "moneynote-api/",
+            "absolute_file_path": config.DATABASE_DEFINITION_PATH,
+        },
     },
-)
-
-
-# Api Definitition
-## Api Specification
-generate_doc_file(
-    file_path=config.API_DEFINITION_PATH,
-    prompt_template=prompts.api_design.api_specification_prompt_template,
-    step_description="\nGenerating api_definition.md",
-    substitutions={
-        "application_directory": "moneynote-api/",
-        "absolute_file_path": config.API_DEFINITION_PATH,
+    {
+        "file_path": config.DATABASE_ERD_PATH,
+        "prompt_template": prompts.database_design.database_erd_prompt_template,
+        "step_description": "\nGenerating database_erd.md",
+        "substitutions": {
+            "application_directory": "moneynote-api/",
+            "absolute_file_path": config.DATABASE_ERD_PATH,
+            "database_design_absolute_file_path": config.DATABASE_ERD_PATH,
+        },
     },
-)
-
-## Api dependencies
-generate_doc_file(
-    file_path=config.API_DEPENDENCIES_PATH,
-    prompt_template=prompts.api_design.api_dependency_prompt_template,
-    step_description="\nGenerating api_dependencies.md",
-    substitutions={
-        "application_directory": "moneynote-api/",
-        "api_definition_absolute_path": config.API_DEFINITION_PATH,
-        "absolute_file_path": config.API_DEPENDENCIES_PATH,
+    {
+        "file_path": config.API_DEFINITION_PATH,
+        "prompt_template": prompts.api_design.api_specification_prompt_template,
+        "step_description": "\nGenerating api_definition.md",
+        "substitutions": {
+            "application_directory": "moneynote-api/",
+            "absolute_file_path": config.API_DEFINITION_PATH,
+        },
     },
-)
-
-## Api plan
-generate_doc_file(
-    file_path=config.API_PLAN_PATH,
-    prompt_template=prompts.api_design.api_plan_prompt_template,
-    step_description="\nGenerating api_plan.md",
-    substitutions={
-        "api_definition_absolute_path": config.API_DEFINITION_PATH,
-        "api_dependencies_absolute_path": config.API_DEPENDENCIES_PATH,
-        "absolute_file_path": config.API_PLAN_PATH,
+    {
+        "file_path": config.API_DEPENDENCIES_PATH,
+        "prompt_template": prompts.api_design.api_dependency_prompt_template,
+        "step_description": "\nGenerating api_dependencies.md",
+        "substitutions": {
+            "application_directory": "moneynote-api/",
+            "api_definition_absolute_path": config.API_DEFINITION_PATH,
+            "absolute_file_path": config.API_DEPENDENCIES_PATH,
+        },
     },
-)
-
-# Api Design Document
-generate_doc_file(
-    file_path=config.API_DETAIL_DESIGN_PATH,
-    prompt_template=prompts.api_design.api_design_prompt_template,
-    step_description="\nGenerating api_detail_design.md",
-    substitutions={
-        "api_definition_absolute_path": config.API_DEFINITION_PATH,
-        "api_dependencies_absolute_path": config.API_DEPENDENCIES_PATH,
-        "api_plan_absolute_path": config.API_PLAN_PATH,
-        "architecture_principles_absolute_path": config.ARCHITECTURE_PRINCIPLES_PATH,
-        "absolute_file_path": config.API_DETAIL_DESIGN_PATH,
+    {
+        "file_path": config.API_PLAN_PATH,
+        "prompt_template": prompts.api_design.api_plan_prompt_template,
+        "step_description": "\nGenerating api_plan.md",
+        "substitutions": {
+            "api_definition_absolute_path": config.API_DEFINITION_PATH,
+            "api_dependencies_absolute_path": config.API_DEPENDENCIES_PATH,
+            "absolute_file_path": config.API_PLAN_PATH,
+        },
     },
-)
+    {
+        "file_path": config.API_DETAIL_DESIGN_PATH,
+        "prompt_template": prompts.api_design.api_design_prompt_template,
+        "step_description": "\nGenerating api_detail_design.md",
+        "substitutions": {
+            "api_definition_absolute_path": config.API_DEFINITION_PATH,
+            "api_dependencies_absolute_path": config.API_DEPENDENCIES_PATH,
+            "api_plan_absolute_path": config.API_PLAN_PATH,
+            "architecture_principles_absolute_path": config.ARCHITECTURE_PRINCIPLES_PATH,
+            "absolute_file_path": config.API_DETAIL_DESIGN_PATH,
+        },
+    },
+]
+
+for doc_config in doc_generation_configs:
+    generate_doc_file(**doc_config)
+
