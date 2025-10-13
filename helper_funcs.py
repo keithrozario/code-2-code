@@ -91,6 +91,22 @@ def run_till_file_exists(prompt: str, absolute_file_path: str, step_description:
     
     return None
 
+def generate_doc_file(file_path: str, prompt_template: any, step_description: str, substitutions: dict):
+    """
+    Generates a documentation file using a prompt template and substitutions.
+
+    Args:
+        file_path (str): The absolute path to the file to be generated.
+        prompt_template (any): The prompt template to use.
+        step_description (str): The description of the step.
+        substitutions (dict): A dictionary of substitutions for the prompt template.
+    """
+    prompt = prompt_template.substitute(substitutions)
+    run_till_file_exists(
+        prompt=prompt,
+        absolute_file_path=file_path,
+        step_description=step_description,
+    )
 
 def get_user_journey_header_texts (codmod_report: str) -> List[str]:
     """
