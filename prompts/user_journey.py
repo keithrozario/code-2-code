@@ -12,15 +12,13 @@ Args:
 """
 
 user_journey_prompt_string = """
-    Look at the $codmod_detailed_relative_file_path file, and the $codmod_data_relative_file_path file. 
-    These files represent a report for code in moneynote-api directory. 
-    As a senior business analyst Document $user_journey_name. Document your results in an .md file with the following content:
----
+Look at the $codmod_detailed_relative_file_path file, and the $codmod_data_relative_file_path file. 
+These files represent a report for code in moneynote-api directory. 
+As a senior business analyst Document $user_journey_name as a markdown file with the following format:
 
-**1. Detailed User Journeys and Flows**
+1. Detailed User Journeys and Flows
 
-*   **Objective:** To capture the step-by-step interactions a user has with the system to achieve a specific business goal.
-*   **Requirements:**
+*   Capture the step-by-step interactions a user has with the system to achieve a specific business goal.
     *   Document each distinct and significant user journey.
     *   For each journey, provide a clear, sequential description of user actions and system responses.
     *   Include decision points, alternative paths, and error handling scenarios within the flow.
@@ -28,10 +26,9 @@ user_journey_prompt_string = """
     *   Clearly identify the start and end points of each journey.
     *   If multiple journeys lead to similar outcomes with variations, document these variations.
 
-**2. Detailed Object Level Data Structures**
+2. Detailed Object Level Data Structures
 
-*   **Objective:** To meticulously document the structure and attributes of key data entities within the system.
-*   **Requirements:**
+*   Document the structure and attributes of key data entities within the system
     *   Identify and list all significant data entities (e.g., Customer, Order, Product, Invoice, User Account).
     *   For each entity, list all its data attributes as they exist in the code or database.
     *   For each attribute, capture:
@@ -41,19 +38,17 @@ user_journey_prompt_string = """
         *   A brief description of what the attribute represents.
     *   Indicate relationships between entities where relevant (e.g., One-to-Many, Many-to-Many).
 
-**3. Database Tables to be Updated**
+3. Database Tables to be Updated
 
-*   **Objective:** To identify which database tables are directly impacted by user actions and system processes.
-*   **Requirements:**
+*   Identify which database tables are directly impacted by user actions and system processes.
     *   For each documented user journey and major functional area, list the specific database tables that are:
         *   Read from (e.g., for data retrieval).
         *   Written to (e.g., `INSERT`, `UPDATE`, `DELETE` operations).
     *   Specify the typical operations performed on each table within the context of the documented functionality.
 
-**4. Business Rules and Functionality (Detailed)**
+4. Business Rules and Functionality (Detailed)
 
-*   **Objective:** To capture the explicit and implicit logic that governs the system's behavior and data integrity.
-*   **Requirements:**
+*   Capture the explicit and implicit logic that governs the system's behavior and data integrity.
     *   Provide a detailed description of all identified business rules.
     *   For each rule, specify:
         *   **Rule Name/Identifier:** A concise name for the rule.
@@ -65,10 +60,9 @@ user_journey_prompt_string = """
         *   **Front-end Validations:** Detail any checks performed on the user interface to guide user input and provide immediate feedback (e.g., "required field," "email format," "numeric range").
         *   **Back-end Validations:** Detail any checks performed on the server-side to ensure data integrity, security, and adherence to business logic (e.g., "inventory check," "user permissions," "data consistency checks"). For each validation, describe the rule being enforced and the consequence of failure.
 
-**5. Detailed Test Cases**
+5. Test Cases
 
-*   **Objective:** To create a comprehensive set of test cases that can verify the correct implementation of user journeys and business rules.
-*   **Requirements:**
+*   Create a comprehensive set of test cases that can verify the correct implementation of user journeys and business rules.
     *   Develop detailed test cases for each significant user journey and business rule.
     *   Each test case should include:
         *   **Test Case ID:** A unique identifier.
@@ -83,20 +77,17 @@ user_journey_prompt_string = """
         *   **Boundary Conditions:** Testing limits and edge cases of data inputs.
         *   **Error Handling:** Verifying how the system responds to exceptions and invalid states.
 
-**6. State Any Assumptions**
+6. Assumptions
 
-*   **Objective:** To document any assumptions made during the extraction process due to ambiguity or lack of definitive information.
-*   **Requirements:**
+*   To document any assumptions made during the extraction process due to ambiguity or lack of definitive information.
     *   List all assumptions clearly and concisely.
     *   For each assumption, explain the reasoning or the gap in information that led to it.
     *   These assumptions are critical for understanding the context and potential areas for further investigation.
 
 
-    Generate the output to markedown, and save the file to the following absolute path $absolute_file_path file.
-    Refer to the original code for further context
+Generate the output to markdown, and save the file to the following absolute path $absolute_file_path file.
+Refer to the original code for further context
 """
-
-
 
 # Functional Spec Introduction
 
