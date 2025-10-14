@@ -1,59 +1,64 @@
 # Business Requirement Document: Managing Finance Record Files
 
 ## 1.0 Summary
-This document outlines the business requirements for managing file attachments associated with financial transactions within the MoneyNote application. The system provides capabilities for users to upload, view, and delete supporting documents (e.g., receipts, invoices) for their transaction records. This functionality enhances record-keeping by allowing users to maintain a complete and verifiable history of their financial activities. All file data is stored directly within the application's primary database.
+This document outlines the business requirements for the management of financial record files within the MoneyNote application. The core business objective is to allow users to attach, view, and manage digital files (such as receipts, invoices, or contracts) associated with their financial transactions. This provides a complete, verifiable audit trail for each record, enhancing data integrity and user confidence. The existing system implements this by allowing users to upload a single file per transaction, which is then stored directly within the application's primary database as a Binary Large Object (BLOB).
 
 ---
 
 ## 2.0 Project Scope
 ### 2.1 In-Scope
-*   **FR-001:** A user must be able to upload a file and associate it with a specific financial transaction.
-*   **FR-002:** A user must be able to view the content of an uploaded file.
-*   **FR-003:** A user must be able to delete a file that is associated with a financial transaction.
-*   **FR-004:** The system must enforce a maximum file size for uploads.
-*   **FR-005:** The system must restrict file access to authorized users.
+The scope of this BRD is limited to the existing functionality for managing finance record files, as traced from the source code and system analysis.
+*   **FR-001: Attach a Single File to a Transaction:** Users can upload one file and link it to a single financial transaction (`BalanceFlow`).
+*   **FR-002: View an Attached File:** Users can retrieve and view a file previously attached to a transaction.
+*   **FR-003: Delete an Attached File:** Users can remove a file attachment from a transaction.
 
 ### 2.2 Out-of-Scope
-*   Editing or modifying the content of a file after it has been uploaded.
-*   Uploading multiple files in a single transaction.
-*   Storing files in an external object store (e.g., S3, Google Cloud Storage). All files are stored as BLOBs in the database.
-*   Advanced file versioning or history.
+The following functionalities are not covered by this document as they are not part of the existing implementation:
+*   Attaching multiple files to a single transaction.
+*   Editing, annotating, or otherwise modifying an attached file.
+*   Bulk import or export of file attachments independent of their associated transactions.
+*   Attaching files to entities other than financial transactions (e.g., accounts, categories).
 
 ---
 
 ## 3.0 Business Requirements
-The following business requirements define the core capabilities of the file management feature.
 
-**BR-001:** The system must provide a mechanism for users to attach digital files to individual financial records to serve as supporting documentation. This is achieved by allowing file uploads against a specific `BalanceFlow` entity, which are then stored as `FlowFile` entities. This is critical for maintaining accurate and auditable financial records.
-
-**BR-002:** The system must ensure that only authorized users can view or delete files. Access control is managed by linking file ownership to the ownership of the parent financial transaction, preventing unauthorized data exposure.
-
-**BR-003:** The system must enforce resource limits to maintain system performance and control storage costs. This includes a strict file size limit on all uploads.
+**BR-001: Verifiable Transaction Records:** The system must provide a mechanism for users to associate a single digital file with a financial transaction record to maintain a complete and verifiable financial history. This ensures that for any given expense, income, or transfer, supporting documentation can be stored and retrieved directly within the application.
 
 ### 3.1 Functional Requirements
-The functional requirements below are derived from the user journeys and are directly traceable to the application's source code.
 
-**FR-001: File Upload**
-*   **Requirement:** The system must allow an authenticated user to upload a single file attachment to a specific financial transaction (`BalanceFlow`). The file's content, original name, size, and content type must be stored. Success is measured by the creation of a `FlowFile` record in the database, linked to the correct `BalanceFlow`. This is implemented in the `BalanceFlowService.addFile` method, which is exposed via the `POST /balance-flows/{id}/addFile` endpoint. This functionality is targeted for all users and is currently active in the system.
+**FR-001: Upload and Attach File**
+*   **Requirement:** The system must provide a feature for users to upload a single file, up to a maximum size of 100MB, and associate it with a single financial transaction (`BalanceFlow`).
+*   **Measure:** Success will be verified by a 100% success rate during User Acceptance Testing (UAT) for valid file uploads. The file data must be correctly persisted as a `LONGBLOB` in the `t_flow_file` table and linked to the correct `t_user_balance_flow` record.
+*   **Agreed Upon:** This requirement reflects the existing, validated functionality.
+*   **Realistic:** The functionality is already implemented and proven.
+*   **Traceability:** This is implemented in the `BalanceFlowService.addFile` method, with the size constraint defined in the `application.properties` file (`spring.servlet.multipart.max-file-size=100MB`). The `FlowFile` entity (`cn/biq/mn/flowfile/FlowFile.java`) models the database storage.
 
-**FR-002: File Viewing**
-*   **Requirement:** The system must allow a user to view the content of a previously uploaded file. To prevent unauthorized access, the viewing mechanism must require both the file's unique ID and its creation timestamp. The system must return the file's binary data with the correct `Content-Type` header within 2 seconds of a valid request. Success is measured by the successful retrieval and rendering of the file content. This is implemented in the `FlowFileService.getFile` method and exposed via the `GET /flow-files/view` endpoint. This functionality is targeted for all users and is currently active.
+**FR-002: View Attached File**
+*   **Requirement:** The system must provide an endpoint for users to retrieve and view the content of a previously uploaded file associated with a transaction.
+*   **Measure:** Success is defined as the file being viewable in the client application within 3 seconds of the request for files under 10MB. The system must serve the binary data with the correct content type to enable proper rendering.
+*   **Agreed Upon:** This is a core feature for accessing stored documentation.
+*   **Realistic:** The functionality is currently implemented and in use.
+*   **Traceability:** This is implemented in the `FlowFileController.handleView` endpoint, which serves the `byte[]` data from the `FlowFile` entity.
 
-**FR-003: File Deletion**
-*   **Requirement:** The system must allow a user to permanently delete a file attachment from a financial transaction. The system must verify that the user making the request has the authority to delete the file by checking their permissions on the associated `BalanceFlow`. Success is measured by the removal of the `FlowFile` record from the database. This is implemented in the `FlowFileService.remove` method and exposed via the `DELETE /flow-files/{id}` endpoint. This functionality is targeted for all users and is currently active.
-
-**FR-004: File Size Constraint**
-*   **Requirement:** The system must reject any file upload that exceeds a maximum size of 100MB. This limit is enforced at the application server level to prevent excessive resource consumption. Success is measured by the system returning a "Bad Request" error for oversized files. This is configured in the `application.properties` file via the `spring.servlet.multipart.max-file-size=100MB` setting. This constraint is active system-wide.
-
-**FR-005: File View Authorization**
-*   **Requirement:** The system must ensure that a user cannot access a file simply by guessing its ID. File access requests must include both the file `id` and its `createTime` as parameters. The system will validate that the provided `createTime` matches the timestamp stored in the database for that file ID. 99.9% of unauthorized access attempts must be blocked. This is implemented in the `FlowFileService.getFile` method. This security measure is active for all file view requests.
+**FR-003: Delete Attached File**
+*   **Requirement:** The system must allow a user to permanently remove a file attachment from a financial transaction record.
+*   **Measure:** Success will be measured by the successful removal of the corresponding `FlowFile` database entry upon user action, confirmed via functional testing. The file must no longer be accessible via the view endpoint (FR-002).
+*   **Agreed Upon:** This is an essential management function for correcting errors or removing sensitive data.
+*   **Realistic:** The functionality is achievable via standard database delete operations on the `FlowFile` entity.
+*   **Traceability:** This action is handled within the service layer responsible for `BalanceFlow` and `FlowFile` modifications, which deletes the `FlowFile` entity record associated with a `BalanceFlow`.
 
 ---
 ## 4.0 Assumptions, Constraints, and Dependencies
 ### 4.1 Assumptions
-*   Users have the necessary permissions to modify the financial transactions to which they are uploading files.
-*   The client-side application is responsible for correctly constructing the file view URL, including the required `id` and `createTime` parameters.
+*   Users performing file management operations have the necessary permissions to view and modify the parent financial transaction record.
+*   The client-side application is responsible for providing the user interface for file upload, view, and delete actions.
 
-### 4.2 Dependencies
-*   The file management functionality is dependent on the core `BalanceFlow` (transaction) module. Files cannot exist without being associated with a transaction.
-*   The system relies on the Spring Framework's multipart file handling capabilities for processing uploads.
+### 4.2 Constraints
+*   **Database Storage:** All attached files are stored directly in the primary MySQL database as `LONGBLOB` data types. This is a hard constraint of the current architecture. (Source: CodMod Report, `FlowFile.java`)
+*   **Single File per Transaction:** The data model supports only one file attachment per `BalanceFlow` record. (Source: CodMod Report, Data Model analysis)
+*   **File Size Limit:** The system imposes a hard limit of 100MB for any single file upload. (Source: CodMod Report, `application.properties`)
+
+### 4.3 Dependencies
+*   The file attachment functionality is entirely dependent on the existence of the core transaction module (`BalanceFlow`). A file cannot exist without being associated with a transaction.
+*   The underlying database must support `LONGBLOB` data types for the functionality to work as designed.

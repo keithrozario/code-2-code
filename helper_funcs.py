@@ -1,4 +1,5 @@
 import os
+import time
 import json
 import subprocess
 from mrkdwn_analysis import MarkdownAnalyzer
@@ -26,16 +27,17 @@ def get_md_analyzer_and_content(file_path:str):
 
 def run_gemini_prompt(prompt: str)->bool:
 
+    prompt = '"'+prompt.replace('"','\\"')+'"'
     try:
         result = subprocess.run([
             'gemini',
             '--approval-mode=yolo',
+            '--model=gemini-2.5-pro',
             '-p',
             prompt
         ], text=True, check=True, stderr=subprocess.STDOUT)
         print(result.stdout)
     except subprocess.CalledProcessError as e:
-        print(f"Error executing shell command: {e}")
         print(f"Stderr: {e.stderr}")
         return False
     
@@ -79,7 +81,8 @@ def run_till_file_exists(prompt: str, absolute_file_path: str, step_description:
     Executes the prompt in gemini-cli until the file in the absolute file path exists
     """
 
-    max_attempts = 3
+    max_attempts = 5
+    delay_in_seconds = 15
     
     for i in range(0,max_attempts):
         # if the file already exists, we proceed to next steps, 
@@ -87,6 +90,7 @@ def run_till_file_exists(prompt: str, absolute_file_path: str, step_description:
         if os.path.exists(f"{absolute_file_path}"):
             print(f"Yay! File created: {absolute_file_path}")
             break
+        time.sleep(delay_in_seconds*i)
         print(step_description)
         run_gemini_prompt(prompt=prompt)
     
