@@ -1,130 +1,141 @@
-# Journey 4: Supporting Multiple Books
+# User Journey Analysis: Journey 4: Supporting Multiple Books
 
-## 1. Detailed User Journeys and Flows
+### 1.0 Detailed User Journeys and Flows
+(Capture the step-by-step interactions a user has with the system to achieve the specific business goal of this journey. Document each distinct flow, including user actions, system responses, decision points, alternative paths, and error handling. Clearly identify start and end points.)
 
-This journey describes how a user can create and manage separate financial ledgers, called "Books," to segregate different areas of their financial life, such as personal expenses, a side business, or a specific project.
+This journey enables users to segregate their financial records into distinct containers called "Books." This is essential for managing different financial contexts, such as personal finances, a side business, or a specific project, within a single user account.
 
-### User Story
+**Flow 1: Creating a New Book**
 
-As a user with diverse financial activities, I want to maintain separate "books" for different areas of my life (e.g., personal, business, vacation) so that I can keep my financial records organized, avoid mixing personal and business expenses, and generate reports for each area independently.
+*   **Start Point:** The user navigates to the "Manage Books" section of the application.
+*   **User Action:** The user initiates the creation of a new book.
+*   **Decision Point:** The user chooses one of three creation methods:
+    1.  **From Scratch:** Create a new, empty book.
+    2.  **From Template:** Create a book pre-populated with a structure from a predefined template (e.g., "Daily Life", "Restaurant Business").
+    3.  **By Copying:** Create a new book by duplicating the structure (categories, tags, payees) of an existing book.
 
-### Flow 1: Creating a New Book from a Template
+*   **Sub-Flow 1.1: Create From Scratch**
+    1.  **User Action:** The user selects "Create From Scratch," provides a name (e.g., "Vacation Fund") and a default currency (e.g., "EUR").
+    2.  **System Response:** The system validates that the book name is unique within the current user group.
+    3.  **System Action:** A new `Book` record is created and saved to the `t_user_book` table.
+    4.  **End Point:** The new book appears in the user's list of available books.
 
-This flow describes how a user creates a new book using a predefined template.
+*   **Sub-Flow 1.2: Create From Template**
+    1.  **User Action:** The user selects "Create From Template," chooses a template (e.g., "Daily Life"), provides a name, and sets a default currency.
+    2.  **System Response:** The system validates the name and finds the selected template in the `book_tpl.json` file.
+    3.  **System Action:** A new `Book` record is created. The system then iterates through the template's categories, tags, and payees, creating new records for each and associating them with the new book.
+    4.  **End Point:** The new, pre-configured book appears in the user's list.
 
-*   **Start:** The user is logged into the application and is on any page.
-*   **Step 1: Navigate to Book Management:** The user navigates to the "Settings" or "Manage Books" section of the application.
-*   **Step 2: Initiate Book Creation:** The user clicks the "Add Book" or "Create New Book" button.
-*   **Step 3: Choose Creation Method:** The system presents options for creating a book. The user selects "Create from Template."
-*   **Step 4: Select a Template:** The user is shown a list of available templates (e.g., "Daily Life," "Restaurant Business," "Travel"). The user selects a template that fits their needs.
-*   **Step 5: Configure the New Book:** A form appears where the user enters a **Name** for the new book (e.g., "My Side Hustle") and selects a **Default Currency** (e.g., "USD").
-*   **Step 6: Finalize Creation:** The user clicks "Create" or "Save."
-*   **System Response:** The system creates the new book, pre-populated with the categories, tags, and payees defined in the selected template.
-*   **End:** The new book appears in the user's list of available books. The user can now switch to it to start recording transactions.
+*   **Sub-Flow 1.3: Create by Copying**
+    1.  **User Action:** The user selects "Create by Copying," chooses an existing book to copy from, provides a new name, and sets a default currency.
+    2.  **System Response:** The system validates the new name and retrieves the structure of the source book.
+    3.  **System Action:** A new `Book` record is created. The system then copies all categories, tags, and payees from the source book to the new book.
+    4.  **End Point:** The new, duplicated book appears in the user's list.
 
-### Flow 2: Creating a New Book by Copying an Existing One
+*   **Error Handling:**
+    *   If the book name already exists within the group, the system throws an `ItemExistsException` and displays an error.
+    *   If the user attempts to create more books than the system limit (defined in `Limitation.book_max_count`), a `FailureMessageException` is thrown.
 
-This flow describes how a user creates a new book by duplicating the structure of one of their existing books.
+**Flow 2: Switching the Active Book**
 
-*   **Start:** The user is in the "Manage Books" section.
-*   **Step 1: Initiate Book Creation:** The user clicks "Add Book."
-*   **Step 2: Choose Creation Method:** The user selects "Copy Existing Book."
-*   **Step 3: Select Source Book:** The user is shown a list of their existing books. They select the one they want to copy (e.g., "Personal Finances").
-*   **Step 4: Configure the New Book:** The user provides a **Name** for the new book (e.g., "Vacation 2025") and can override the **Default Currency**.
-*   **Step 5: Finalize Creation:** The user clicks "Create."
-*   **System Response:** The system creates the new book and copies all categories, tags, and payees from the source book into the new one. No transactions are copied.
-*   **End:** The new book is ready for use with the same organizational structure as the source book.
+*   **Start Point:** The user is operating within one book (e.g., "Personal Finances").
+*   **User Action:** The user selects a different book (e.g., "Business") from a dropdown menu or navigation list.
+*   **System Action:** The application calls the endpoint to set the default book for the user's session. The `UserService.setDefaultBook()` method updates the `default_book_id` on the `t_user_user` record for the current user.
+*   **System Response:** The application interface refreshes, now showing the transactions, accounts, and reports scoped exclusively to the newly selected book.
+*   **End Point:** The user is now operating within the context of the new active book.
 
-### Flow 3: Switching Between Books
+**Flow 3: Deleting a Book**
 
-This flow describes how a user changes their active context from one book to another.
+*   **Start Point:** The user is in the "Manage Books" section.
+*   **User Action:** The user selects a book and clicks the "Delete" button.
+*   **System Response:** The system checks if the selected book has any associated `BalanceFlow` (transaction) records.
+*   **Decision Point:**
+    *   **If transactions exist:** The system throws a `FailureMessageException` with the message "book.delete.has.flow," preventing deletion.
+    *   **If no transactions exist:** The system proceeds with deletion.
+*   **System Action:** The system deletes all `Category`, `Payee`, and `Tag` records associated with the book. Finally, it deletes the `Book` record itself.
+*   **End Point:** The book is removed from the user's list of books.
 
-*   **Start:** The user is actively using the application, with one book currently active (e.g., "Personal Finances").
-*   **Step 1: Access Book Switcher:** The user clicks on a dropdown menu or navigation item that lists all their available books.
-*   **Step 2: Select New Book:** The user selects a different book from the list (e.g., "My Side Hustle").
-*   **System Response:** The application's entire context switches to the selected book. The dashboard, transaction lists, reports, and data entry forms now exclusively show and operate on the data within "My Side Hustle." The user's session is updated to reflect this new active book.
-*   **End:** The user can now record and view transactions within the newly selected book.
+---
 
-## 2. Detailed Object Level Data Structures
+### 2.0 Detailed Object Level Data Structures
+(Document the structure and attributes of key data entities involved in this journey. For each entity, list its attributes, data types, constraints (e.g., `NOT NULL`, `FOREIGN KEY`), and a brief description. Indicate relationships between entities.)
 
-The core data entity for this journey is the `Book`.
+**Entity: `Book` (Table: `t_user_book`)**
 
-### `Book` (`t_user_book` table)
+Represents a single, self-contained ledger for financial records.
 
-Represents a single, self-contained financial ledger.
-
-| Attribute Name | Data Type | Constraints & Properties | Description |
+| Attribute | Data Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
-| `id` | `INTEGER` | `PRIMARY KEY`, `AUTO_INCREMENT` | Unique identifier for the book. |
-| `name` | `VARCHAR(64)` | `NOT NULL` | The user-defined name of the book (e.g., "Personal Finances"). |
-| `group_id` | `INTEGER` | `NOT NULL`, `FOREIGN KEY` -> `t_user_group(id)` | The group this book belongs to. |
-| `notes` | `VARCHAR(1024)` | `NULLABLE` | Optional descriptive notes for the book. |
-| `enable` | `BOOLEAN` | `NOT NULL`, `defaultValue: true` | Flag to enable or disable the book. |
-| `default_expense_account_id` | `INTEGER` | `FOREIGN KEY` -> `t_user_account(id)` | Default account to use for new expense transactions. |
-| `default_income_account_id` | `INTEGER` | `FOREIGN KEY` -> `t_user_account(id)` | Default account to use for new income transactions. |
-| `default_transfer_from_account_id` | `INTEGER` | `FOREIGN KEY` -> `t_user_account(id)` | Default source account for transfers. |
-| `default_transfer_to_account_id` | `INTEGER` | `FOREIGN KEY` -> `t_user_account(id)` | Default destination account for transfers. |
-| `default_expense_category_id` | `INTEGER` | `FOREIGN KEY` -> `t_user_category(id)` | Default category for new expenses. |
-| `default_income_category_id` | `INTEGER` | `FOREIGN KEY` -> `t_user_category(id)` | Default category for new incomes. |
-| `default_currency_code` | `VARCHAR(8)` | `NOT NULL` | The default currency for reporting and data entry in this book. |
-| `export_at` | `BIGINT` | `NULLABLE` | Timestamp of the last time the book's data was exported. |
-| `sort` | `INTEGER` | `NULLABLE` | A number used for custom sorting of the book list. |
+| `id` | `INTEGER` | **Primary Key** | Unique identifier for the book. |
+| `name` | `VARCHAR(64)` | `NOT NULL` | The user-defined name of the book. |
+| `group_id` | `INTEGER` | `NOT NULL`, **FK** -> `t_user_group(id)` | The group this book belongs to. Establishes the ownership and multi-user context. |
+| `notes` | `VARCHAR(1024)` | `NULLABLE` | Descriptive notes about the book. |
+| `enable` | `BOOLEAN` | `NOT NULL`, Default: `true` | Flag to enable or disable the book. |
+| `default_expense_account_id` | `INTEGER` | `NULLABLE`, **FK** -> `t_user_account(id)` | Default account to use for new expense transactions. |
+| `default_income_account_id` | `INTEGER` | `NULLABLE`, **FK** -> `t_user_account(id)` | Default account for new income transactions. |
+| `default_currency_code` | `VARCHAR(8)` | `NOT NULL` | The default currency for reporting and new transactions within this book. |
+| `sort` | `INTEGER` | `NULLABLE` | An integer value used for sorting the list of books. |
 
 **Relationships:**
 
-*   **One-to-Many:** A `Book` has many `Tag`s, `Category`s, and `Payee`s.
-*   **Many-to-One:** A `Book` belongs to one `Group`.
+*   **`Group` (Many-to-One):** A `Book` must belong to exactly one `Group`. A `Group` can have many `Book`s.
+*   **`User` (Many-to-One via `defaultBook`):** A `User` has one default `Book`.
+*   **`Category` (One-to-Many):** A `Book` has its own set of `Category` records.
+*   **`Tag` (One-to-Many):** A `Book` has its own set of `Tag` records.
+*   **`Payee` (One-to-Many):** A `Book` has its own set of `Payee` records.
+*   **`BalanceFlow` (One-to-Many):** A `Book` contains many transaction records.
 
-## 3. Database Tables to be Updated
+---
 
-| User Journey / Flow | Table Name | Operations | Description |
-| :--- | :--- | :--- | :--- |
-| **Create New Book** | `t_user_book` | `INSERT` | A new record is inserted into the book table. |
-| | `t_user_category` | `INSERT` | If creating from a template or copying, new category records are inserted and linked to the new book's ID. |
-| | `t_user_tag` | `INSERT` | If creating from a template or copying, new tag records are inserted and linked to the new book's ID. |
-| | `t_user_payee` | `INSERT` | If creating from a template or copying, new payee records are inserted and linked to the new book's ID. |
-| **Update Book** | `t_user_book` | `UPDATE` | The name, notes, or default accounts/categories of an existing book are updated. |
-| **Delete Book** | `t_user_book` | `DELETE` | The book record is deleted. This is only allowed if no transactions are linked to it. |
-| | `t_user_category` | `DELETE` | All categories associated with the book are deleted. |
-| | `t_user_tag` | `DELETE` | All tags associated with the book are deleted. |
-| | `t_user_payee` | `DELETE` | All payees associated with the book are deleted. |
-| **Switch Active Book** | `t_user_user` | `UPDATE` | The `default_book_id` for the current user is updated to the ID of the newly selected book. |
-| **Read Book List** | `t_user_book` | `SELECT` | The system reads all books belonging to the user's current group to display them in a list. |
+### 3.0 Database Tables to be Updated
+(Identify which database tables are directly impacted by this user journey. List the tables that are read from and written to (`INSERT`, `UPDATE`, `DELETE`). Specify the operations performed on each table within the context of the journey.)
 
-## 4. Business Rules and Functionality (Detailed)
+| Table Name | Operations | Context / Reason |
+| :--- | :--- | :--- |
+| **`t_user_book`** | `INSERT`, `UPDATE`, `DELETE`, `SELECT` | **Primary table for this journey.** Records are created when a new book is added, updated when its details are changed, deleted when a book is removed, and selected when listing or switching books. |
+| **`t_user_user`** | `UPDATE`, `SELECT` | The `default_book_id` column is updated when a user switches their active book. The record is read to get the user's current context. |
+| **`t_user_group`** | `SELECT` | Read to verify the user's group context and to enforce that a book name is unique within the group. |
+| **`t_user_category`** | `INSERT`, `DELETE`, `SELECT` | Records are inserted when creating a book from a template or by copying. They are deleted when a book is removed. They are selected when copying a book. |
+| **`t_user_tag`** | `INSERT`, `DELETE`, `SELECT` | Records are inserted when creating a book from a template or by copying. They are deleted when a book is removed. They are selected when copying a book. |
+| **`t_user_payee`** | `INSERT`, `DELETE`, `SELECT` | Records are inserted when creating a book from a template or by copying. They are deleted when a book is removed. They are selected when copying a book. |
+| **`t_user_balance_flow`**| `SELECT` | Read to check if any transactions exist for a book before allowing its deletion. |
 
-### Business Rules
+---
 
-| Rule Name/Identifier | Description | Triggering Event | Logic/Conditions | Outcome/Action |
+### 4.0 Business Rules and Functionality (Detailed)
+(Capture the explicit and implicit logic governing the system's behavior for this journey. For each rule, specify its name, description, trigger, logic, and outcome. Detail both front-end and back-end validations.)
+
+| Rule Name | Description | Trigger | Logic | Outcome |
 | :--- | :--- | :--- | :--- | :--- |
-| **Max Book Limit** | A user's group cannot have more than a predefined number of books. | User attempts to create a new book. | `bookRepository.countByGroup(group) >= Limitation.book_max_count` | The creation is blocked, and an error message ("book.max.count") is displayed. |
-| **Unique Book Name** | Within the same group, all book names must be unique. | User creates or renames a book. | `bookRepository.existsByGroupAndName(group, newName)` | The operation fails with an "ItemExistsException". |
-| **Deletion Constraint** | A book cannot be deleted if it contains any transaction records (`BalanceFlow`). | User attempts to delete a book. | `balanceFlowRepository.existsByBook(book)` | The deletion is blocked, and an error message ("book.delete.has.flow") is displayed. |
-| **Default Book Deletion** | The default book of a group cannot be deleted. | User attempts to delete a book. | The book's ID matches the group's `default_book_id`. | The operation is blocked. (Note: The code for this appears to be commented out, but it is a standard business rule). |
-| **Template Not Found** | A book cannot be created from a template that does not exist. | User attempts to create a book from a template. | The provided `templateId` does not match any ID in the loaded `book_tpl.json`. | The operation fails with an "ItemNotFoundException". |
+| **Book Name Uniqueness** | A book's name must be unique within its parent `Group`. | Creating or updating a book. | The system queries the `t_user_book` table for an existing book with the same name and `group_id`. | If a book with the same name exists, an `ItemExistsException` is thrown, and the operation fails. |
+| **Book Creation Limit** | A `Group` cannot have more than a predefined maximum number of books. | Creating a new book. | The system counts the number of existing books for the current `Group` and compares it to `Limitation.book_max_count`. | If the limit is reached, a `FailureMessageException` is thrown. |
+| **Data Isolation** | `Category`, `Tag`, and `Payee` entities are strictly scoped to a single `Book`. | Creating a book from a template or by copying. | When a new book is created via template/copy, the system creates *new* `Category`, `Tag`, and `Payee` records and links them to the new book, rather than sharing them. | Ensures that changes to categories in one book do not affect another, providing complete financial segregation. |
+| **Deletion Constraint** | A `Book` cannot be deleted if it contains any financial transactions (`BalanceFlow` records). | Attempting to delete a book. | The system queries the `t_user_balance_flow` table to check for any records where `book_id` matches the ID of the book being deleted. | If one or more transactions exist, a `FailureMessageException` is thrown, preventing deletion and data loss. |
+| **Default Book Management** | Each user has a default book that determines their active context. | User logs in or manually switches their active book. | The `default_book_id` field on the `t_user_user` table is used to store and retrieve the user's active book. | The application's context is always scoped to the user's default book, ensuring they see the correct data. |
+| **Template-Based Creation** | Users can create a book from a predefined structure. | User chooses "Create from Template". | The `BookService` loads `book_tpl.json`, finds the selected template, and programmatically creates all associated categories, tags, and payees for the new book. | A new book is created with a ready-to-use structure, saving the user manual setup time. |
+| **Copy-Based Creation** | Users can duplicate an existing book's structure. | User chooses "Create by Copying". | The `BookService` reads all categories, tags, and payees from the source book and creates new, identical records linked to the new book. | A new book is created that is an exact structural replica of another book, useful for starting a new period (e.g., a new year). |
 
-### Validations
+---
 
-*   **Backend Validations:**
-    *   When creating a book, the `name` and `defaultCurrencyCode` are mandatory.
-    *   The `defaultCurrencyCode` must be a valid, known currency code.
-    *   When creating from a template or copying, the source book/template must exist.
-    *   When updating a book, if the name is changed, it is checked for uniqueness within the group.
+### 5.0 Test Cases
+(Create a comprehensive set of test cases to verify the correct implementation of the user journey and its business rules. Each test case should include an ID, the feature being tested, preconditions, steps, test data, and expected results. Cover happy paths, negative paths, boundary conditions, and error handling.)
 
-## 5. Test Cases
-
-| Test Case ID | Feature Being Tested | Preconditions | Test Steps | Test Data | Expected Result |
+| Test Case ID | Feature Tested | Preconditions | Steps | Test Data | Expected Results |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **TC-BOOK-01** | Create New Book (Happy Path) | User is logged in. | 1. Navigate to "Manage Books". <br> 2. Click "Add Book". <br> 3. Fill in the form. <br> 4. Click "Save". | Name: "Test Book", Default Currency: "JPY" | The book "Test Book" is created successfully and appears in the book list. |
-| **TC-BOOK-02** | Create Book with Duplicate Name (Negative Path) | User has an existing book named "Test Book". | 1. Navigate to "Manage Books". <br> 2. Click "Add Book". <br> 3. Fill in the form with the same name. <br> 4. Click "Save". | Name: "Test Book", Default Currency: "JPY" | An error message is displayed indicating the book name already exists. The book is not created. |
-| **TC-BOOK-03** | Create Book from Template | User is logged in. | 1. Navigate to "Manage Books". <br> 2. Click "Add Book" and select "From Template". <br> 3. Choose the "Daily Life" template. <br> 4. Name the book "My Life". <br> 5. Click "Create". | Template: "Daily Life", Name: "My Life" | A new book "My Life" is created, populated with all categories and tags from the "Daily Life" template. |
-| **TC-BOOK-04** | Delete Book with Transactions (Negative Path) | A book named "Project X" exists and has at least one transaction recorded in it. | 1. Navigate to "Manage Books". <br> 2. Find "Project X" in the list. <br> 3. Click the "Delete" button. | N/A | An error message is displayed, stating that a book with transactions cannot be deleted. The book remains. |
-| **TC-BOOK-05** | Delete Empty Book (Happy Path) | A book named "Empty Book" exists and has no transactions. | 1. Navigate to "Manage Books". <br> 2. Find "Empty Book" in the list. <br> 3. Click the "Delete" button. | N/A | The book "Empty Book" is successfully deleted from the list. |
-| **TC-BOOK-06** | Switch Active Book | User has at least two books: "Personal" (default) and "Business". | 1. Click on the book switcher dropdown. <br> 2. Select "Business". | N/A | The application view refreshes. The dashboard and transaction list now show data only from the "Business" book. The book switcher now indicates "Business" is active. |
+| **TC-BOOK-01** | Create Book from Template | User is logged in. At least one book template exists in `book_tpl.json`. | 1. Navigate to "Manage Books". <br> 2. Select "Create from Template". <br> 3. Choose a template. <br> 4. Enter a unique name and select a currency. <br> 5. Save. | Name: "My Test Book", Template: "Daily Life", Currency: "USD" | A new book named "My Test Book" is created. It contains all the categories, tags, and payees defined in the "Daily Life" template. |
+| **TC-BOOK-02** | Create Book by Copying | User is logged in. An existing book named "Source Book" exists with 5 categories and 3 tags. | 1. Navigate to "Manage Books". <br> 2. Select "Create by Copying". <br> 3. Choose "Source Book". <br> 4. Enter a new unique name. <br> 5. Save. | New Name: "Copied Book" | A new book named "Copied Book" is created. It has its own set of 5 categories and 3 tags that are identical in name and structure to those in "Source Book". |
+| **TC-BOOK-03** | **(Negative)** Delete Book with Transactions | A book named "Active Book" exists and has at least one transaction record associated with it. | 1. Navigate to "Manage Books". <br> 2. Select "Active Book". <br> 3. Click "Delete". | Book ID for "Active Book" | The operation fails. The system displays an error message: "This book cannot be deleted because it has transaction records." |
+| **TC-BOOK-04** | **(Negative)** Create Book with Duplicate Name | A book named "Existing Book" already exists in the user's current group. | 1. Navigate to "Manage Books". <br> 2. Select "Create Book". <br> 3. Enter the name "Existing Book". <br> 4. Save. | Name: "Existing Book" | The operation fails. The system displays an error message indicating that a book with this name already exists. |
+| **TC-BOOK-05** | Switch Active Book | User has two books: "Book A" (default) and "Book B". | 1. From the main navigation, select "Book B". | Book ID for "Book B" | The application reloads. The displayed transactions, accounts, and reports are now scoped to "Book B". The user's `default_book_id` in the database is updated to the ID of "Book B". |
+| **TC-BOOK-06** | Delete an Empty Book | A book named "Empty Book" exists and has no transactions. | 1. Navigate to "Manage Books". <br> 2. Select "Empty Book". <br> 3. Click "Delete". | Book ID for "Empty Book" | The book "Empty Book" and all its associated categories, tags, and payees are successfully deleted from the database. |
 
-## 6. Assumptions
+---
 
-*   It is assumed that the `Limitation.book_max_count` constant is configured to a reasonable number to prevent performance degradation from an excessive number of books.
-*   It is assumed that the `book_tpl.json` file is always present in the application's classpath and is well-formed.
-*   It is assumed that when a user's default book is disabled, the logic to revert their default to the group's default book is sufficient to prevent them from being locked into an unusable context.
-*   It is assumed that the frontend UI correctly disables the "Delete" button for a book that is set as the group's default, as the backend logic for this check is present but commented out in the `remove` method.
+### 6.0 Assumptions
+(Document any assumptions made during the analysis due to ambiguity or lack of definitive information. Explain the reasoning for each assumption.)
+
+*   **User Authentication:** It is assumed that the user is already authenticated and their session (`CurrentSession`) is properly populated with their user and group context. The journey focuses on book management, not the login process.
+*   **UI Implementation:** This analysis is based on the backend API and service logic. It is assumed that a corresponding frontend exists to expose these functionalities to the user through a graphical interface (e.g., forms, buttons, dropdowns).
+*   **Template File Availability:** It is assumed that the `book_tpl.json` file is always present in the application's classpath and is correctly formatted. The `BookTplDataLoader` handles loading this file, but the analysis assumes it succeeds.
+*   **Permissions:** It is assumed that the user has the necessary permissions within their group to create, edit, and delete books. The code does not show explicit role checks for book management, implying that any member of a group can manage books.
+*   **Single-Tenancy Model:** The logic is scoped to a `Group`. It is assumed that a user operates within one active group at a time, and all book operations are confined to that group.

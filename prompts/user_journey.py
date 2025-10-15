@@ -12,81 +12,67 @@ Args:
 """
 
 user_journey_prompt_string = """
-Look at the $codmod_detailed_relative_file_path file, and the $codmod_data_relative_file_path file. 
-These files represent a report for code in moneynote-api directory. 
-As a senior business analyst Document $user_journey_name as a markdown file with the following format:
+You are a senior business analyst. Your task is to create a comprehensive User Journey Analysis Document for `$user_journey_name`.
 
-1. Detailed User Journeys and Flows
+## Context & Sources
 
-*   Capture the step-by-step interactions a user has with the system to achieve a specific business goal.
-    *   Document each distinct and significant user journey.
-    *   For each journey, provide a clear, sequential description of user actions and system responses.
-    *   Include decision points, alternative paths, and error handling scenarios within the flow.
-    *   Visual representation (e.g., flowcharts, sequence diagrams) is highly encouraged to illustrate the flow.
-    *   Clearly identify the start and end points of each journey.
-    *   If multiple journeys lead to similar outcomes with variations, document these variations.
+*   **Source for Code Analysis:** `$codmod_detailed_relative_file_path` and `$codmod_data_relative_file_path` (These are reports from a tool called CodMod).
+*   **Definitive Reference for Implementation:** The `moneynote-api` source code directory.
 
-2. Detailed Object Level Data Structures
+## Instructions
 
-*   Document the structure and attributes of key data entities within the system
-    *   Identify and list all significant data entities (e.g., Customer, Order, Product, Invoice, User Account).
-    *   For each entity, list all its data attributes as they exist in the code or database.
-    *   For each attribute, capture:
-        *   Attribute Name (exact name from code/database).
-        *   Data Type (e.g., `string`, `integer`, `boolean`, `datetime`, `decimal`, `enum`, `complex_object`).
-        *   Constraints or Properties (e.g., `NOT NULL`, `UNIQUE`, `PRIMARY KEY`, `FOREIGN KEY`, `maxLength`, `defaultValue`, `isEncrypted`).
-        *   A brief description of what the attribute represents.
-    *   Indicate relationships between entities where relevant (e.g., One-to-Many, Many-to-Many).
+1.  Your task is to create a comprehensive analysis document by synthesizing information from the provided CodMod reports and the application source code.
+2.  Do not capture functionality or data structures that are not documented in the system. Do not create new requirements or functionality.
+3.  Only focus on the specific user journey you're given (`$user_journey_name`). Do not include details that are not related to this user journey.
+4.  The primary objective is to ensure that all documented details are:
+    *   **Accurate:** Directly traceable to the source code or analysis reports.
+    *   **Comprehensive:** Covering all aspects of the user journey as defined in the structure below.
+    *   **Clear:** Written in a way that is easy for both technical and non-technical stakeholders to understand.
 
-3. Database Tables to be Updated
+## Analysis and Synthesis
 
-*   Identify which database tables are directly impacted by user actions and system processes.
-    *   For each documented user journey and major functional area, list the specific database tables that are:
-        *   Read from (e.g., for data retrieval).
-        *   Written to (e.g., `INSERT`, `UPDATE`, `DELETE` operations).
-    *   Specify the typical operations performed on each table within the context of the documented functionality.
+*   **Analyze the Code Reports:** Use the CodMod reports to understand the high-level flows, data interactions, and business logic related to the user journey.
+*   **Analyze the Source Code:** Refer to the `moneynote-api` directory to extract precise details about data models, business rules, and step-by-step processes that the reports might not fully capture.
+*   **Synthesize and Structure:** Generate the final document using the precise markdown structure provided below. Do not deviate from these sections.
 
-4. Business Rules and Functionality (Detailed)
+## Document Structure to Generate
 
-*   Capture the explicit and implicit logic that governs the system's behavior and data integrity.
-    *   Provide a detailed description of all identified business rules.
-    *   For each rule, specify:
-        *   **Rule Name/Identifier:** A concise name for the rule.
-        *   **Description:** A clear explanation of the rule.
-        *   **Triggering Event:** What action or condition initiates this rule?
-        *   **Logic/Conditions:** The specific criteria, calculations, or conditional statements involved.
-        *   **Outcome/Action:** What happens when the rule is met or violated?
-    *   **Validations (Front-end and Back-end):**
-        *   **Front-end Validations:** Detail any checks performed on the user interface to guide user input and provide immediate feedback (e.g., "required field," "email format," "numeric range").
-        *   **Back-end Validations:** Detail any checks performed on the server-side to ensure data integrity, security, and adherence to business logic (e.g., "inventory check," "user permissions," "data consistency checks"). For each validation, describe the rule being enforced and the consequence of failure.
+# User Journey Analysis: $user_journey_name
 
-5. Test Cases
+### 1.0 Detailed User Journeys and Flows
+(Capture the step-by-step interactions a user has with the system to achieve the specific business goal of this journey. Document each distinct flow, including user actions, system responses, decision points, alternative paths, and error handling. Clearly identify start and end points.)
 
-*   Create a comprehensive set of test cases that can verify the correct implementation of user journeys and business rules.
-    *   Develop detailed test cases for each significant user journey and business rule.
-    *   Each test case should include:
-        *   **Test Case ID:** A unique identifier.
-        *   **Feature/User Story/Rule Being Tested:** Clear reference to the item under test.
-        *   **Preconditions:** Any setup required before executing the test.
-        *   **Test Steps:** A precise, sequential list of actions to perform.
-        *   **Test Data:** Specific input data required for the test.
-        *   **Expected Result:** The anticipated outcome of performing the test steps with the given data.
-    *   Include test cases for:
-        *   **Happy Paths:** Valid scenarios.
-        *   **Negative Paths:** Invalid inputs and error conditions.
-        *   **Boundary Conditions:** Testing limits and edge cases of data inputs.
-        *   **Error Handling:** Verifying how the system responds to exceptions and invalid states.
+---
 
-6. Assumptions
+### 2.0 Detailed Object Level Data Structures
+(Document the structure and attributes of key data entities involved in this journey. For each entity, list its attributes, data types, constraints (e.g., `NOT NULL`, `FOREIGN KEY`), and a brief description. Indicate relationships between entities.)
 
-*   To document any assumptions made during the extraction process due to ambiguity or lack of definitive information.
-    *   List all assumptions clearly and concisely.
-    *   For each assumption, explain the reasoning or the gap in information that led to it.
-    *   These assumptions are critical for understanding the context and potential areas for further investigation.
+---
 
+### 3.0 Database Tables to be Updated
+(Identify which database tables are directly impacted by this user journey. List the tables that are read from and written to (`INSERT`, `UPDATE`, `DELETE`). Specify the operations performed on each table within the context of the journey.)
 
-Generate the output to markdown, and save the file to the following absolute path $absolute_file_path file.
-Refer to the original code for further context
+---
+
+### 4.0 Business Rules and Functionality (Detailed)
+(Capture the explicit and implicit logic governing the system's behavior for this journey. For each rule, specify its name, description, trigger, logic, and outcome. Detail both front-end and back-end validations.)
+
+---
+
+### 5.0 Test Cases
+(Create a comprehensive set of test cases to verify the correct implementation of the user journey and its business rules. Each test case should include an ID, the feature being tested, preconditions, steps, test data, and expected results. Cover happy paths, negative paths, boundary conditions, and error handling.)
+
+---
+
+### 6.0 Assumptions
+(Document any assumptions made during the analysis due to ambiguity or lack of definitive information. Explain the reasoning for each assumption.)
+
+---
+
+Create the document in markdown format, and output to `$absolute_file_path`.
+
+Please generate the complete and final response without stopping or asking for confirmation to continue.
+
 """
 
 # Functional Spec Introduction
