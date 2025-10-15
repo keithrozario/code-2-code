@@ -1,7 +1,7 @@
-from fastapi.testclient import TestClient
 import jwt
-
+from fastapi.testclient import TestClient
 from main import app
+
 from config import settings
 
 client = TestClient(app)

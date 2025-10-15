@@ -1,8 +1,7 @@
-from fastapi import FastAPI, Depends
-from fastapi.testclient import TestClient
-import pytest
 import jwt
-
+import pytest
+from fastapi import Depends, FastAPI
+from fastapi.testclient import TestClient
 from moneynote.routers.deps import get_current_user
 
 app = FastAPI()

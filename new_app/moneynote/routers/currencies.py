@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends
 from typing import List
+
+from fastapi import APIRouter, Depends
+
 from ..schemas.currency import Currency
-from .deps import get_current_user
 from ..services.data_loader import CURRENCIES
+from .deps import get_current_user
 
 router = APIRouter(
     prefix="/currencies",

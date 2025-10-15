@@ -1,11 +1,14 @@
-import os
-import time
 import json
+import os
 import subprocess
-from mrkdwn_analysis import MarkdownAnalyzer
-from typing import List
-import config
+import time
 from string import Template
+from typing import List
+
+from mrkdwn_analysis import MarkdownAnalyzer
+
+import config
+
 
 def get_md_analyzer_and_content(file_path:str):
     """

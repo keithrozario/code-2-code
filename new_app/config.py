@@ -1,5 +1,6 @@
-from pydantic_settings import BaseSettings
 from pydantic import ConfigDict
+from pydantic_settings import BaseSettings
+
 
 class Settings(BaseSettings):
     APP_VERSION: str = '1.0.0'

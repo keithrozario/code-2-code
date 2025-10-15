@@ -1,6 +1,5 @@
-from fastapi.testclient import TestClient
 import jwt
-
+from fastapi.testclient import TestClient
 from main import app
 from moneynote.schemas.currency import Currency
 

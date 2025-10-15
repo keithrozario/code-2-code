@@ -1,8 +1,7 @@
-import prompts.user_journey
-import prompts.database_design
-import prompts.api_design
 import config
-
+import prompts.api_design
+import prompts.database_design
+import prompts.user_journey
 from helper_funcs import generate_doc_file, get_user_journey_header_texts
 
 ## User Journeys

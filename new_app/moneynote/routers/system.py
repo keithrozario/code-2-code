@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends
+
 from config import settings
+
 from .deps import get_current_user
 
 router = APIRouter()

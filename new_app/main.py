@@ -1,7 +1,9 @@
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from moneynote.services.data_loader import load_currencies, load_book_templates
-from moneynote.routers import system, currencies, book_templates
+
+from fastapi import FastAPI
+from moneynote.routers import book_templates, currencies, system
+from moneynote.services.data_loader import load_book_templates, load_currencies
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

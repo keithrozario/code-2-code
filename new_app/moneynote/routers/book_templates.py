@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends
 from typing import List
+
+from fastapi import APIRouter, Depends
+
 from ..schemas.book_template import BookTemplate
-from .deps import get_current_user
 from ..services.data_loader import BOOK_TEMPLATES
+from .deps import get_current_user
 
 router = APIRouter()
 

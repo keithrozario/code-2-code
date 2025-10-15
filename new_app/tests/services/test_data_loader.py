@@ -1,8 +1,9 @@
 import json
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
 
 import pytest
 from moneynote.services import data_loader
+
 
 def test_load_currencies_success():
     mock_json_data = '[{"code": "USD", "name": "United States Dollar"}]'
