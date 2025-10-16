@@ -1,149 +1,130 @@
-# Journey 5: Supporting Multiple Currencies
+# User Journey Analysis: Journey 5: Supporting Multiple Currencies
 
-This document outlines the user journeys, data structures, and business logic related to the multi-currency support feature in the Moneynote API.
+### 1.0 Detailed User Journeys and Flows
+This journey describes how a user who deals with more than one currency manages their accounts and transactions.
 
-## 1. Detailed User Journeys and Flows
+**User Flow 1: Setting up a Foreign Currency Account**
+1.  **Start:** The user decides to add a new bank account that is denominated in a foreign currency (e.g., a EUR account while their primary currency is USD).
+2.  The user navigates to the "Accounts" section and clicks "Add Account".
+3.  In the account creation form, the user enters the account name (e.g., "My European Bank").
+4.  The user selects the currency for the account from a dropdown list of available world currencies (e.g., "EUR").
+5.  The user saves the account.
+6.  **End:** The new account now appears in their list of accounts, clearly marked with its currency.
 
-### Journey 5.1: Viewing Available Currencies and Exchange Rates
+**User Flow 2: Recording an Expense in a Foreign Currency**
+1.  **Start:** The user makes a purchase in a foreign currency (e.g., buys a coffee for €3.50 in Berlin) using their foreign currency account.
+2.  The user opens the MoneyNote app to record the expense.
+3.  They create a new "Expense" transaction.
+4.  They select their "My European Bank" (EUR) account.
+5.  They enter the amount: `3.50`.
+6.  **System Response:** The system detects that the account's currency (EUR) is different from the book's default currency (USD).
+7.  The UI displays an additional field, "Converted Amount (USD)", and may suggest a value based on the current exchange rate (e.g., "$3.78").
+8.  The user can accept the suggested conversion or manually enter the precise amount from their bank statement.
+9.  The user fills in the rest of the transaction details (category, payee) and saves.
+10. **End:** The transaction is recorded. The balance of the EUR account is reduced by €3.50, and for reporting purposes, the expense is logged as $3.78.
 
-**Objective:** To allow a user to see the list of supported currencies and their current exchange rates relative to a specific base currency.
+**User Flow 3: Transferring Funds Between Different Currency Accounts**
+1.  **Start:** The user wants to transfer money from their primary USD account to their EUR account.
+2.  The user creates a new "Transfer" transaction.
+3.  For the "From" account, they select their "US Checking" (USD).
+4.  For the "To" account, they select their "My European Bank" (EUR).
+5.  They enter the amount to send: `100` (USD).
+6.  **System Response:** The system requires the user to enter the final amount received in the destination currency.
+7.  The user enters the received amount: `92.50` (EUR), based on the bank's transfer record.
+8.  The user saves the transfer.
+9.  **End:** The balance of the "US Checking" account is reduced by $100, and the balance of the "My European Bank" account is increased by €92.50.
 
-**Flow:**
-1.  **Start:** The user navigates to the currency management section of the application.
-2.  **User Action:** The user requests the list of currencies. They can optionally specify a base currency (e.g., "EUR") to see all rates relative to it.
-3.  **System Response:** The system calls the `GET /currencies` endpoint.
-4.  **Backend Logic:**
-    *   The `CurrencyService` retrieves the list of `CurrencyDetails` objects held in memory.
-    *   If a `base` currency is provided in the query, the service calculates the exchange rate of every currency relative to the specified base currency. The base for all stored rates is USD, so the calculation is `(target_rate_to_usd) / (base_rate_to_usd)`.
-    *   The service returns a paginated list of currencies with their names, descriptions, and calculated rates.
-5.  **System Response:** The UI displays the list of currencies and their exchange rates.
-6.  **End:** The user has viewed the currency exchange rates.
-
----
-
-### Journey 5.2: Recording a Transaction in a Foreign Currency
-
-**Objective:** To allow a user to record a transaction (expense, income) in an account whose currency is different from the book's default currency.
-
-**Flow:**
-1.  **Start:** The user initiates the creation of a new transaction (e.g., an expense).
-2.  **User Action:** The user selects an account for the transaction. Let's assume the book's default currency is `CNY` and the user selects a credit card account with `USD` currency.
-3.  **User Action:** The user enters the transaction amount, for example, `100 USD`.
-4.  **System Response (Frontend):** The UI detects that the account currency (`USD`) is different from the book's base currency (`CNY`). It makes a call to the backend (`GET /currencies/calc?from=USD&to=CNY&amount=100`) to get the calculated converted amount.
-5.  **System Response (Frontend):** The UI displays the original amount (`100 USD`) and the automatically converted amount (e.g., `~710 CNY`) to the user. The user might be given the option to override the converted amount.
-6.  **User Action:** The user confirms and saves the transaction.
-7.  **System Response:** The system calls the `POST /balance-flows` endpoint, sending a `BalanceFlowAddForm` payload. This payload includes the original `amount` (100) and the `convertedAmount` (710). The `account` field specifies the ID of the USD account.
-8.  **Backend Logic:**
-    *   The `BalanceFlowService` creates a new `BalanceFlow` entity.
-    *   It saves both the original `amount` (100) and the `convertedAmount` (710).
-    *   The transaction is now stored. All reporting and budget calculations within the book will use the `convertedAmount`.
-9.  **End:** The foreign currency transaction is successfully recorded and converted to the book's base currency.
-
----
-
-### Journey 5.3: Manually Updating an Exchange Rate
-
-**Objective:** To allow a user to override the system's exchange rate for a specific currency.
-
-**Flow:**
-1.  **Start:** The user navigates to the currency list.
-2.  **User Action:** The user decides the rate for a currency (e.g., `EUR`) is incorrect and wants to change it. They select the option to edit the rate.
-3.  **User Action:** The user provides the new rate. For example, they set `1 EUR = 1.15 USD`.
-4.  **System Response:** The UI calls the `PUT /currencies/{id}/rate` endpoint (where `{id}` is the ID of the EUR currency). The payload (`ChangeRateForm`) contains the base currency (`"base": "USD"`) and the new rate (`"rate": 1.15`).
-5.  **Backend Logic:**
-    *   The `CurrencyService` receives the request.
-    *   It finds the `CurrencyDetails` object for EUR in the in-memory list.
-    *   It calculates the new rate relative to the system's base (USD). In this case, the form provides the rate against USD directly. The service updates the `rate` property of the EUR `CurrencyDetails` object to `1.15`.
-    *   This change is **not persistent** and will be lost on application restart or when the automatic refresh runs.
-6.  **End:** The exchange rate is updated for the current application session.
+**Error Handling:**
+*   If a user tries to save a transaction with an invalid or unsupported currency code, the system will reject it with a validation error.
+*   If the external exchange rate API is unavailable, the system will fall back to the rates stored locally in `currency.json`.
 
 ---
 
-### Journey 5.4: System-Driven Exchange Rate Refresh
+### 2.0 Detailed Object Level Data Structures
 
-**Objective:** To keep exchange rates up-to-date automatically.
-
-**Flow:**
-1.  **Start (Trigger):** The application starts up, or a user triggers a manual refresh via `POST /currencies/refresh`.
-2.  **System Action:** The `CurrencyRemoteDataLoader` (on startup) or `CurrencyController` (on manual request) calls `currencyService.refreshCurrency()`.
-3.  **Backend Logic:**
-    *   The `CurrencyService` makes an HTTP GET request to an external API (`https://api.exchangerate-api.com/v4/latest/USD`).
-    *   It parses the response, which contains a map of currency codes to their rates against USD.
-    *   It iterates through the currencies it manages in memory. For each currency, if it exists in the response from the external API, its `rate` property is updated.
-4.  **Error Handling:** If the external API call fails, the existing rates are preserved. The method returns `false`.
-5.  **End:** The in-memory exchange rates are updated with the latest values from the external provider.
-
-## 2. Detailed Object Level Data Structures
-
-### `CurrencyDetails` (In-Memory Object)
-This object is not a JPA entity and is not stored in the database. It is loaded from `currency.json` and held in an application-scoped bean.
-
-| Attribute Name | Data Type | Constraints/Properties | Description |
+**`Account` Entity (`t_user_account` table)**
+Represents a financial account.
+| Attribute | Data Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
-| `id` | `Integer` | | Unique identifier from the JSON file. |
-| `name` | `String` | | The 3-letter currency code (e.g., "USD", "EUR"). |
-| `description` | `String` | | A human-readable description of the currency. |
-| `rate` | `Double` | | The exchange rate of this currency against the base currency (USD). |
-| `rate2` | `Double` | (transient) | Used to hold a calculated rate against a user-specified base currency for display purposes. |
+| `id` | `INTEGER` | Primary Key | Unique identifier for the account. |
+| `currencyCode` | `VARCHAR(8)` | `NOT NULL` | The ISO currency code for the account (e.g., "USD", "EUR"). |
+| `balance` | `DECIMAL(20,2)` | `NOT NULL` | The current balance in the account's specified currency. |
 
-### `Book` (JPA Entity)
-This entity represents a user's ledger or book.
-
-| Attribute Name | Data Type | Constraints/Properties | Description |
+**`Book` Entity (`t_user_book` table)**
+Represents a ledger for recording transactions.
+| Attribute | Data Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
-| `defaultCurrencyCode` | `string` | `NOT NULL`, `length=8` | The base currency for this book. All financial reports for this book are in this currency. |
+| `id` | `INTEGER` | Primary Key | Unique identifier for the book. |
+| `defaultCurrencyCode` | `VARCHAR(8)` | `NOT NULL` | The default currency for the book, used for all reporting. |
 
-### `Account` (JPA Entity)
-This entity represents a financial account (e.g., bank account, credit card).
-
-| Attribute Name | Data Type | Constraints/Properties | Description |
+**`BalanceFlow` Entity (`t_user_balance_flow` table)**
+The central transaction entity.
+| Attribute | Data Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
-| `currencyCode` | `string` | `NOT NULL`, `length=8` | The currency of this account. |
+| `id` | `INTEGER` | Primary Key | Unique identifier for the transaction. |
+| `amount` | `DECIMAL(15,2)` | `NOT NULL` | The transaction amount in the original currency of the transaction/account. |
+| `convertedAmount` | `DECIMAL(15,2)` | `Nullable` | The transaction amount converted to the book's default currency. Required if the transaction currency differs from the book's default. |
 
-### `BalanceFlow` (JPA Entity)
-This entity represents a single transaction or flow of money.
+**`CurrencyDetails` (In-Memory Object)**
+Represents a currency and its exchange rate, loaded from `currency.json` and an external API.
+| Attribute | Data Type | Description |
+| :--- | :--- | :--- |
+| `id` | `Integer` | Unique identifier from the JSON file. |
+| `name` | `String` | The ISO currency code (e.g., "USD"). |
+| `description` | `String` | The full name of the currency. |
+| `rate` | `Double` | The exchange rate relative to a base currency (USD). |
 
-| Attribute Name | Data Type | Constraints/Properties | Description |
-| :--- | :--- | :--- | :--- |
-| `amount` | `BigDecimal` | `NOT NULL` | The original amount of the transaction in the account's currency. |
-| `convertedAmount` | `BigDecimal` | | The transaction amount converted to the book's `defaultCurrencyCode`. Used for reporting. |
+---
 
-## 3. Database Tables to be Updated
+### 3.0 Database Tables to be Updated
 
-The currency management system is primarily in-memory and does not have its own dedicated database table. However, it impacts the following tables:
+This user journey primarily involves reading currency information and ensuring transaction data is correctly stored.
 
-*   **`t_user_book`**:
-    *   **Read**: The `defaultCurrencyCode` is read when performing currency conversions for transactions within that book.
-    *   **Write**: The `defaultCurrencyCode` is set when a new book is created.
-*   **`t_user_account`**:
-    *   **Read**: The `currencyCode` is read to determine the currency of a transaction.
-    *   **Write**: The `currencyCode` is set when a new account is created.
+**Tables Read From:**
+*   `t_user_account`: To get the `currencyCode` of an account involved in a transaction.
+*   `t_user_book`: To get the `defaultCurrencyCode` to determine if a conversion is needed.
+
+**Tables Written To (`INSERT`, `UPDATE`):**
 *   **`t_user_balance_flow`**:
-    *   **Write**: When a transaction is created, the `amount` and `convertedAmount` are written. The `convertedAmount` is calculated based on the exchange rates managed by the `CurrencyService`.
+    *   `INSERT`: A new transaction record is created.
+    *   The `amount` field is populated with the value in the transaction's original currency.
+    *   The `convertedAmount` field is populated if the transaction's currency is different from the book's default currency.
+*   **`t_user_account`**:
+    *   `UPDATE`: The `balance` of the associated account(s) is updated when a transaction is confirmed. The update is always in the currency of the account itself.
 
-## 4. Business Rules and Functionality (Detailed)
+---
 
-| Rule Name/Identifier | Description | Triggering Event | Logic/Conditions | Outcome/Action |
+### 4.0 Business Rules and Functionality (Detailed)
+
+| Rule Name | Description | Trigger | Logic | Outcome |
 | :--- | :--- | :--- | :--- | :--- |
-| **Currency Code Validation** | Ensures that any provided currency code is one of the supported currencies. | Any operation involving a currency code (e.g., creating an account, setting book currency). | `CurrencyService.checkCode(code)` is called. It checks if the code exists in the in-memory list of currencies. | If the code is not found, a `FailureMessageException` is thrown. |
-| **Transaction Conversion** | Automatically converts a transaction amount to the book's base currency if the transaction's account has a different currency. | A `BalanceFlow` (transaction) is created or updated. | `if (!account.currencyCode.equals(book.defaultCurrencyCode))` | The `convertedAmount` field on the `BalanceFlow` is calculated and stored using `CurrencyService.convert(amount, account.currencyCode, book.defaultCurrencyCode)`. |
-| **Rate Calculation** | Calculates the exchange rate between any two currencies. | `GET /currencies/rate`, `GET /currencies/calc`, or internal `convert` calls. | The calculation uses USD as the pivot currency: `Rate(A->B) = Rate(USD->B) / Rate(USD->A)`. | Returns the calculated `BigDecimal` rate. |
-| **Rate Refresh** | Updates all currency rates from an external provider. | Application startup or `POST /currencies/refresh`. | An HTTP GET request is made to `api.exchangerate-api.com`. | The in-memory `rate` for each currency is updated. The changes are not saved to the `currency.json` file. |
+| **Currency Data Loading** | The system must have a list of available world currencies and their exchange rates. | Application Startup | The `CurrencyDataLoader` reads `currency.json` to populate an in-memory list of currencies. The `CurrencyRemoteDataLoader` then calls an external API (`exchangerate-api.com`) to refresh these rates. | The `ApplicationScopeBean` holds a list of `CurrencyDetails` objects available for all sessions. |
+| **Account Currency Assignment** | Every financial account must be assigned a specific currency. | Creating or Editing an `Account`. | The `Account` entity has a mandatory `currencyCode` field. The value must be a valid code from the system's currency list. | An account is permanently associated with a currency (e.g., "USD", "JPY"). |
+| **Book Default Currency** | Every "book" must have a default currency for reporting. | Creating or Editing a `Book`. | The `Book` entity has a mandatory `defaultCurrencyCode` field. | All aggregated reports within that book will be presented in this currency. |
+| **Cross-Currency Detection** | The system must detect when a transaction involves a currency mismatch. | Creating a new `BalanceFlow` (transaction). | The `BalanceFlowService` compares the `currencyCode` of the transaction's `Account` with the `defaultCurrencyCode` of the `Book`. | If the codes are different, the system requires the `convertedAmount` to be provided. |
+| **Transfer Currency Handling** | For transfers between accounts with different currencies, both source and destination amounts must be captured. | Creating a `TRANSFER` type `BalanceFlow`. | The `BalanceFlowService.add()` logic requires both `amount` (source currency value) and `convertedAmount` (destination currency value) for cross-currency transfers. The `confirmBalance()` method then updates the two accounts accordingly. | The source account is debited by `amount`, and the destination account is credited by `convertedAmount`. |
+| **Reporting Aggregation** | All financial reports must present data in a single, consistent currency. | Generating a report (e.g., `ReportService.reportCategory`). | The service uses the `convertedAmount` from `BalanceFlow` records for its calculations. If `convertedAmount` is null (meaning the transaction was in the default currency), it uses the `amount`. | Reports provide an accurate financial summary by comparing like-for-like currency values. |
+| **On-the-Fly Conversion** | The system must provide a utility to calculate currency conversions. | API call to `/currencies/calc`. | The `CurrencyService.calc()` method uses the stored exchange rates to convert a given amount from a source currency to a target currency. | The API returns the calculated converted amount. |
 
-## 5. Detailed Test Cases
+---
 
-| Test Case ID | Feature Being Tested | Preconditions | Test Steps | Test Data | Expected Result |
+### 5.0 Test Cases
+
+| ID | Feature | Preconditions | Steps | Test Data | Expected Result |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| TC-CUR-01 | View Currencies (Happy Path) | System is running. | 1. Make a GET request to `/currencies`. | `base=CNY` | A 200 OK response with a JSON list of currencies. Each currency should have a `rate2` field showing its value against CNY. |
-| TC-CUR-02 | Calculate Conversion (Happy Path) | System is running. Rates are loaded. | 1. Make a GET request to `/currencies/calc`. | `from=USD`, `to=JPY`, `amount=10` | A 200 OK response with the calculated amount in JPY (e.g., `1349.5`). |
-| TC-CUR-03 | Create Foreign Currency Transaction | A book exists with `defaultCurrencyCode` = `CNY`. An account exists with `currencyCode` = `USD`. | 1. POST to `/balance-flows`. | `amount`: 100, `account`: (ID of USD account), `book`: (ID of CNY book). | The `BalanceFlow` is created. The `amount` field is 100. The `convertedAmount` field is correctly calculated to the CNY equivalent (e.g., ~710). |
-| TC-CUR-04 | Manual Rate Update | System is running. A currency with ID 47 (EUR) exists. | 1. PUT to `/currencies/47/rate`. | `{"base": "USD", "rate": 1.20}` | 200 OK. A subsequent GET to `/currencies/rate?from=EUR&to=USD` should return `1.20`. |
-| TC-CUR-05 | Invalid Currency Code | System is running. | 1. Create an account with an invalid currency code. | `currencyCode`: "XYZ" | The API should return a validation error (e.g., 400 Bad Request) with a message like "valid.fail". |
-| TC-CUR-06 | Rate Refresh Failure | External API `api.exchangerate-api.com` is unreachable. | 1. POST to `/currencies/refresh`. | - | The call should fail gracefully (return `false` internally). The existing currency rates in memory should remain unchanged. |
+| TC-CUR-01 | Create Foreign Currency Account | User is logged in. A list of currencies exists. | 1. Navigate to "Accounts". 2. Click "Add Account". 3. Fill in the name. 4. Select a currency from the dropdown. 5. Save. | Name: "Euro Savings", Currency: "EUR" | The account is created successfully and displayed with the "EUR" currency code. |
+| TC-CUR-02 | Record Expense in Foreign Currency | Book default is USD. An account "Euro Savings" exists with currency EUR. | 1. Create a new expense. 2. Select "Euro Savings" account. 3. Enter amount. 4. Enter converted amount. 5. Save. | Amount: 100 (EUR), Converted Amount: 108.00 (USD) | Transaction is saved. "Euro Savings" balance decreases by 100. Expense report shows an expense of $108.00. |
+| TC-CUR-03 | Record Income in Foreign Currency | Book default is USD. An account "Euro Savings" exists with currency EUR. | 1. Create a new income. 2. Select "Euro Savings" account. 3. Enter amount. 4. Enter converted amount. 5. Save. | Amount: 200 (EUR), Converted Amount: 216.00 (USD) | Transaction is saved. "Euro Savings" balance increases by 200. Income report shows an income of $216.00. |
+| TC-CUR-04 | Cross-Currency Transfer | Book default is USD. "US Checking" (USD) and "Euro Savings" (EUR) accounts exist. | 1. Create a new transfer. 2. From: "US Checking". 3. To: "Euro Savings". 4. Amount: 100 (USD). 5. Converted Amount: 92.00 (EUR). 6. Save. | Amount: 100, Converted Amount: 92 | "US Checking" balance decreases by $100. "Euro Savings" balance increases by €92. |
+| TC-CUR-05 | Reporting Accuracy | Multiple transactions exist in different currencies (EUR, JPY), all with correct `convertedAmount` in USD. | 1. Navigate to "Reports". 2. Generate an "Expense by Category" report for the month. | - €50 expense (converted to $54).<br>- ¥1000 expense (converted to $7.40).<br>- $20 expense. | The report correctly sums the `convertedAmount` values. The total expense should be $81.40 (54 + 7.40 + 20). |
+| TC-CUR-06 | Invalid Currency Code | User attempts to create an account with a non-existent currency code. | 1. Attempt to create an account via API. | `currencyCode`: "XYZ" | The API returns a validation error (`valid.fail`). The account is not created. |
+| TC-CUR-07 | Same-Currency Transaction | Book default is USD. An expense is recorded from a USD account. | 1. Create a new expense from a USD account. 2. Enter amount. 3. Save. | Amount: 50 (USD) | The transaction is saved. The `convertedAmount` field in the database is `null`. The report uses the `amount` field for its calculation. |
 
-## 6. State Any Assumptions
+---
 
-*   **External API Dependency:** The system assumes the external exchange rate API at `https://api.exchangerate-api.com/v4/latest/USD` is available, reliable, and will continue to provide data in the expected JSON format with USD as the base.
-*   **In-Memory State:** It is assumed that having currency rates stored only in-memory is an acceptable design choice. This means that any manual rate changes are temporary and will be overwritten by the automatic refresh or lost on restart.
-*   **`currency.json` as Source of Truth:** The initial list of supported currencies is defined entirely by `currency.json`. The system assumes this file is present, correctly formatted, and contains all currencies the application is intended to support.
-*   **USD as Base Rate:** The application logic is built around the assumption that all rates loaded from `currency.json` and the external API are relative to USD. This is crucial for the `convert` function to work correctly.
+### 6.0 Assumptions
+
+*   **Base Currency is USD:** The system assumes that USD is the base currency against which all other exchange rates are calculated. The external API call in `CurrencyService.refreshCurrency()` is hardcoded to fetch rates against USD.
+*   **User Provides Conversion for Transactions:** The system relies on the user to input the `convertedAmount` for expenses, incomes, and transfers. While it can suggest a rate, it does not enforce a calculated rate, allowing the user to enter the exact amount from a bank or credit card statement.
+*   **Static Fallback Rates:** It is assumed that if the external exchange rate API fails, the rates loaded from the local `currency.json` file are acceptable for use, even if they are stale.
+*   **Group-Level Default Currency:** While books have a default currency, the highest-level reporting (like the `AccountService.overview()`) aggregates to the `Group`'s default currency. It's assumed that the book's currency is primarily for display and that the group's currency is the ultimate source of truth for consolidation.

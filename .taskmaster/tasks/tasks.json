@@ -1,0 +1,667 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 11,
+        "title": "Define Pydantic Schemas for /initState Endpoint",
+        "description": "Create the Pydantic schemas required for the `GET /initState` endpoint response. This ensures type safety and proper serialization of the data sent to the client.",
+        "details": "In the `moneynote/schemas/user.py` file (or a new appropriate file), define the following schemas: `UserInState`, `BookInState`, `GroupInState`, and a composite schema `InitStateResponse` that includes these nested objects. These schemas must match the structure specified in the PRD's 200 OK response for `/initState`.",
+        "testStrategy": "Unit tests for the schemas are not required, but they will be validated implicitly by the endpoint tests. Ensure all fields are correctly typed (e.g., `id: int`, `name: str`).",
+        "priority": "high",
+        "dependencies": [],
+        "status": "to-do",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create `state.py` and Define `UserInState` Schema",
+            "description": "Create a new file at `moneynote/schemas/state.py` to house schemas for the `/initState` endpoint. In this file, define the `UserInState` Pydantic schema to represent the user's profile information.",
+            "dependencies": [],
+            "details": "Based on the existing `moneynote/schemas/user.py`, the new `UserInState` schema should inherit from `pydantic.BaseModel`. It should include fields essential for the client's initial state, such as `id: int`, `username: Optional[str]`, `email: Optional[pydantic.EmailStr]`, and `full_name: Optional[str]`. Ensure necessary types are imported from `typing` and `pydantic`.",
+            "status": "pending",
+            "testStrategy": "The schema will be validated by endpoint tests for Task 13. No separate unit test is required."
+          },
+          {
+            "id": 2,
+            "title": "Define `BookInState` Schema in `state.py`",
+            "description": "In the `moneynote/schemas/state.py` file, define the `BookInState` Pydantic schema. This schema will represent a simplified version of a book object for the initial state response.",
+            "dependencies": [
+              "11.1"
+            ],
+            "details": "The `BookInState` schema should inherit from `pydantic.BaseModel` and contain the core fields needed by the frontend: `id: int` and `name: str`. This schema will be nested within the final `InitStateResponse`.",
+            "status": "pending",
+            "testStrategy": "The schema will be validated by endpoint tests for Task 13. No separate unit test is required."
+          },
+          {
+            "id": 3,
+            "title": "Define `GroupInState` Schema in `state.py`",
+            "description": "In the `moneynote/schemas/state.py` file, define the `GroupInState` Pydantic schema. This will represent a simplified version of a group object.",
+            "dependencies": [
+              "11.1"
+            ],
+            "details": "Similar to `BookInState`, the `GroupInState` schema should inherit from `pydantic.BaseModel` and include the fields `id: int` and `name: str`. This schema will also be nested within the final `InitStateResponse`.",
+            "status": "pending",
+            "testStrategy": "The schema will be validated by endpoint tests for Task 13. No separate unit test is required."
+          },
+          {
+            "id": 4,
+            "title": "Define Composite `InitStateResponse` Schema",
+            "description": "In `moneynote/schemas/state.py`, create the main `InitStateResponse` schema that composes the previously defined schemas into the final response structure for the `/initState` endpoint.",
+            "dependencies": [
+              "11.1",
+              "11.2",
+              "11.3"
+            ],
+            "details": "The `InitStateResponse` schema must inherit from `pydantic.BaseModel` and include the fields: `user: UserInState`, `book: Optional[BookInState]`, and `group: Optional[GroupInState]`. The `book` and `group` fields must be optional to handle cases where a user has none. Add an inner `Config` class with `orm_mode = True` to allow automatic mapping from SQLAlchemy models.",
+            "status": "pending",
+            "testStrategy": "The schema will be validated by endpoint tests for Task 13. No separate unit test is required."
+          },
+          {
+            "id": 5,
+            "title": "Expose New Schemas in `moneynote/schemas/__init__.py`",
+            "description": "Update the `moneynote/schemas/__init__.py` file to expose the new `InitStateResponse` schema, making it easily importable in other parts of the application like routers and services.",
+            "dependencies": [
+              "11.4"
+            ],
+            "details": "Add the line `from .state import InitStateResponse` to `moneynote/schemas/__init__.py`. This follows the existing project pattern of making key schemas available at the package level for cleaner imports.",
+            "status": "pending",
+            "testStrategy": "This is a configuration change. Correctness will be verified when other modules successfully import `InitStateResponse` from `moneynote.schemas`."
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Implement Service Logic for GET /initState",
+        "description": "Create the business logic in the service layer to fetch the initial state for a logged-in user, including their profile, default book, and default group.",
+        "details": "In `moneynote/services/user_service.py`, create a function `get_initial_state(db: Session, user: models.User)`. This function will: 1. Use the provided user object. 2. Fetch the user's default book and group using `user.default_book_id` and `user.default_group_id`. 3. Implement the fallback logic: if `default_book_id` or `default_group_id` is null, fetch the first available book/group the user has access to. 4. If no books/groups exist, return null for those fields. 5. Assemble the data into the `InitStateResponse` schema created in task 11.",
+        "testStrategy": "Write unit tests for the `get_initial_state` service function. Mock the database session and user object. Test the primary scenario where defaults exist, and the fallback scenarios where `default_book_id` or `default_group_id` are NULL.",
+        "priority": "high",
+        "dependencies": [
+          11
+        ],
+        "status": "to-do",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define `get_initial_state` function and import dependencies",
+            "description": "In `moneynote/services/user_service.py`, create the function signature for `get_initial_state` and add all necessary imports from SQLAlchemy, models, and schemas.",
+            "dependencies": [],
+            "details": "Create the function `get_initial_state(db: Session, user: models.User)`. Import `Session` from `sqlalchemy.orm`, `models` from `moneynote`, and `schemas` from `moneynote`. The function body can be a placeholder for now. This sets up the basic structure for the service logic.",
+            "status": "pending",
+            "testStrategy": "N/A - This is a structural setup task."
+          },
+          {
+            "id": 2,
+            "title": "Implement logic to fetch default or first available group",
+            "description": "Inside `get_initial_state`, implement the logic to determine the user's default group. Prioritize `user.default_group_id`, and if it's null, fall back to the first group the user is a member of.",
+            "dependencies": [
+              "12.1"
+            ],
+            "details": "Initialize a variable `default_group = None`. First, check if `user.default_group_id` has a value. If it does, query the database for that `models.Group`. If `user.default_group_id` is `None`, check the `user.groups` relationship. If it's not empty, assign the first group (e.g., `user.groups[0]`) to the `default_group` variable. Ensure relationships are loaded if necessary.",
+            "status": "pending",
+            "testStrategy": "In a unit test, mock a user with a `default_group_id` and verify the correct group is fetched. In another test, mock a user with `default_group_id=None` but with associated groups, and verify the first group is selected as the fallback."
+          },
+          {
+            "id": 3,
+            "title": "Implement logic to fetch the user's default book",
+            "description": "Add logic to fetch the user's explicitly set default book based on `user.default_book_id`. This handles the primary case for book selection.",
+            "dependencies": [
+              "12.1"
+            ],
+            "details": "Initialize a variable `default_book = None`. Check if `user.default_book_id` is not `None`. If it has a value, perform a database query to fetch the corresponding `models.Book` and assign it to the `default_book` variable.",
+            "status": "pending",
+            "testStrategy": "In a unit test, mock a user with a `default_book_id` and verify the correct book is fetched."
+          },
+          {
+            "id": 4,
+            "title": "Implement fallback logic for the default book",
+            "description": "If no default book was found in the previous step, implement the fallback logic to select the first available book from the `default_group` (determined in subtask 2).",
+            "dependencies": [
+              "12.2",
+              "12.3"
+            ],
+            "details": "After the logic from subtask 3, add a condition to check if `default_book` is still `None` and if a `default_group` was found. If both are true, check the `default_group.books` relationship. If the group has books, assign the first one (e.g., `default_group.books[0]`) to the `default_book` variable.",
+            "status": "pending",
+            "testStrategy": "In a unit test, mock a user with `default_book_id=None` and a `default_group` that contains books. Verify that the first book from that group is selected as the fallback."
+          },
+          {
+            "id": 5,
+            "title": "Assemble and return the `InitStateResponse` object",
+            "description": "At the end of the function, construct and return an instance of `schemas.InitStateResponse`, populating it with the user's profile, the determined default group, and the determined default book.",
+            "dependencies": [
+              "12.4"
+            ],
+            "details": "Use the `user` object, the `default_group` variable, and the `default_book` variable to create the final response object. The return statement should be `return schemas.InitStateResponse(profile=user, default_group=default_group, default_book=default_book)`. This will leverage the Pydantic schema for correct serialization.",
+            "status": "pending",
+            "testStrategy": "Verify in unit tests that the function's return value is an instance of `InitStateResponse` and that its `profile`, `default_group`, and `default_book` attributes match the mocked data for all scenarios (defaults exist, fallbacks used, no items exist)."
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Create Router and Endpoint for GET /initState",
+        "description": "Expose the initial state functionality by creating the `GET /initState` API endpoint.",
+        "details": "In `moneynote/routers/users.py`, add a new route for `GET /initState`. This endpoint should: 1. Be protected by the existing `get_current_user` dependency from `deps.py`. 2. Call the `user_service.get_initial_state` function created in task 12. 3. Set the `response_model` to the `InitStateResponse` schema. 4. Handle potential exceptions, such as a user not being found (though `get_current_user` should handle this).",
+        "testStrategy": "Integration tests will be written in a separate task. Manual testing can be done using API client tools like Postman or Insomnia with a valid JWT.",
+        "priority": "high",
+        "dependencies": [
+          12
+        ],
+        "status": "to-do",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Import InitStateResponse Schema",
+            "description": "In `moneynote/routers/users.py`, import the `InitStateResponse` schema from `moneynote.schemas.user_schemas` to be used as the response model for the new endpoint.",
+            "dependencies": [],
+            "details": "Locate the line `from ..schemas.user_schemas import UserCreate, User as UserSchema, UserBind` in `moneynote/routers/users.py` and add `InitStateResponse` to the list of imported schemas. The line should look like: `from ..schemas.user_schemas import UserCreate, User as UserSchema, UserBind, InitStateResponse`.",
+            "status": "pending",
+            "testStrategy": "Verify that the application still runs without import errors after the change."
+          },
+          {
+            "id": 2,
+            "title": "Define the GET /initState Route Decorator",
+            "description": "In `moneynote/routers/users.py`, add the FastAPI route decorator for the new endpoint. This will define the path, HTTP method, and other metadata.",
+            "dependencies": [],
+            "details": "Add a new route decorator `@router.get(\"/initState\", ...)` within `moneynote/routers/users.py`. The full path will be `/users/initState` due to the router's prefix. Ensure it's placed logically with other user-related endpoints.",
+            "status": "pending",
+            "testStrategy": "After adding the decorator with a placeholder function, run the application and check the OpenAPI documentation (e.g., at `/docs`) to see if the new endpoint `GET /users/initState` is listed."
+          },
+          {
+            "id": 3,
+            "title": "Set Response Model and OpenAPI Summary",
+            "description": "Configure the route decorator to use `InitStateResponse` as the `response_model` and add a descriptive summary for OpenAPI documentation.",
+            "dependencies": [
+              "13.1",
+              "13.2"
+            ],
+            "details": "Update the decorator from the previous subtask to include `response_model=InitStateResponse` and `summary=\"Get Initial State\"`. The final decorator should look similar to: `@router.get(\"/initState\", response_model=InitStateResponse, summary=\"Get Initial State\")`.",
+            "status": "pending",
+            "testStrategy": "Check the OpenAPI documentation to confirm that the response schema and summary for the `GET /users/initState` endpoint are correctly displayed."
+          },
+          {
+            "id": 4,
+            "title": "Implement Endpoint Function with Dependencies",
+            "description": "Create the asynchronous function for the endpoint and inject the required dependencies: the current authenticated user and the database session.",
+            "dependencies": [
+              "13.2"
+            ],
+            "details": "Below the decorator, define the function `async def get_initial_state(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):`. This signature ensures the endpoint is protected by `get_current_user` and has access to a database session via `get_db`.",
+            "status": "pending",
+            "testStrategy": "Add a `pass` statement or a simple `return {}` inside the function. Use an API client with a valid JWT to hit the endpoint and expect a successful (e.g., 200 OK) response, confirming the dependency injection is working."
+          },
+          {
+            "id": 5,
+            "title": "Call User Service and Return Initial State",
+            "description": "Implement the logic inside the endpoint function to call the `user_service.get_initial_state` function and return its result.",
+            "dependencies": [
+              "13.4"
+            ],
+            "details": "In the `get_initial_state` function body, call the service layer function with the injected user and database session: `return user_service.get_initial_state(db=db, user=current_user)`. This will fetch the initial state data and return it, which FastAPI will serialize according to the `InitStateResponse` model.",
+            "status": "pending",
+            "testStrategy": "Manually test the endpoint using an API client and a valid JWT. Verify that the response body matches the `InitStateResponse` schema, containing user details and information about their default book and group."
+          }
+        ]
+      },
+      {
+        "id": 14,
+        "title": "Write Integration Tests for GET /initState",
+        "description": "Create a comprehensive test suite for the `GET /initState` endpoint to ensure it functions correctly under various conditions.",
+        "details": "In the `tests/` directory, add tests for the `/initState` endpoint. The tests should cover: 1. (TC-PH2-01) The happy path with a user having default book and group. 2. (TC-PH2-02) The case where `default_book_id` is NULL, ensuring the first available book is returned. 3. The case where a user has no books or groups, ensuring `book` and `group` are null in the response. 4. (TC-PH2-03) An unauthorized request with a missing or invalid token, expecting a 401/403 error.",
+        "testStrategy": "Use `pytest` and the `TestClient` from FastAPI. Set up test users, books, and groups in the test database to simulate different scenarios.",
+        "priority": "medium",
+        "dependencies": [
+          13
+        ],
+        "status": "to-do",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set Up Test File and Fixtures for initState Endpoint",
+            "description": "Create a new test file at `tests/routers/test_init_state.py`. This file will house all integration tests for the GET /initState endpoint. Add necessary imports and create a pytest fixture to set up a standard test scenario: a user with two associated books and a default book ID set.",
+            "dependencies": [],
+            "details": "In `tests/routers/test_init_state.py`, import `pytest`, `TestClient`, and relevant schemas. Create a fixture, e.g., `setup_user_with_default_book`, that uses the database session to create a `User`, two `Book` objects, and associates them. Set the `user.default_book_id` to one of the created book IDs. The fixture should provide the test function with the authenticated client, user object, and book objects.",
+            "status": "pending",
+            "testStrategy": "This subtask is foundational. Success is verified by the successful execution of tests in subsequent subtasks that depend on these fixtures."
+          },
+          {
+            "id": 2,
+            "title": "Implement Happy Path Test (TC-PH2-01)",
+            "description": "Using the fixture from the previous subtask, write a test for the happy path scenario where a user has a `default_book_id` set. The test should verify that the endpoint returns the correct default book and group.",
+            "dependencies": [
+              "14.1"
+            ],
+            "details": "Create a test function `test_get_init_state_happy_path`. Use the `setup_user_with_default_book` fixture. Make a GET request to `/users/initState`. Assert the status code is 200. Assert that `response.json()['book']['id']` matches the `user.default_book_id` from the fixture. Also, verify the `user` and `books` list in the response are correct.",
+            "status": "pending",
+            "testStrategy": "Assert against the specific IDs and lengths of objects returned in the JSON response to ensure the data matches the fixture setup."
+          },
+          {
+            "id": 3,
+            "title": "Implement Test for NULL `default_book_id` (TC-PH2-02)",
+            "description": "Create a test case for a user who has access to multiple books but has `default_book_id` set to NULL. The test must verify that the endpoint correctly returns the first available book as the default.",
+            "dependencies": [
+              "14.1"
+            ],
+            "details": "Create a new fixture or test setup that creates a user and at least two books, but ensures `user.default_book_id` is `None`. Make a GET request to `/users/initState`. Assert the status code is 200. Based on the service logic (which defaults to the first book), assert that `response.json()['book']['id']` matches the ID of the first book created for that user.",
+            "status": "pending",
+            "testStrategy": "The `user_service.get_user_init_state` function returns `user_books[0]` if `default_book_id` is not set. The test should confirm this behavior by checking if the returned book ID is the ID of the first book created in the test setup."
+          },
+          {
+            "id": 4,
+            "title": "Implement Test for User with No Books",
+            "description": "Write a test for a user who has no associated books or groups. This simulates a new user who hasn't been added to any resources yet. The test should ensure the `book` and `group` fields are null.",
+            "dependencies": [],
+            "details": "Create a test `test_get_init_state_no_books` that sets up a new user without any associated books. Use a fixture like `get_auth_headers` from `conftest.py` to get a valid token. Call `GET /users/initState`. Assert the status code is 200. Verify that `response.json()['books']` is an empty list, and `response.json()['book']` and `response.json()['group']` are both `null`.",
+            "status": "pending",
+            "testStrategy": "This test isolates the logic for handling users without resources. Assertions should strictly check for empty lists and null values for the relevant keys in the response."
+          },
+          {
+            "id": 5,
+            "title": "Implement Unauthorized Request Test (TC-PH2-03)",
+            "description": "Create a test case to verify that an unauthorized request to `GET /users/initState` is handled correctly. This includes requests with a missing token and requests with an invalid token.",
+            "dependencies": [],
+            "details": "In a new test function `test_get_init_state_unauthorized`, use the `client` fixture directly. First, make a GET request to `/users/initState` with no `Authorization` header. Assert the status code is 401. Second, make another request with an invalid header, e.g., `{'Authorization': 'Bearer invalidtoken'}`. Assert this also returns a 401 status code.",
+            "status": "pending",
+            "testStrategy": "The `get_current_user` dependency should raise an `HTTPException` with status code 401. This test directly verifies that the security dependency is working as expected for this endpoint."
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "title": "Define Pydantic Schemas for PUT /bind",
+        "description": "Create the Pydantic schemas for the `PUT /bind` request body and response.",
+        "details": "In `moneynote/schemas/user.py`, define a `UserBind` schema for the request body containing `username: str`, `password: str`, and `inviteCode: str`. Add appropriate validators, for example, for password complexity if required. Also, define a simple success response schema if needed, as specified in the PRD.",
+        "testStrategy": "Schema will be validated by endpoint tests. Ensure validators for fields like password strength are considered and implemented if necessary.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "to-do",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create the basic UserBind schema in user.py",
+            "description": "In the `moneynote/schemas/user.py` file, create the initial `UserBind` Pydantic schema. This schema will serve as the request body for the `PUT /bind` endpoint.",
+            "dependencies": [],
+            "details": "Create a new class `UserBind` that inherits from `pydantic.BaseModel`. Add the three required fields with their basic types: `username: str`, `password: str`, and `inviteCode: str`. Ensure necessary imports from Pydantic are included.",
+            "status": "pending",
+            "testStrategy": "The existence and basic structure of the schema will be verified by its usage in the endpoint implementation and subsequent endpoint tests."
+          },
+          {
+            "id": 2,
+            "title": "Add a validator for the 'username' field",
+            "description": "Implement a Pydantic validator for the `username` field within the `UserBind` schema to enforce specific constraints.",
+            "dependencies": [
+              "15.1"
+            ],
+            "details": "Using the `@validator('username')` decorator, add a validation method. The validator should check that the username length is between 4 and 32 characters and contains only alphanumeric characters and underscores. Raise a `ValueError` with a clear error message if the validation fails.",
+            "status": "pending",
+            "testStrategy": "Endpoint tests for user binding will include cases with invalid usernames (too short, too long, invalid characters) to ensure the validator is triggered correctly."
+          },
+          {
+            "id": 3,
+            "title": "Add a validator for password complexity",
+            "description": "Implement a Pydantic validator for the `password` field in the `UserBind` schema to enforce minimum security requirements.",
+            "dependencies": [
+              "15.1"
+            ],
+            "details": "Using the `@validator('password')` decorator, add a validation method. The validator must enforce that the password is at least 8 characters long and contains at least one letter and one number. Raise a `ValueError` with a clear error message if the password does not meet these criteria.",
+            "status": "pending",
+            "testStrategy": "Endpoint tests will cover scenarios with weak passwords (too short, no numbers, no letters) to confirm the validator rejects them."
+          },
+          {
+            "id": 4,
+            "title": "Add a validator for the 'inviteCode' field",
+            "description": "Implement a Pydantic validator for the `inviteCode` field in the `UserBind` schema to ensure it's a non-empty string.",
+            "dependencies": [
+              "15.1"
+            ],
+            "details": "Using the `@validator('inviteCode')` decorator, add a validation method. The validator should check that the `inviteCode` is not an empty or whitespace-only string. A simple check for non-emptiness is sufficient for now. Raise a `ValueError` if the code is empty.",
+            "status": "pending",
+            "testStrategy": "Endpoint tests will include a case where the `inviteCode` is an empty string to ensure the request is rejected by the schema validation."
+          },
+          {
+            "id": 5,
+            "title": "Define a success response schema for the /bind endpoint",
+            "description": "Create a Pydantic schema for the successful response of the `PUT /bind` endpoint to ensure a consistent API response structure.",
+            "dependencies": [],
+            "details": "In `moneynote/schemas/user.py`, define a new schema named `UserBindResponse`. Based on existing patterns in `moneynote/schemas/base.py`, it should inherit from a common `BaseResponse` schema if one exists. If not, define it with a simple structure, such as `code: int = 0` and `message: str = 'success'`. This schema will be used as the `response_model` for the endpoint.",
+            "status": "pending",
+            "testStrategy": "The structure of the successful response from the `PUT /bind` endpoint test will be validated against this schema."
+          }
+        ]
+      },
+      {
+        "id": 16,
+        "title": "Implement Service Logic for PUT /bind",
+        "description": "Create the business logic to bind a username and password to an existing user account.",
+        "details": "In `moneynote/services/user_service.py`, create a function `bind_credentials(db: Session, user: models.User, bind_data: schemas.UserBind)`. This function must: 1. Check if `user.username` is already set; if so, raise a `HTTPException` (400 Bad Request). 2. Check if the requested `bind_data.username` is already taken by another user by querying the DB; if so, raise an exception. 3. Validate the `inviteCode`. Per the PRD, the logic is an open question; implement a simple placeholder check (e.g., not empty) and add a `//TODO` comment to revisit. 4. Hash the `bind_data.password` using the existing password hashing utility in `moneynote/security.py`. 5. Update the user object with the new username and hashed password and commit to the database.",
+        "testStrategy": "Write unit tests for the `bind_credentials` service function. Mock the database and test all validation paths: user already bound, username taken, and invalid invite code. Also test the successful update path.",
+        "priority": "high",
+        "dependencies": [
+          15
+        ],
+        "status": "to-do",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define `bind_credentials` function and validate if user is already bound",
+            "description": "In `moneynote/services/user_service.py`, create the function `bind_credentials(db: Session, user: models.User, bind_data: schemas.UserBind)`. Add the initial validation to check if the user account is already bound by checking if `user.username` is not None. If it is already set, raise a 400 HTTPException with the detail 'User account is already bound'.",
+            "dependencies": [],
+            "details": "Create the function signature as specified. Import `HTTPException` from `fastapi`. The first check inside the function should be `if user.username:`. This handles the case where a user who has already bound credentials tries to bind again.",
+            "status": "pending",
+            "testStrategy": "In a unit test, call `bind_credentials` with a mock user object that has a `username` attribute already set. Assert that an `HTTPException` with status code 400 is raised."
+          },
+          {
+            "id": 2,
+            "title": "Implement username availability check",
+            "description": "Within the `bind_credentials` function, check if the username provided in `bind_data.username` is already taken by another user. Use the existing `get_user_by_username` service function for this check. If the username exists, raise a 400 HTTPException with the detail 'Username already taken'.",
+            "dependencies": [
+              "16.1"
+            ],
+            "details": "Call `get_user_by_username(db, username=bind_data.username)`. If the result is not `None`, it means the username is in use. Raise the exception accordingly. This reuses existing service logic as intended.",
+            "status": "pending",
+            "testStrategy": "In a unit test, mock `get_user_by_username` to return an existing user. Call `bind_credentials` and assert that an `HTTPException` with status code 400 and the correct detail message is raised."
+          },
+          {
+            "id": 3,
+            "title": "Add placeholder validation for invite code",
+            "description": "In the `bind_credentials` function, implement a placeholder validation for the `inviteCode` from `bind_data`. The check should ensure the `inviteCode` is not an empty string. If it is empty, raise a 400 HTTPException with the detail 'Invite code is required'. Add a `# TODO` comment to indicate that this logic needs to be revisited.",
+            "dependencies": [
+              "16.1"
+            ],
+            "details": "Add the check `if not bind_data.inviteCode:`. Above this check, add the comment `# TODO: Implement proper invite code validation logic as per PRD.` This fulfills the requirement for a placeholder while flagging it for future work.",
+            "status": "pending",
+            "testStrategy": "In a unit test, call `bind_credentials` with `bind_data` where `inviteCode` is an empty string. Assert that an `HTTPException` with status code 400 is raised."
+          },
+          {
+            "id": 4,
+            "title": "Hash the user's password",
+            "description": "Import the `get_password_hash` utility from `moneynote/security.py`. In the `bind_credentials` function, after all validations have passed, call this function to hash the `bind_data.password` and store it in a variable.",
+            "dependencies": [
+              "16.1"
+            ],
+            "details": "Add `from moneynote.security import get_password_hash` to the top of `user_service.py`. Inside the function, add the line `hashed_password = get_password_hash(bind_data.password)`. This prepares the hashed password for the database update.",
+            "status": "pending",
+            "testStrategy": "This step is best tested as part of the successful update path in the next subtask. The test will verify that the `get_password_hash` function was called with the correct password."
+          },
+          {
+            "id": 5,
+            "title": "Update user model, commit to DB, and return user",
+            "description": "After all checks and password hashing, update the `user` model instance with the new `username` from `bind_data` and the `hashed_password` generated in the previous step. Commit the changes to the database and refresh the user instance to reflect the update. Finally, return the updated user object.",
+            "dependencies": [
+              "16.2",
+              "16.3",
+              "16.4"
+            ],
+            "details": "Set the attributes: `user.username = bind_data.username` and `user.hashed_password = hashed_password`. Then, use the standard SQLAlchemy pattern: `db.add(user)`, `db.commit()`, `db.refresh(user)`. The function should end with `return user`.",
+            "status": "pending",
+            "testStrategy": "Write a unit test for the successful path. Mock the database session. Call `bind_credentials` with valid data. Assert that the user object's `username` and `hashed_password` attributes are updated correctly and that `db.commit()` and `db.refresh()` are called."
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "title": "Create Router and Endpoint for PUT /bind",
+        "description": "Expose the account binding functionality by creating the `PUT /bind` API endpoint.",
+        "details": "In `moneynote/routers/users.py`, add a new route for `PUT /bind`. This endpoint should: 1. Be protected by the `get_current_user` dependency. 2. Accept a request body validated by the `UserBind` schema. 3. Call the `user_service.bind_credentials` function. 4. Return a 200 OK success message on completion.",
+        "testStrategy": "Manual testing with an API client to ensure the endpoint is reachable and correctly processes valid and invalid requests. Integration tests will cover automated verification.",
+        "priority": "high",
+        "dependencies": [
+          16
+        ],
+        "status": "to-do",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Import UserBind Schema and Dependencies",
+            "description": "In `moneynote/routers/users.py`, import the `UserBind` schema from `moneynote.schemas.users` and the `status` object from `fastapi`. These will be used for request body validation and setting the HTTP status code.",
+            "dependencies": [],
+            "details": "Locate the import statements at the top of `moneynote/routers/users.py`. Add `UserBind` to the import line from `moneynote.schemas.users`. Add a new import `from fastapi import status`.",
+            "status": "pending",
+            "testStrategy": "Verify that the application still runs without import errors after adding the new imports."
+          },
+          {
+            "id": 2,
+            "title": "Define the PUT /bind Route Skeleton",
+            "description": "In `moneynote/routers/users.py`, create the basic structure for the new endpoint. This includes the route decorator and an empty async function.",
+            "dependencies": [
+              "17.1"
+            ],
+            "details": "Below the existing routes in `moneynote/routers/users.py`, add the following code block:\n\n```python\n@router.put(\"/bind\", status_code=status.HTTP_200_OK, tags=[\"users\"])\nasync def bind_user_credentials():\n    pass\n```",
+            "status": "pending",
+            "testStrategy": "After adding the skeleton, run the application and check the auto-generated API documentation (e.g., at /docs) to ensure the new `PUT /bind` endpoint is listed under the 'users' tag."
+          },
+          {
+            "id": 3,
+            "title": "Add User Authentication and Request Body Validation",
+            "description": "Modify the endpoint's function signature to include the `get_current_user` dependency for authentication and to validate the incoming request body against the `UserBind` schema.",
+            "dependencies": [
+              "17.2"
+            ],
+            "details": "Update the function signature for `bind_user_credentials` to accept two parameters:\n1. `bind_data: UserBind` to capture and validate the request body.\n2. `current_user: UserModel = Depends(get_current_user)` to ensure the user is authenticated and to get the current user object. The final signature should look like: `async def bind_user_credentials(bind_data: UserBind, current_user: UserModel = Depends(get_current_user)):`",
+            "status": "pending",
+            "testStrategy": "Use an API client to send a request to `PUT /bind` without a JWT. It should fail with a 401/403 Unauthorized error. Then, send a request with a valid JWT but an invalid body (e.g., missing 'username'). It should fail with a 422 Unprocessable Entity error."
+          },
+          {
+            "id": 4,
+            "title": "Implement the Call to user_service.bind_credentials",
+            "description": "Inside the endpoint logic, call the `user_service.bind_credentials` function, passing the authenticated user and the validated request body data.",
+            "dependencies": [
+              "17.3"
+            ],
+            "details": "In the body of the `bind_user_credentials` function, add the service layer call: `await user_service.bind_credentials(user=current_user, bind_data=bind_data)`. This delegates the business logic of binding the account to the service layer.",
+            "status": "pending",
+            "testStrategy": "This step is primarily logic implementation. Manual testing with an API client and valid data will be the main verification, which will be fully covered in the next subtask and the integration test task (Task 18)."
+          },
+          {
+            "id": 5,
+            "title": "Return a 200 OK Success Message",
+            "description": "After the `user_service.bind_credentials` function completes successfully, return a JSON object indicating success.",
+            "dependencies": [
+              "17.4"
+            ],
+            "details": "Following the `await user_service.bind_credentials(...)` call, add a return statement to send a success message to the client. The return statement should be: `return {\"message\": \"Account bound successfully\"}`. The `status_code=200` is already handled by the decorator.",
+            "status": "pending",
+            "testStrategy": "Use an API client to perform a complete, valid request (valid JWT, valid body for a user that can be bound). Verify that the response is a 200 OK with the JSON body `{\"message\": \"Account bound successfully\"}`."
+          }
+        ]
+      },
+      {
+        "id": 18,
+        "title": "Write Integration Tests for PUT /bind",
+        "description": "Create a comprehensive test suite for the `PUT /bind` endpoint to validate all business rules and edge cases.",
+        "details": "In the `tests/` directory, add tests for the `/bind` endpoint. The tests must cover: 1. (TC-PH2-04) The happy path where a user successfully binds credentials. 2. (TC-PH2-05) An attempt to use a username that is already taken, expecting a 400 error. 3. (TC-PH2-06) An attempt to bind an account that already has a username, expecting a 400 error. 4. (TC-PH2-07) A request with an invalid `inviteCode`, expecting a 400 error. 5. A request with a missing or invalid JWT, expecting a 401/403 error.",
+        "testStrategy": "Use `pytest` and `TestClient`. The test setup will require creating multiple users to test the 'username taken' and 'already bound' scenarios.",
+        "priority": "medium",
+        "dependencies": [
+          17
+        ],
+        "status": "to-do",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Test for Unauthorized Access to PUT /bind",
+            "description": "Add a test case to verify that the PUT /bind endpoint correctly rejects requests that are missing a valid JSON Web Token (JWT), ensuring it is properly protected.",
+            "dependencies": [],
+            "details": "In `tests/routers/test_users.py`, create a new test function `test_bind_unauthorized`. This test should make a `PUT` request to `/api/v1/users/bind` without an `Authorization` header. Assert that the server responds with a 401 Unauthorized status code.",
+            "status": "pending",
+            "testStrategy": "Use the `client: TestClient` fixture. Call `client.put('/api/v1/users/bind', json={...})` with some dummy data but without the `headers` fixture. Verify the status code is 401."
+          },
+          {
+            "id": 2,
+            "title": "Implement Happy Path Test for Successful Account Binding (TC-PH2-04)",
+            "description": "Create a test for the successful scenario where a user without a username binds their account using a valid username, password, and invite code.",
+            "dependencies": [],
+            "details": "In `tests/routers/test_users.py`, create `test_bind_success`. This test will require a new user fixture or manual user creation within the test. The user must have `username=None`. You will also need to create a valid `InviteCode` in the database. The test should then make an authenticated `PUT` request to `/api/v1/users/bind` with the new credentials. Assert a 200 OK status and verify that the user's `username` and `hashed_password` fields are updated in the database.",
+            "status": "pending",
+            "testStrategy": "Create a user with `username=None`. Create an `InviteCode` object and add it to the session. Generate a token for the new user. Make the request and assert the 200 status. Then, query the database for that user and assert their username is no longer None."
+          },
+          {
+            "id": 3,
+            "title": "Implement Test for Binding an Already Bound Account (TC-PH2-06)",
+            "description": "Add a test case to ensure that a user who already has a username cannot bind their account again.",
+            "dependencies": [],
+            "details": "In `tests/routers/test_users.py`, create `test_bind_already_bound`. Use the existing `test_user` and `headers` fixtures, as this user already has a username. Make an authenticated `PUT` request to `/api/v1/users/bind`. Assert that the response status code is 400 Bad Request and that the response detail message is 'User already has a username'.",
+            "status": "pending",
+            "testStrategy": "Leverage the standard `test_user` and `headers` fixtures from `conftest.py`. Make a `PUT` request to `/api/v1/users/bind` and assert the status code is 400 and check the JSON response for the specific error message."
+          },
+          {
+            "id": 4,
+            "title": "Implement Test for Binding with a Taken Username (TC-PH2-05)",
+            "description": "Create a test to validate that the system prevents a user from binding with a username that is already in use by another user.",
+            "dependencies": [],
+            "details": "In `tests/routers/test_users.py`, create `test_bind_username_taken`. This test requires setting up two users: `user_A` (who already has the target username, e.g., 'existing_user') and `user_B` (who is performing the bind action and has `username=None`). Authenticate as `user_B` and attempt to bind using 'existing_user' as the username. Assert that the response is a 400 Bad Request with the detail message 'Username already taken'.",
+            "status": "pending",
+            "testStrategy": "Create two users in the test function. The first user can be created using the existing `user_service.create_user`. The second user will be the one making the request. Generate a token for the second user and attempt the bind operation with the first user's username. Assert the 400 status and error message."
+          },
+          {
+            "id": 5,
+            "title": "Implement Test for Binding with an Invalid Invite Code (TC-PH2-07)",
+            "description": "Add a test case to ensure the endpoint rejects requests containing an invite code that does not exist in the database.",
+            "dependencies": [
+              "18.2"
+            ],
+            "details": "In `tests/routers/test_users.py`, create `test_bind_invalid_invite_code`. Set up a user who is eligible for binding (i.e., `username=None`). Authenticate as this user and make a `PUT` request to `/api/v1/users/bind` with a fictional `invite_code` (e.g., 'invalid-code-123'). Assert that the response status is 400 Bad Request and the detail message is 'Invalid invite code'.",
+            "status": "pending",
+            "testStrategy": "This test is similar to the happy path but omits the creation of a valid `InviteCode` in the database. Create a user with `username=None`, generate their token, and make the request with a non-existent code. Assert the 400 status and the specific error detail."
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "title": "Enhance CRUD Layer for User and Book Fallbacks",
+        "description": "Add or modify CRUD functions to support the fallback logic required by the `/initState` endpoint.",
+        "details": "In `moneynote/crud/crud_book.py`, create a function `get_first_book_for_user(db: Session, user_id: int)`. This function should find the first book associated with the user (e.g., by joining through groups or a direct user-book relationship). Similarly, create `get_first_group_for_user` in `moneynote/crud/crud_group.py`. These functions will be used by the `user_service.get_initial_state` as a fallback when default IDs are null.",
+        "testStrategy": "Write unit tests for the new CRUD functions. Each test should set up a test database state with a user and associated items, call the function, and assert that the correct first item is returned.",
+        "priority": "medium",
+        "dependencies": [
+          11
+        ],
+        "status": "to-do",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement `get_first_group_for_user` in `crud_group.py`",
+            "description": "Create a new function `get_first_group_for_user` in `moneynote/crud/crud_group.py`. This function will find the first group a user belongs to, ordered by the group's creation (ID).",
+            "dependencies": [],
+            "details": "Based on the existing `get_groups_for_user` function, implement `get_first_group_for_user(db: Session, user_id: int) -> Optional[models.Group]`. The function should perform a query joining `Group`, `user_group_association`, and `User` models. It must filter by `user_id`, order the results by `models.Group.id`, and return the first result using `.first()`. If no group is found, it should return `None`.",
+            "status": "pending",
+            "testStrategy": "A unit test will be created in a subsequent subtask to verify this function's correctness, including the case where a user has no groups."
+          },
+          {
+            "id": 2,
+            "title": "Add Unit Test for `get_first_group_for_user`",
+            "description": "In `tests/crud/test_crud_group.py`, add a new test case to validate the functionality of `get_first_group_for_user`.",
+            "dependencies": [
+              "19.1"
+            ],
+            "details": "Create a test named `test_get_first_group_for_user`. Inside the test: 1. Create a user using `create_random_user`. 2. Create multiple groups and associate them with the user. Ensure they are created out of order to test the ordering logic. 3. Call `crud_group.get_first_group_for_user` with the user's ID. 4. Assert that the returned group is the one with the lowest ID. 5. Add another test case, `test_get_first_group_for_user_no_groups`, where a user has no associated groups, and assert that the function returns `None`.",
+            "status": "pending",
+            "testStrategy": "Use the existing `db: Session` fixture and test utility functions like `create_random_user` and `create_random_group` found in `tests/utils/`."
+          },
+          {
+            "id": 3,
+            "title": "Implement `get_first_book_for_user` in `crud_book.py`",
+            "description": "Create a new function `get_first_book_for_user` in `moneynote/crud/crud_book.py`. This function will find the first book a user has access to through their group memberships.",
+            "dependencies": [],
+            "details": "Implement `get_first_book_for_user(db: Session, user_id: int) -> Optional[models.Book]`. The query needs to join across `Book`, `Group`, `user_group_association`, and `User` models, as revealed by the model relationship analysis. Filter the query by the `user_id`, order the results by `models.Book.id`, and return the first result using `.first()`. The function should return `None` if the user has no access to any books.",
+            "status": "pending",
+            "testStrategy": "A unit test will be created in a subsequent subtask to verify this function's correctness."
+          },
+          {
+            "id": 4,
+            "title": "Add Unit Test for `get_first_book_for_user`",
+            "description": "In `tests/crud/test_crud_book.py`, add a new test case to validate the functionality of `get_first_book_for_user`.",
+            "dependencies": [
+              "19.3"
+            ],
+            "details": "Create a test named `test_get_first_book_for_user`. Inside the test: 1. Create a user. 2. Create several groups and associate them with the user. 3. Create multiple books across these different groups. 4. Call `crud_book.get_first_book_for_user` with the user's ID. 5. Assert that the returned book is the one with the lowest ID overall, regardless of which group it belongs to. 6. Add a test case for a user whose groups contain no books, and assert that the function returns `None`.",
+            "status": "pending",
+            "testStrategy": "Use the `db: Session` fixture and test utilities for creating users, groups, and books to construct the required test state."
+          },
+          {
+            "id": 5,
+            "title": "Add Docstrings and Type Hinting to New CRUD Functions",
+            "description": "Ensure the newly created functions and their corresponding tests are well-documented and adhere to the project's coding standards.",
+            "dependencies": [
+              "19.2",
+              "19.4"
+            ],
+            "details": "Review the two new functions (`get_first_group_for_user` and `get_first_book_for_user`) and their tests. Add comprehensive docstrings explaining their purpose, arguments, and return values. Verify that all type hints are correct and consistent with the existing codebase, specifically `db: Session`, `user_id: int`, and the `Optional[Model]` return types.",
+            "status": "pending",
+            "testStrategy": "This is a code quality task. Verification will be done via manual code review or by running a static analysis tool like mypy if configured in the project."
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "title": "Refactor User Model and Alembic Migration",
+        "description": "Ensure the User model in SQLAlchemy supports all required fields and create a database migration.",
+        "details": "Verify that the `moneynote/models/user.py` `User` model contains `username`, `hashed_password`, `default_book_id`, and `default_group_id` fields, making them nullable as appropriate. After confirming the model is correct, generate a new Alembic migration script (`alembic revision --autogenerate -m 'add user bind and default fields'`) to apply these changes to the database schema. Review the generated script for correctness before committing.",
+        "testStrategy": "The migration will be tested by running it against a test database. The functionality of the model fields will be implicitly tested by the integration tests for the `/initState` and `/bind` endpoints.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "to-do",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add Authentication Fields to User Model",
+            "description": "Modify the `User` model in `moneynote/models/user.py` to include the core fields required for user authentication. Add `username` and `hashed_password` columns.",
+            "dependencies": [],
+            "details": "In `moneynote/models/user.py`, import `String` from `sqlalchemy`. Add a `username` column of type `String`, ensuring it is unique, indexed, and not nullable. Add a `hashed_password` column of type `String`, ensuring it is not nullable.",
+            "status": "pending",
+            "testStrategy": "Code review will verify the model definition. The Alembic migration will confirm schema compatibility."
+          },
+          {
+            "id": 2,
+            "title": "Add `default_book_id` Field with Foreign Key to User Model",
+            "description": "Update the `User` model in `moneynote/models/user.py` to include a foreign key reference to the `books` table for the user's default book.",
+            "dependencies": [
+              "20.1"
+            ],
+            "details": "In `moneynote/models/user.py`, import `ForeignKey` from `sqlalchemy`. Add a `default_book_id` column of type `Integer` with a `ForeignKey('books.id')`. This field should be nullable to allow users to exist without a default book.",
+            "status": "pending",
+            "testStrategy": "Code review will check the foreign key definition and nullability. The Alembic migration will validate the database-level constraint."
+          },
+          {
+            "id": 3,
+            "title": "Add `default_group_id` Field with Foreign Key to User Model",
+            "description": "Update the `User` model in `moneynote/models/user.py` to include a foreign key reference to the `groups` table for the user's default group.",
+            "dependencies": [
+              "20.1"
+            ],
+            "details": "In `moneynote/models/user.py`, add a `default_group_id` column of type `Integer` with a `ForeignKey('groups.id')`. This field should be nullable to allow users to exist without a default group.",
+            "status": "pending",
+            "testStrategy": "Code review will check the foreign key definition and nullability. The Alembic migration will validate the database-level constraint."
+          },
+          {
+            "id": 4,
+            "title": "Generate Alembic Autogenerate Migration Script",
+            "description": "Use the Alembic command-line tool to automatically generate a new database migration script based on the changes made to the User model.",
+            "dependencies": [
+              "20.2",
+              "20.3"
+            ],
+            "details": "After updating the `User` model, run the following command from the project root to generate the migration: `alembic revision --autogenerate -m 'add user bind and default fields'`. This will create a new file in the `alembic/versions` directory.",
+            "status": "pending",
+            "testStrategy": "Successful execution of the command without errors. A new migration file should be present in `alembic/versions`."
+          },
+          {
+            "id": 5,
+            "title": "Review and Verify the Generated Migration Script",
+            "description": "Carefully inspect the newly generated Alembic migration script to ensure it accurately reflects the intended schema changes and that both the upgrade and downgrade paths are correct.",
+            "dependencies": [
+              "20.4"
+            ],
+            "details": "Open the new file in `alembic/versions`. In the `upgrade()` function, verify the creation of the `username`, `hashed_password`, `default_book_id`, and `default_group_id` columns with correct types, nullability, and constraints (unique for username, foreign keys for IDs). In the `downgrade()` function, ensure it correctly drops these columns and their associated constraints.",
+            "status": "pending",
+            "testStrategy": "Manual code review of the `upgrade()` and `downgrade()` functions within the generated migration script."
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "created": "2025-10-08T08:23:31.360Z",
+      "updated": "2025-10-15T06:14:25.480Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

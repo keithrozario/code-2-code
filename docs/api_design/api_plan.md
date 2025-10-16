@@ -1,200 +1,213 @@
-# API Endpoint Dependencies
+# Moneynote API Development Plan
 
-This document outlines the dependencies between the various API endpoints in the MoneyNote application. Understanding these dependencies is crucial for planning API implementation and testing.
-
----
-
-## Core Concepts
-
-The API revolves around a few core concepts that have inherent dependencies:
-
-1.  **User**: A user must exist before any other action can be taken.
-2.  **Group**: A group is a collection of users and books.
-3.  **Book**: A book is a ledger for financial records. It belongs to a group.
-4.  **Account**: A financial account (e.g., bank account, credit card).
-5.  **Category, Payee, Tag**: These are used to classify transactions.
-6.  **Balance Flow**: A transaction (expense, income, transfer).
-7.  **Note Day**: A recurring event or reminder.
+This document outlines the phased development plan for building the Moneynote backend API endpoints. The plan is structured to ensure that API endpoints are built in a logical order, respecting their dependencies. Each phase consists of a set of related endpoints, with no more than five endpoints per phase.
 
 ---
 
-## User and Authentication API
+## Phase 1: Foundational APIs (No Dependencies)
 
-The User and Authentication API is the foundation of the entire application.
+This phase establishes the most basic and independent endpoints.
 
-*   **`POST /register`**
-    *   **Dependencies**: None. This is the entry point for a new user.
-    *   **Dependents**: `POST /login`, `PUT /bind`, `POST /groups/{id}/inviteUser`.
-
-*   **`POST /login`**
-    *   **Dependencies**: `POST /register`. A user must be registered to log in.
-    *   **Dependents**: Almost all other API endpoints require an authenticated user.
-
-*   **`POST /logout`**
-    *   **Dependencies**: `POST /login`. A user must be logged in to log out.
-    *   **Dependents**: None.
-
-*   **`PUT /bind`**
-    *   **Dependencies**: `POST /register`.
-    *   **Dependents**: None.
-
-*   **`GET /initState`**
-    *   **Dependencies**: `POST /login`.
-    *   **Dependents**: None.
-
-*   **`PATCH /changePassword`**
-    *   **Dependencies**: `POST /login`.
-    *   **Dependents**: None.
-
-*   **`PATCH /setDefaultBook/{id}`**
-    *   **Dependencies**: `POST /login`, `POST /books`.
-    *   **Dependents**: None.
-
-*   **`PATCH /setDefaultGroup/{id}`**
-    *   **Dependencies**: `POST /login`, `POST /groups`.
-    *   **Dependents**: None.
-
-*   **`PATCH /setDefaultGroupAndBook/{id}`**
-    *   **Dependencies**: `POST /login`, `POST /groups`, `POST /books`.
-    *   **Dependents**: None.
-
-*   **`GET /bookSelect/all`**
-    *   **Dependencies**: `POST /login`, `POST /books`.
-    *   **Dependents**: None.
+- **`GET /version`**: Returns the application version.
+- **`GET /test3`**: Returns the base URL of the application for testing.
+- **`GET /currencies/all`**: Gets all supported currencies.
+- **`GET /book-templates/all`**: Gets all available book templates.
 
 ---
 
-## Group API
+## Phase 2: User Authentication and Session
 
-Groups are for collaboration.
+This phase focuses on user login and session management.
 
-*   **`POST /groups`**
-    *   **Dependencies**: `POST /login`.
-    *   **Dependents**: `GET /groups`, `PUT /groups/{id}`, `DELETE /groups/{id}`, `POST /groups/{id}/inviteUser`, `GET /groups/{id}/users`, `PATCH /setDefaultGroup/{id}`.
-
-*   **Other Group Endpoints (`GET`, `PUT`, `DELETE`, `invite`, `remove`, etc.)**
-    *   **Dependencies**: `POST /groups` to have a group to operate on.
-    *   **`POST /groups/{id}/inviteUser`** also depends on `POST /register` to have a user to invite.
-    *   **`POST /groups/{id}/agree`** and **`POST /groups/{id}/reject`** depend on `POST /groups/{id}/inviteUser`.
+- **`PUT /bind`**: Binds a username to the current user.
+- **`GET /initState`**: Gets the initial state for the current user.
 
 ---
 
-## Books API
+## Phase 3: Group and Book Creation
 
-Books are the ledgers.
+This phase deals with the creation of core data structures: Groups and Books.
 
-*   **`POST /books`**
-    *   **Dependencies**: `POST /login`. Can optionally be associated with a group.
-    *   **Dependents**: `GET /books`, `GET /books/all`, `GET /books/{id}`, `PUT /books/{id}`, `DELETE /books/{id}`, `PATCH /books/{id}/toggle`, `POST /books/copy`, `GET /books/{id}/export`, `PATCH /setDefaultBook/{id}`, `POST /balance-flows`.
-
-*   **`POST /books/template`**
-    *   **Dependencies**: `POST /login`.
-    *   **Dependents**: None.
-
-*   **`POST /books/copy`**
-    *   **Dependencies**: `POST /books`.
-    *   **Dependents**: None.
-
-*   **`GET /books/{id}/export`**
-    *   **Dependencies**: `POST /books`, `POST /balance-flows`.
-    *   **Dependents**: None.
-
-*   **Other Book Endpoints (`GET`, `PUT`, `DELETE`, `PATCH`)**
-    *   **Dependencies**: `POST /books`.
+- **`POST /groups`**: Adds a new group.
+- **`POST /books`**: Adds a new book.
+- **`POST /books/template`**: Adds a new book from a template.
+- **`POST /books/copy`**: Adds a new book by copying an existing one.
 
 ---
 
-## Accounts API
+## Phase 4: Group and Book Management
 
-Accounts hold the money.
+This phase covers the management (reading, updating, deleting) of Groups and Books.
 
-*   **`POST /accounts`**
-    *   **Dependencies**: `POST /login`.
-    *   **Dependents**: All other `/accounts` endpoints, `POST /balance-flows`.
-
-*   **`POST /accounts/{id}/adjust`**
-    *   **Dependencies**: `POST /accounts`, `POST /books`.
-    *   **Dependents**: `PUT /accounts/{id}/adjust`.
-
-*   **Other Account Endpoints (`GET`, `PUT`, `DELETE`, `PATCH`)**
-    *   **Dependencies**: `POST /accounts`.
+- **`GET /groups`**: Queries groups.
+- **`PUT /groups/{id}`**: Updates a group.
+- **`DELETE /groups/{id}`**: Deletes a group.
+- **`GET /books`**: Queries books.
+- **`GET /books/{id}`**: Gets a book by ID.
 
 ---
 
-## Categories, Payees, and Tags APIs
+## Phase 5: Advanced Book Management
 
-These are for classifying transactions. They all follow a similar pattern.
+This phase continues with more specific book management functionalities.
 
-*   **`POST /categories`**, **`POST /payees`**, **`POST /tags`**
-    *   **Dependencies**: `POST /login`. Can be associated with a book.
-    *   **Dependents**: The corresponding `GET`, `PUT`, `DELETE`, `PATCH` endpoints, and `POST /balance-flows`.
-
-*   **Other Endpoints (`GET`, `PUT`, `DELETE`, `PATCH`)**
-    *   **Dependencies**: The corresponding `POST` endpoint (e.g., `PUT /categories/{id}` depends on `POST /categories`).
-
----
-
-## Balance Flow API
-
-This is the core transaction API.
-
-*   **`POST /balance-flows`**
-    *   **Dependencies**: `POST /books`, `POST /accounts`. Can also depend on `POST /categories`, `POST /payees`, `POST /tags`.
-    *   **Dependents**: All other `/balance-flows` endpoints, and all `/reports` endpoints.
-
-*   **`POST /balance-flows/{id}/addFile`**
-    *   **Dependencies**: `POST /balance-flows`.
-    *   **Dependents**: `GET /balance-flows/{id}/files`, `GET /flow-files/view`, `DELETE /flow-files/{id}`.
-
-*   **Other Balance Flow Endpoints (`GET`, `PUT`, `DELETE`, `PATCH`)**
-    *   **Dependencies**: `POST /balance-flows`.
+- **`PUT /books/{id}`**: Updates a book.
+- **`DELETE /books/{id}`**: Deletes a book.
+- **`PATCH /books/{id}/toggle`**: Toggles the enabled state of a book.
+- **`GET /books/all`**: Gets all books for the user.
+- **`GET /books/{id}/export`**: Exports a book's data.
 
 ---
 
-## Files API
+## Phase 6: User-Group and User-Book Relations
 
-For transaction attachments.
+This phase focuses on linking users to groups and books.
 
-*   **`GET /flow-files/view`**
-    *   **Dependencies**: `POST /balance-flows/{id}/addFile`.
-    *   **Dependents**: None.
-
-*   **`DELETE /flow-files/{id}`**
-    *   **Dependencies**: `POST /balance-flows/{id}/addFile`.
-    *   **Dependents**: None.
+- **`PATCH /setDefaultGroup/{id}`**: Sets the default group for the current user.
+- **`PATCH /setDefaultBook/{id}`**: Sets the default book for the current user.
+- **`PATCH /setDefaultGroupAndBook/{id}`**: Sets the default group and book.
+- **`GET /bookSelect/all`**: Gets all books for the current user for selection.
+- **`GET /groups/{id}/users`**: Gets all users in a group.
 
 ---
 
-## Note Day API
+## Phase 7: Group Invitations
 
-For reminders.
+This phase implements the group invitation workflow.
 
-*   **`POST /note-days`**
-    *   **Dependencies**: `POST /login`.
-    *   **Dependents**: All other `/note-days` endpoints.
-
-*   **`PATCH /note-days/{id}/recall`**
-    *   **Dependencies**: `PATCH /note-days/{id}/run`.
-
-*   **Other Note Day Endpoints (`GET`, `PUT`, `DELETE`, `PATCH`)**
-    *   **Dependencies**: `POST /note-days`.
+- **`POST /groups/{id}/inviteUser`**: Invites a user to a group.
+- **`POST /groups/{id}/removeUser`**: Removes a user from a group.
+- **`POST /groups/{id}/agree`**: Agrees to a group invitation.
+- **`POST /groups/{id}/reject`**: Rejects a group invitation.
 
 ---
 
-## Currency API
+## Phase 8: Account Foundation
 
-Mostly independent, but crucial for creating accounts and transactions.
+This phase establishes the core functionality for managing accounts.
 
-*   **`GET /currencies`, `GET /currencies/all`, `POST /currencies/refresh`**
-    *   **Dependencies**: None.
-    *   **Dependents**: `POST /accounts`, `POST /balance-flows`.
+- **`POST /accounts`**: Adds a new account.
+- **`GET /accounts`**: Queries accounts.
+- **`GET /accounts/{id}`**: Gets an account by ID.
+- **`GET /accounts/all`**: Gets all accounts.
+- **`GET /accounts/overview`**: Gets an overview of all accounts.
 
 ---
 
-## Reports API
+## Phase 9: Account Management
 
-For summarizing financial data.
+This phase covers updating and deleting accounts.
 
-*   **All `/reports` endpoints**
-    *   **Dependencies**: `POST /balance-flows` to have data to generate reports from. They also implicitly depend on `POST /books`, `POST /accounts`, `POST /categories`, `POST /payees`, and `POST /tags` which are all part of creating the balance flows.
-    *   **Dependents**: None.
+- **`PUT /accounts/{id}`**: Updates an account.
+- **`DELETE /accounts/{id}`**: Deletes an account.
+- **`PUT /accounts/{id}/updateNotes`**: Updates the notes of an account.
+- **`POST /accounts/{id}/adjust`**: Adjusts the balance of an account.
+- **`PUT /accounts/{id}/adjust`**: Updates a balance adjustment.
+
+---
+
+## Phase 10: Account Toggles and Stats
+
+This phase implements various toggleable flags for accounts and statistics.
+
+- **`PATCH /accounts/{id}/toggle`**: Toggles the enabled state of an account.
+- **`PATCH /accounts/{id}/toggleInclude`**: Toggles the `include` property of an account.
+- **`PATCH /accounts/{id}/toggleCanExpense`**: Toggles the `canExpense` property.
+- **`PATCH /accounts/{id}/toggleCanIncome`**: Toggles the `canIncome` property.
+- **`GET /accounts/statistics`**: Gets account statistics.
+
+---
+
+## Phase 11: Categories
+
+This phase implements CRUD operations for categories.
+
+- **`POST /categories`**: Adds a new category.
+- **`GET /categories`**: Queries categories.
+- **`GET /categories/all`**: Gets all categories.
+- **`PUT /categories/{id}`**: Updates a category.
+- **`DELETE /categories/{id}`**: Deletes a category.
+
+---
+
+## Phase 12: Payees
+
+This phase implements CRUD operations for payees.
+
+- **`POST /payees`**: Adds a new payee.
+- **`GET /payees`**: Queries payees.
+- **`GET /payees/all`**: Gets all payees.
+- **`PUT /payees/{id}`**: Updates a payee.
+- **`DELETE /payees/{id}`**: Deletes a payee.
+
+---
+
+## Phase 13: Tags
+
+This phase implements CRUD operations for tags.
+
+- **`POST /tags`**: Adds a new tag.
+- **`GET /tags`**: Queries tags.
+- **`GET /tags/all`**: Gets all tags.
+- **`PUT /tags/{id}`**: Updates a tag.
+- **`DELETE /tags/{id}`**: Deletes a tag.
+
+---
+
+## Phase 14: Balance Flow Core
+
+This phase implements the core CRUD operations for balance flow records (transactions).
+
+- **`POST /balance-flows`**: Adds a new balance flow record.
+- **`GET /balance-flows`**: Queries balance flow records.
+- **`GET /balance-flows/{id}`**: Gets a balance flow record by ID.
+- **`PUT /balance-flows/{id}`**: Updates a balance flow record.
+- **`DELETE /balance-flows/{id}`**: Deletes a balance flow record.
+
+---
+
+## Phase 15: Balance Flow Features and Files
+
+This phase adds extra functionalities to balance flows, including file attachments.
+
+- **`GET /balance-flows/statistics`**: Gets balance flow statistics.
+- **`PATCH /balance-flows/{id}/confirm`**: Confirms a balance flow record.
+- **`POST /balance-flows/{id}/addFile`**: Adds a file to a balance flow record.
+- **`GET /balance-flows/{id}/files`**: Gets files for a balance flow record.
+- **`DELETE /flow-files/{id}`**: Deletes a flow file.
+
+---
+
+## Phase 16: Reporting
+
+This phase focuses on building the reporting endpoints for data analysis.
+
+- **`GET /reports/expense-category`**: Gets a report of expense by category.
+- **`GET /reports/income-category`**: Gets a report of income by category.
+- **`GET /reports/expense-tag`**: Gets a report of expense by tag.
+- **`GET /reports/income-tag`**: Gets a report of income by tag.
+- **`GET /reports/balance`**: Gets a balance report.
+
+---
+
+## Phase 17: Additional Reporting and Note Days
+
+This phase completes the reporting and introduces the "Note Day" feature.
+
+- **`GET /reports/expense-payee`**: Gets a report of expense by payee.
+- **`GET /reports/income-payee`**: Gets a report of income by payee.
+- **`POST /note-days`**: Adds a new note day.
+- **`GET /note-days`**: Queries note days.
+- **`PUT /note-days/{id}`**: Updates a note day.
+
+---
+
+## Phase 18: Currency and Note Day Management
+
+This final phase covers currency rate management and completes the Note Day functionality.
+
+- **`POST /currencies/refresh`**: Refreshes currency rates.
+- **`PUT /currencies/{id}/rate`**: Updates the exchange rate of a currency.
+- **`DELETE /note-days/{id}`**: Deletes a note day.
+- **`PATCH /note-days/{id}/run`**: Runs a note day.
+- **`PATCH /note-days/{id}/recall`**: Recalls a note day.
