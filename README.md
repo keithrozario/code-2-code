@@ -122,7 +122,7 @@ Currently all prompts are stored in the [`prompts/`](prompts/) directory.
 We use a combination of 
 
 * [Google Migration Center App Modernization Assessment  (CodMod)](https://cloud.google.com/migration-center/docs/app-modernization-assessment)
-* [Gemini-Cli] (https://github.com/google-gemini/gemini-cli)
+* [Gemini-Cli](https://github.com/google-gemini/gemini-cli)
 * [Gemini Code Assist](https://codeassist.google/)
 * [TaskMaster AI](https://www.task-master.dev/)
 
