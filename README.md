@@ -76,10 +76,12 @@ codmod create data-layer -c moneynote-api/ \
 
 ## Step 2: Generate documentation and Design Documents
 
+```bash
   $ uv venv
   $ source ./venv/bin/activate
   $ uv sync
   $ python gen_docs.py
+```
 
 This step generates the requirements and design documents:
 
@@ -100,7 +102,9 @@ This step generates the requirements and design documents:
 
 This step generates the Product Requirements Document for Taskmaster to generate Task and execute.
 
+```bash
   $ python gen_next_prd.py
+```
 
 PRDs are generated for each phase in the plan. E.g. the API plan document will specify phases, and for each phase there is a PRD. Each time the script is done, the previous tasks in taskmaster are set to 'done' and a new set of task are created. We use a special file `.taskmaster/current_status.md` to keep track of completed task from previous iterations.
 
