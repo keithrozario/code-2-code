@@ -2,6 +2,7 @@ import os
 
 # Base Directories
 WORKING_DIRECTORY = os.getcwd()
+SOURCE_CODE_DIRECTORY = os.path.join(WORKING_DIRECTORY, "moneynote-api")
 DOCS_DIRECTORY = os.path.join(WORKING_DIRECTORY, "docs")
 NEW_APP_DIRECTORY = os.path.join(WORKING_DIRECTORY, "new_app")
 

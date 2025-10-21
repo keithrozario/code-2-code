@@ -29,6 +29,7 @@ for user_journey_name in user_journey_header_texts:
             "codmod_data_relative_file_path": config.CODMOD_DATA_REPORT_PATH,
             "user_journey_name": user_journey_name,
             "absolute_file_path": absolute_file_path,
+            "source_code_directory": config.SOURCE_CODE_DIRECTORY,
         },
     )
 

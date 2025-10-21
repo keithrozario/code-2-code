@@ -9,6 +9,7 @@ Args:
     codmod_data_relative_file_path: CodMod data report relative file path
     user_journey_name: The Name of the user journey
     absolute_file_path: The absolute file path for saving the user_journey file
+    source_code_directory: The relative source code directory
 """
 
 user_journey_prompt_string = """
@@ -17,7 +18,7 @@ You are a senior business analyst. Your task is to create a comprehensive User J
 ## Context & Sources
 
 *   **Source for Code Analysis:** `$codmod_detailed_relative_file_path` and `$codmod_data_relative_file_path` (These are reports from a tool called CodMod).
-*   **Definitive Reference for Implementation:** The `moneynote-api` source code directory.
+*   **Definitive Reference for Implementation:** The $source_code_directory source code directory.
 
 ## Instructions
 
@@ -32,7 +33,7 @@ You are a senior business analyst. Your task is to create a comprehensive User J
 ## Analysis and Synthesis
 
 *   **Analyze the Code Reports:** Use the CodMod reports to understand the high-level flows, data interactions, and business logic related to the user journey.
-*   **Analyze the Source Code:** Refer to the `moneynote-api` directory to extract precise details about data models, business rules, and step-by-step processes that the reports might not fully capture.
+*   **Analyze the Source Code:** Refer to the $source_code_directory directory to extract precise details about data models, business rules, and step-by-step processes that the reports might not fully capture.
 *   **Synthesize and Structure:** Generate the final document using the precise markdown structure provided below. Do not deviate from these sections.
 
 ## Document Structure to Generate
