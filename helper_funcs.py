@@ -63,12 +63,12 @@ def gen_task_from_prd(prd_filepath: str):
     return True
 
 
-def expand_task_master_task(task_id: int)->bool:
+def expand_all_task_master_tasks()->bool:
     try:
         result = subprocess.run([
             'task-master',
             'expand',
-            f'--id={task_id}'
+            '--all'
         ], text=True, check=True, stderr=subprocess.STDOUT)
         print(result.stdout)
     except subprocess.CalledProcessError as e:
@@ -219,17 +219,4 @@ def set_task_status_from_taskmaster():
     with open(config.TASKMASTER_STATUS_FILE, 'a') as status_file:
         status_file.write(task_titles_status)
 
-    return None
-
-def expand_all_task_master_tasks():
-    """
-    Expands all task master tasks to subtask
-    """
-    with open(config.TASKMASTER_JSON_FILE, "r") as task_file:
-        tasks = json.loads(task_file.read())['master']['tasks']
-    
-    task_ids = [task['id'] for task in tasks]
-    for task_id in task_ids:
-        expand_task_master_task(task_id)
-    
     return None

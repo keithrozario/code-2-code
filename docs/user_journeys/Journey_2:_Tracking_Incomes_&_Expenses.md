@@ -1,243 +1,169 @@
+# User Journey Analysis: Journey 2: Tracking Incomes & Expenses
 
-# Journey 2: Tracking Incomes & Expenses
+### 1.0 Detailed User Journeys and Flows
+(Capture the step-by-step interactions a user has with the system to achieve the specific business goal of this journey. Document each distinct flow, including user actions, system responses, decision points, alternative paths, and error handling. Clearly identify start and end points.)
 
-This document outlines the user journey for tracking incomes and expenses within the moneynote-api system.
+**User Goal:** To accurately record a financial transaction (income or expense) to keep their financial records up-to-date.
 
-## 1. Detailed User Journeys and Flows
+**Primary Flow: Recording a New Expense**
 
-The primary journey for tracking incomes and expenses revolves around creating, viewing, updating, and deleting balance flow records. A "balance flow" can be an expense, an income, a transfer between accounts, or a balance adjustment.
+1.  **Start Point:** The user is logged into the application and is viewing their default "Book".
+2.  **User Action:** The user clicks the "Add Expense" button.
+3.  **System Response:** The system displays a form for entering transaction details. The form is pre-populated with the default expense account for the current book, and the transaction date is set to the current date.
+4.  **User Action:** The user fills in the transaction details:
+    *   Selects the account used for the transaction (e.g., "Checking Account").
+    *   Enters the amount of the transaction.
+    *   Selects one or more categories for the expense (e.g., "Groceries").
+    *   Optionally adds tags, a payee, and descriptive notes.
+5.  **System Response:** As the user types, the system provides suggestions for categories, tags, and payees.
+6.  **User Action:** The user clicks the "Save" button.
+7.  **System Response:**
+    *   The system validates the submitted data. If validation fails (e.g., no category is selected), an error message is displayed.
+    *   If validation succeeds, the system creates a new transaction record.
+    *   The balance of the selected account is updated (decreased for an expense).
+    *   The system displays a confirmation message and adds the new transaction to the user's transaction list.
+8.  **End Point:** The user can see the newly created expense in their transaction history, and the corresponding account balance is updated.
 
-### Journey 2.1: Creating a New Income or Expense Record
+**Alternative Flow: Recording a Split-Category Expense**
 
-**Objective:** To allow a user to record a new income or expense transaction.
+1.  **Context:** The user is at step 4 of the Primary Flow. They have made a purchase that spans multiple categories (e.g., a supermarket purchase including groceries and household items).
+2.  **User Action:**
+    *   The user adds the first category ("Groceries") and enters the amount spent in that category.
+    *   The user clicks an "Add Split" or similar button to add another category line.
+    *   The user adds the second category ("Household Goods") and enters the corresponding amount.
+3.  **System Response:** The system shows the total transaction amount, which is the sum of the amounts from all split categories.
+4.  **User Action:** The user proceeds to save the transaction.
+5.  **System Response:** The system creates a single transaction record but links it to multiple categories, each with its own specified amount. The total transaction amount is deducted from the account balance.
 
-**Start Point:** The user initiates the creation of a new transaction.
+**Error Flow: Invalid Transaction Data**
 
-**Flow:**
-
-1.  **User Action:** The user submits a form with the transaction details (via `POST /balance-flows`). This includes:
-    *   `type`: `EXPENSE` (100) or `INCOME` (200).
-    *   `book`: The ID of the financial book this transaction belongs to.
-    *   `createTime`: The timestamp of the transaction.
-    *   `account`: The ID of the account from which the money was spent or received.
-    *   `categories`: A list of one or more category relations, each with a `category` ID and an `amount`. The sum of these amounts constitutes the total transaction amount.
-    *   `payee` (Optional): The ID of the payee.
-    *   `tags` (Optional): A list of tag IDs.
-    *   `title` (Optional): A short title for the transaction.
-    *   `notes` (Optional): Detailed notes.
-    *   `confirm`: A boolean indicating if the transaction is confirmed. A confirmed transaction immediately affects the account's balance.
-    *   `include`: A boolean indicating if the transaction should be included in financial statistics.
-
-2.  **System Response (Validation):**
-    *   The system validates the input. Key validations include:
-        *   `book`, `type`, `createTime`, `confirm`, `include` are mandatory.
-        *   For `EXPENSE` and `INCOME` types, the `categories` list must not be empty.
-        *   The number of categories per transaction is limited (e.g., to 10).
-        *   If the transaction `account` uses a foreign currency, a `convertedAmount` must be provided for each category.
-
-3.  **System Response (Processing):**
-    *   A new `BalanceFlow` record is created and saved to the `t_user_balance_flow` table.
-    *   The total `amount` is calculated by summing the amounts from the `categories` list.
-    *   Records are created in `t_category_relation` to link the transaction to its categories.
-    *   If tags are provided, records are created in `t_tag_relation`.
-    *   **If `confirm` is `true`:**
-        *   The system calls the `confirmBalance` logic.
-        *   The balance of the specified `Account` (in `t_user_account`) is updated.
-            *   For `EXPENSE`, the transaction `amount` is subtracted from the account balance.
-            *   For `INCOME`, the transaction `amount` is added to the account balance.
-
-**End Point:** The system confirms the creation of the transaction. The user's account balance is updated if the transaction was confirmed.
+1.  **Context:** The user is at step 6 of the Primary Flow.
+2.  **User Action:** The user clicks "Save" but has failed to select a category for the expense.
+3.  **System Response:** The system prevents the transaction from being saved and displays an error message, such as "A category is required for expense transactions." The form remains populated with the data the user has already entered.
+4.  **User Action:** The user corrects the error by selecting a category and saves the transaction again.
 
 ---
 
-### Journey 2.2: Modifying an Existing Income or Expense Record
+### 2.0 Detailed Object Level Data Structures
+(Document the structure and attributes of key data entities involved in this journey. For each entity, list its attributes, data types, constraints (e.g., `NOT NULL`, `FOREIGN KEY`), and a brief description. Indicate relationships between entities.)
 
-**Objective:** To allow a user to edit the details of a previously recorded transaction.
+The primary data entity for this journey is `BalanceFlow`, which is supported by several other entities.
 
-**Start Point:** The user selects an existing transaction to edit.
+**Entity: `BalanceFlow` (Table: `t_user_balance_flow`)**
+Represents a single financial transaction.
 
-**Flow:**
+| Attribute | Data Type | Constraints & Description |
+| :--- | :--- | :--- |
+| `id` | `INTEGER` | **Primary Key**. |
+| `book_id` | `INTEGER` | **Foreign Key** -> `t_user_book(id)`. `NOT NULL`. Links the transaction to a specific ledger. |
+| `type` | `INTEGER` | `NOT NULL`. The type of transaction (e.g., `EXPENSE`, `INCOME`). |
+| `amount` | `DECIMAL(15,2)` | `NOT NULL`. The total amount of the transaction in its original currency. |
+| `converted_amount` | `DECIMAL(15,2)` | The amount converted to the book's default currency. |
+| `account_id` | `INTEGER` | **Foreign Key** -> `t_user_account(id)`. The source account for the transaction. |
+| `create_time` | `BIGINT` | `NOT NULL`. The timestamp when the transaction occurred. |
+| `title` | `VARCHAR(32)` | An optional title for the transaction. |
+| `notes` | `VARCHAR(1024)` | Optional detailed notes. |
+| `payee_id` | `INTEGER` | **Foreign Key** -> `t_user_payee(id)`. The payee involved in the transaction. |
+| `confirm` | `BOOLEAN` | `NOT NULL`. If `true`, the transaction affects account balances. |
 
-1.  **User Action:** The user submits the updated transaction details (via `PUT /balance-flows/{id}`). The payload is similar to the creation form.
-    *   *Note:* The `book`, `type`, and `confirm` status cannot be changed via this endpoint.
+*   **Relationships:**
+    *   Many-to-One with `Book`
+    *   Many-to-One with `Account`
+    *   Many-to-One with `Payee`
+    *   One-to-Many with `CategoryRelation`
+    *   One-to-Many with `TagRelation`
 
-2.  **System Response (Processing):** The update process is unconventional.
-    *   The system **deletes the original `BalanceFlow` record**.
-    *   Before deletion, it calls `refundBalance` to revert the financial impact of the original transaction on the associated account(s).
-    *   A **new `BalanceFlow` record is created** with the updated information, following the same logic as "Journey 2.1: Creating a New Income or Expense Record".
-    *   Any file attachments from the old transaction are re-associated with the new one.
+**Entity: `CategoryRelation` (Table: `t_user_category_relation`)**
+A join table linking a `BalanceFlow` to a `Category` and storing the amount for that specific category.
 
-**End Point:** The original transaction is replaced by a new one with a new ID, and the user's account balance reflects the updated transaction details.
+| Attribute | Data Type | Constraints & Description |
+| :--- | :--- | :--- |
+| `id` | `INTEGER` | **Primary Key**. |
+| `category_id` | `INTEGER` | **Foreign Key** -> `t_user_category(id)`. |
+| `balance_flow_id` | `INTEGER` | **Foreign Key** -> `t_user_balance_flow(id)`. |
+| `amount` | `DECIMAL(15,2)` | `NOT NULL`. The portion of the transaction's total amount allocated to this category. |
+
+*   **Relationships:**
+    *   Many-to-One with `Category`
+    *   Many-to-One with `BalanceFlow`
+
+**Entity: `TagRelation` (Table: `t_user_tag_relation`)**
+A join table linking a `BalanceFlow` to a `Tag`.
+
+| Attribute | Data Type | Constraints & Description |
+| :--- | :--- | :--- |
+| `id` | `INTEGER` | **Primary Key**. |
+| `tag_id` | `INTEGER` | **Foreign Key** -> `t_user_tag(id)`. |
+| `balance_flow_id` | `INTEGER` | **Foreign Key** -> `t_user_balance_flow(id)`. |
+
+*   **Relationships:**
+    *   Many-to-One with `Tag`
+    *   Many-to-One with `BalanceFlow`
+
+**Entity: `Account` (Table: `t_user_account`)**
+Represents a financial account.
+
+| Attribute | Data Type | Constraints & Description |
+| :--- | :--- | :--- |
+| `id` | `INTEGER` | **Primary Key**. |
+| `name` | `VARCHAR(64)` | `NOT NULL`. The name of the account. |
+| `balance` | `DECIMAL(20,2)` | `NOT NULL`. The current balance of the account. |
+| `currency_code` | `VARCHAR(8)` | `NOT NULL`. The currency of the account. |
 
 ---
 
-### Journey 2.3: Deleting an Income or Expense Record
+### 3.0 Database Tables to be Updated
+(Identify which database tables are directly impacted by this user journey. List the tables that are read from and written to (`INSERT`, `UPDATE`, `DELETE`). Specify the operations performed on each table within the context of the journey.)
 
-**Objective:** To allow a user to permanently remove a transaction.
+During the "Tracking Incomes & Expenses" journey, the following tables are updated:
 
-**Start Point:** The user selects an existing transaction to delete.
+| Table Name | Operation | Description |
+| :--- | :--- | :--- |
+| **`t_user_balance_flow`** | `INSERT` | A new row is inserted to represent the income or expense transaction being recorded. |
+| **`t_user_account`** | `UPDATE` | The `balance` column of the corresponding account is updated. The balance is decreased for an `EXPENSE` and increased for an `INCOME`. |
+| **`t_user_category_relation`** | `INSERT` | One or more rows are inserted to link the new `BalanceFlow` record to the selected `Category` records and store the allocated amounts. |
+| **`t_user_tag_relation`** | `INSERT` | (Optional) If tags are added to the transaction, one or more rows are inserted to link the `BalanceFlow` to the selected `Tag` records. |
+| **`t_user_payee`** | `READ` | The table is read from to populate payee suggestions and link the transaction to an existing payee. A new payee might be created if it doesn't exist. |
+| **`t_user_category`** | `READ` | The table is read from to populate category suggestions for the user. |
+| **`t_user_tag`** | `READ` | The table is read from to populate tag suggestions for the user. |
 
-**Flow:**
+---
 
-1.  **User Action:** The user confirms the deletion (via `DELETE /balance-flows/{id}`).
+### 4.0 Business Rules and Functionality (Detailed)
+(Capture the explicit and implicit logic governing the system's behavior for this journey. For each rule, specify its name, description, trigger, logic, and outcome. Detail both front-end and back-end validations.)
 
-2.  **System Response (Processing):**
-    *   The system retrieves the `BalanceFlow` record.
-    *   It calls the `refundBalance` logic to revert the financial impact on the associated account balance.
-    *   Any associated file attachments (`t_flow_file`) are deleted.
-    *   The `BalanceFlow` record and its associated relations (e.g., in `t_category_relation`) are deleted from the database.
+| Rule ID | Name | Description | Trigger | Logic | Outcome |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **BR-TRK-01** | Transaction Type Support | The system must support the creation of four transaction types: Expense, Income, Transfer, and Adjust. | User initiates a new transaction. | The user selects a type from a predefined list. The system logic branches based on the selected `FlowType` enum. | A transaction of the specified type is created. |
+| **BR-TRK-02** | Mandatory Book and Account Association | All transactions must be associated with a specific book and a financial account. | User saves a new transaction. | The backend validation checks for the presence of `book_id` and `account_id` in the request. | If missing, the transaction is rejected with an error. Otherwise, the transaction is linked correctly. |
+| **BR-TRK-03** | Mandatory Category for Income/Expense | For Expense and Income types, a transaction must be linked to at least one spending/earning category. | User saves a new Expense or Income transaction. | The `BalanceFlowService.checkBeforeAdd()` method verifies that the list of categories is not empty. | If no category is provided, the save operation fails with a validation error. |
+| **BR-TRK-04** | Split-Category Transaction | The system must allow for transactions to be split across multiple categories, each with its own amount. | User adds more than one category to a transaction form. | The request payload contains a list of category relations. The backend iterates through this list, creating a `CategoryRelation` record for each. | A single transaction record is created with multiple links in the `t_user_category_relation` table. |
+| **BR-TRK-05** | Automatic Balance Update | Upon confirmation of a transaction, the system must automatically update the balance of the associated account(s). | A transaction is saved with `confirm=true`. | The `BalanceFlowService.confirmBalance()` method is called. It reads the account's current balance, adds (for income) or subtracts (for expense) the transaction amount, and saves the updated account. | The account balance reflects the financial impact of the transaction, ensuring data consistency. |
+| **BR-TRK-06** | Transaction Edit/Delete and Balance Reversal | Users must be able to edit and delete existing transactions. Deleting a confirmed transaction must reverse the financial change on the associated account balance. | User deletes a confirmed transaction. | The `BalanceFlowService.remove()` method calls `refundBalance()`, which performs the inverse operation of `confirmBalance()` (e.g., adds the amount back for a deleted expense). | The account balance is restored to its state before the transaction occurred. |
+| **BR-TRK-07** | Unconfirmed Transaction State | Users can mark transactions as "unconfirmed," which prevents them from affecting account balances until confirmed. | A transaction is saved with `confirm=false`. | The `confirmBalance()` method is not called for unconfirmed transactions. The transaction is saved, but the account balance remains unchanged. | The transaction is recorded for future reference or confirmation without immediately impacting financial summaries. |
 
-**End Point:** The transaction is removed from the system, and the user's account balance is adjusted accordingly.
+---
 
-## 2. Detailed Object Level Data Structures
+### 5.0 Test Cases
+(Create a comprehensive set of test cases to verify the correct implementation of the user journey and its business rules. Each test case should include an ID, the feature being tested, preconditions, steps, test data, and expected results. Cover happy paths, negative paths, boundary conditions, and error handling.)
 
-### `BalanceFlow` (t_user_balance_flow)
+| Test Case ID | Feature Tested | Preconditions | Steps | Test Data | Expected Result |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **TC-TRK-01** | **Happy Path:** Create a single-category expense | User is logged in. An account "Checking" exists with a balance of $1000. A category "Food" exists. | 1. Navigate to "Add Expense". <br> 2. Select "Checking" account. <br> 3. Enter amount `50.00`. <br> 4. Select category "Food". <br> 5. Click "Save". | Amount: 50.00, Account: Checking, Category: Food | Transaction is created successfully. The balance of the "Checking" account is now $950.00. |
+| **TC-TRK-02** | **Happy Path:** Create a multi-category expense | User is logged in. An account "Credit Card" exists with a balance of $500. Categories "Entertainment" and "Food" exist. | 1. Navigate to "Add Expense". <br> 2. Select "Credit Card" account. <br> 3. Add category "Food" with amount `30.00`. <br> 4. Add category "Entertainment" with amount `70.00`. <br> 5. Click "Save". | Split 1: Food, 30.00 <br> Split 2: Entertainment, 70.00 | A single transaction is created with a total amount of $100.00. The balance of the "Credit Card" account is now $400.00. |
+| **TC-TRK-03** | **Happy Path:** Create and confirm an unconfirmed transaction | User is logged in. An account "Checking" exists with a balance of $1000. | 1. Create an expense of `25.00` but save it as "unconfirmed". <br> 2. Verify account balance is still $1000. <br> 3. Find the unconfirmed transaction and click "Confirm". | Amount: 25.00, Confirmed: false -> true | The transaction is now confirmed. The balance of the "Checking" account is updated to $975.00. |
+| **TC-TRK-04** | **Negative Path:** Create an expense with no category | User is logged in. An account "Checking" exists. | 1. Navigate to "Add Expense". <br> 2. Select "Checking" account. <br> 3. Enter amount `10.00`. <br> 4. Do not select a category. <br> 5. Click "Save". | Amount: 10.00, Category: null | The system displays a validation error: "Category is required". The transaction is not saved. The account balance remains unchanged. |
+| **TC-TRK-05** | **Negative Path:** Create an expense with zero amount | User is logged in. An account "Checking" exists. | 1. Navigate to "Add Expense". <br> 2. Select "Checking" account. <br> 3. Enter amount `0.00`. <br> 4. Select category "General". <br> 5. Click "Save". | Amount: 0.00 | The system displays a validation error: "Amount must be greater than zero". The transaction is not saved. |
+| **TC-TRK-06** | **Boundary:** Delete a confirmed transaction | A confirmed expense of `50.00` exists for the "Checking" account. The current balance is $950.00. | 1. Find the `50.00` expense transaction. <br> 2. Click the "Delete" button. <br> 3. Confirm the deletion. | Transaction ID of the `50.00` expense. | The transaction is deleted. The `refundBalance()` logic is triggered, and the balance of the "Checking" account is restored to $1000.00. |
 
-This is the central entity for all income and expense transactions.
+---
 
-| Attribute | Data Type | Constraints/Properties | Description |
-|---|---|---|---|
-| `id` | `integer` | `PRIMARY KEY` | Unique identifier for the balance flow. |
-| `book` | `Book` | `FOREIGN KEY (t_user_book)`, `NOT NULL` | The financial book this flow belongs to. |
-| `type` | `FlowType` | `NOT NULL` | Type of flow: `EXPENSE`, `INCOME`, `TRANSFER`, `ADJUST`. |
-| `amount` | `BigDecimal` | `NOT NULL` | The total amount of the transaction in the account's currency. |
-| `convertedAmount` | `BigDecimal` | | The amount converted to the book's default currency. |
-| `account` | `Account` | `FOREIGN KEY (t_user_account)` | The source account for the transaction. |
-| `to` | `Account` | `FOREIGN KEY (t_user_account)` | The destination account (for `TRANSFER` type). |
-| `createTime` | `long` | `NOT NULL` | The timestamp when the transaction occurred. |
-| `title` | `string` | `maxLength=32` | An optional title for the flow. |
-| `notes` | `string` | `maxLength=1024` | Optional user-provided notes. |
-| `creator` | `User` | `FOREIGN KEY (t_user)`, `NOT NULL` | The user who created the flow. |
-| `group` | `Group` | `FOREIGN KEY (t_user_group)`, `NOT NULL` | The group this flow belongs to. |
-| `payee` | `Payee` | `FOREIGN KEY (t_user_payee)` | The payee associated with the transaction. |
-| `confirm` | `boolean` | `NOT NULL` | `true` if the transaction is confirmed and affects balance. |
-| `include` | `boolean` | `NOT NULL` | `true` if the transaction is included in statistics. |
-| `insertAt` | `long` | `NOT NULL`, `updatable=false` | The timestamp when the record was inserted. |
-| `tags` | `Set<TagRelation>` | `One-to-Many` | Tags associated with the flow. |
-| `categories` | `Set<CategoryRelation>` | `One-to-Many` | Categories associated with the flow. |
-| `files` | `Set<FlowFile>` | `One-to-Many` | Files attached to the flow. |
+### 6.0 Assumptions
+(Document any assumptions made during the analysis due to ambiguity or lack of definitive information. Explain the reasoning for each assumption.)
 
-### `Account` (t_user_account)
+*   **CodMod Report Accuracy:** It is assumed that the provided CodMod analysis reports (`customized_report_money_note_detailed_journeys.md` and `customized_report_money_note_data_layer.md`) are accurate and faithful representations of the `moneynote-api` source code. The analysis in this document relies heavily on the details and code references within those reports.
+*   **User Interface Implementation:** The user flows described are based on the backend business logic and API capabilities. It is assumed that the frontend client implements a user interface that logically corresponds to these backend processes (e.g., providing forms, buttons, and error messages as described).
+*   **Default Configurations:** It is assumed that users have default books and accounts set up, as the system logic often relies on these defaults to pre-populate forms and streamline the user experience.
+*   **Permissions:** It is assumed that the user performing these actions has the necessary permissions (e.g., `Operator` or `Owner` role) within their group to create and manage transactions. The journey does not cover the behavior for read-only users (e.g., `Guest` role).
 
-Represents a user's financial account.
-
-| Attribute | Data Type | Constraints/Properties | Description |
-|---|---|---|---|
-| `id` | `integer` | `PRIMARY KEY` | Unique identifier for the account. |
-| `name` | `string` | `NOT NULL` | Name of the account (e.g., "Checking Account"). |
-| `group` | `Group` | `FOREIGN KEY (t_user_group)`, `NOT NULL` | The group this account belongs to. |
-| `type` | `AccountType` | `NOT NULL` | Type of account (e.g., Debit, Credit, Asset). |
-| `balance` | `BigDecimal` | `NOT NULL` | The current balance of the account. |
-| `currencyCode` | `string` | `NOT NULL`, `maxLength=8` | The currency code for the account (e.g., "USD"). |
-| `enable` | `boolean` | `NOT NULL` | Whether the account is active. |
-| `include` | `boolean` | `NOT NULL` | Whether to include this account in net worth calculations. |
-
-### `Category` (t_user_category)
-
-Used to classify transactions.
-
-| Attribute | Data Type | Constraints/Properties | Description |
-|---|---|---|---|
-| `id` | `integer` | `PRIMARY KEY` | Unique identifier for the category. |
-| `name` | `string` | `NOT NULL` | Name of the category (e.g., "Groceries", "Salary"). |
-| `book` | `Book` | `FOREIGN KEY (t_user_book)`, `NOT NULL` | The book this category belongs to. |
-| `type` | `CategoryType` | `NOT NULL` | Type of category: `EXPENSE` or `INCOME`. |
-| `parent` | `Category` | `FOREIGN KEY (t_user_category)` | Parent category for creating a hierarchy. |
-| `enable` | `boolean` | `NOT NULL` | Whether the category is active. |
-
-## 3. Database Tables to be Updated
-
-### Journey 2.1: Creating a New Income or Expense Record
-
-*   **Written to:**
-    *   `t_user_balance_flow`: `INSERT` a new row for the transaction.
-    *   `t_category_relation`: `INSERT` rows to link the flow to categories.
-    *   `t_tag_relation`: `INSERT` rows if tags are provided.
-    *   `t_user_account`: `UPDATE` the `balance` of the related account if `confirm` is true.
-*   **Read from:**
-    *   `t_user`: To get the current user (`creator`).
-    *   `t_user_group`: To get the current group.
-    *   `t_user_book`: To validate the book ID.
-    *   `t_user_account`: To get account details, including currency.
-    *   `t_user_category`: To validate category IDs.
-    *   `t_user_payee`: To validate the payee ID.
-
-### Journey 2.2: Modifying an Existing Income or Expense Record
-
-*   **Written to:**
-    *   `t_user_balance_flow`: `DELETE` the old row, `INSERT` a new one.
-    *   `t_category_relation`: `DELETE` old relations, `INSERT` new ones.
-    *   `t_tag_relation`: `DELETE` old relations, `INSERT` new ones.
-    *   `t_user_account`: `UPDATE` the balance twice (once to refund the old transaction, once to apply the new one).
-    *   `t_flow_file`: `UPDATE` to re-link files to the new flow record.
-*   **Read from:**
-    *   `t_user_balance_flow`: To get the original transaction details.
-    *   (And all tables read from during creation).
-
-### Journey 2.3: Deleting an Income or Expense Record
-
-*   **Written to:**
-    *   `t_user_balance_flow`: `DELETE` the transaction row.
-    *   `t_category_relation`: `DELETE` associated relations.
-    *   `t_tag_relation`: `DELETE` associated relations.
-    *   `t_flow_file`: `DELETE` associated files.
-    *   `t_user_account`: `UPDATE` the `balance` to refund the transaction amount.
-*   **Read from:**
-    *   `t_user_balance_flow`: To get the transaction details before deletion.
-    *   `t_user_account`: To get the account to be refunded.
-
-## 4. Business Rules and Functionality (Detailed)
-
-### Rule 1: Transaction Confirmation
-*   **Rule Name:** `ConfirmBalance`
-*   **Description:** A transaction only affects an account's financial balance after it has been explicitly confirmed.
-*   **Triggering Event:**
-    1.  Creating a new `BalanceFlow` with `confirm` set to `true`.
-    2.  Calling the `PATCH /balance-flows/{id}/confirm` endpoint.
-*   **Logic:**
-    *   If `FlowType` is `EXPENSE`, `amount` is subtracted from `Account.balance`.
-    *   If `FlowType` is `INCOME`, `amount` is added to `Account.balance`.
-*   **Outcome:** The `balance` field of the `t_user_account` table is updated.
-
-### Rule 2: Transaction Reversal
-*   **Rule Name:** `RefundBalance`
-*   **Description:** When a confirmed transaction is deleted or modified, its financial impact must be reversed.
-*   **Triggering Event:**
-    1.  Deleting a `BalanceFlow` (`DELETE /balance-flows/{id}`).
-    2.  Updating a `BalanceFlow` (`PUT /balance-flows/{id}`), as this involves deleting the old record.
-*   **Logic:**
-    *   If `FlowType` is `EXPENSE`, `amount` is added back to `Account.balance`.
-    *   If `FlowType` is `INCOME`, `amount` is subtracted from `Account.balance`.
-*   **Outcome:** The `balance` field of the `t_user_account` table is restored to its state before the transaction.
-
-### Rule 3: Category Requirement for Income/Expense
-*   **Rule Name:** `CategoryNotEmpty`
-*   **Description:** All income and expense transactions must be assigned to at least one category.
-*   **Triggering Event:** Creating or updating a `BalanceFlow` with `type` = `EXPENSE` or `INCOME`.
-*   **Logic:** The `categories` list in the `BalanceFlowAddForm` must not be null or empty.
-*   **Outcome:** If the rule is violated, the system throws a `FailureMessageException` with the message "add.flow.category.empty" and the operation is aborted.
-
-### Rule 4: Foreign Currency Handling
-*   **Rule Name:** `RequireConvertedAmount`
-*   **Description:** If a transaction involves an account with a currency different from the book's default currency, the converted amount must be explicitly provided.
-*   **Triggering Event:** Creating or updating a `BalanceFlow` where `Account.currencyCode` does not match `Book.defaultCurrencyCode`.
-*   **Logic:** The `convertedAmount` field in the `CategoryRelationForm` must not be null.
-*   **Outcome:** If the rule is violated, the system throws a `FailureMessageException` and the operation is aborted.
-
-## 5. Detailed Test Cases
-
-| Test Case ID | Feature Being Tested | Preconditions | Test Steps | Test Data | Expected Result |
-|---|---|---|---|---|---|
-| TC-IE-001 | Happy Path: Create Confirmed Expense | User is logged in. An `Account` with ID `1` and balance `1000` exists. A `Category` with ID `10` exists. | 1. Send `POST /balance-flows`. <br> 2. Query account balance. | `type: EXPENSE`, `account: 1`, `categories: [{category: 10, amount: 50}]`, `confirm: true` | 1. API returns `200 OK`. <br> 2. A new `BalanceFlow` record is created. <br> 3. The balance of `Account` ID `1` is now `950`. |
-| TC-IE-002 | Happy Path: Create Unconfirmed Income | User is logged in. An `Account` with ID `2` and balance `500` exists. A `Category` with ID `20` exists. | 1. Send `POST /balance-flows`. <br> 2. Query account balance. | `type: INCOME`, `account: 2`, `categories: [{category: 20, amount: 200}]`, `confirm: false` | 1. API returns `200 OK`. <br> 2. A new `BalanceFlow` record is created. <br> 3. The balance of `Account` ID `2` remains `500`. |
-| TC-IE-003 | Negative Path: Create Expense without Category | User is logged in. | 1. Send `POST /balance-flows`. | `type: EXPENSE`, `account: 1`, `categories: []`, `confirm: true` | 1. API returns an error (e.g., `400 Bad Request`). <br> 2. Response body contains error message "add.flow.category.empty". |
-| TC-IE-004 | Happy Path: Delete Expense | A confirmed expense of `50` exists for `Account` ID `1`, whose balance is `950`. | 1. Send `DELETE /balance-flows/{id}` for the expense. <br> 2. Query account balance. | `id`: ID of the expense record. | 1. API returns `200 OK`. <br> 2. The `BalanceFlow` record is deleted. <br> 3. The balance of `Account` ID `1` is restored to `1000`. |
-| TC-IE-005 | Happy Path: Update Expense Amount | A confirmed expense of `50` exists for `Account` ID `1`, whose balance is `950`. | 1. Send `PUT /balance-flows/{id}` with a new amount. <br> 2. Query account balance. | `id`: ID of the expense record. `categories: [{category: 10, amount: 70}]` | 1. API returns `200 OK` with the new record ID. <br> 2. The old `BalanceFlow` record is deleted. <br> 3. A new `BalanceFlow` record is created. <br> 4. The balance of `Account` ID `1` is now `930`. |
-| TC-IE-006 | Happy Path: Confirm an Unconfirmed Flow | An unconfirmed income of `200` exists for `Account` ID `2`, whose balance is `500`. | 1. Send `PATCH /balance-flows/{id}/confirm`. <br> 2. Query account balance. | `id`: ID of the income record. | 1. API returns `200 OK`. <br> 2. The `BalanceFlow` record's `confirm` flag is now `true`. <br> 3. The balance of `Account` ID `2` is now `700`. |
-
-## 6. State Any Assumptions
-
-*   **Assumption 1:** The user is authenticated and has a valid session, providing the necessary `User`, `Group`, and `Book` context for all operations. The `SessionUtil` class is assumed to correctly manage this context.
-*   **Assumption 2:** The front-end application is responsible for providing valid IDs for `book`, `account`, `category`, `payee`, and `tags`. The back-end assumes these entities exist and will throw an `ItemNotFoundException` if they don't.
-*   **Assumption 3:** The logic for currency conversion rates is handled outside the core `BalanceFlow` service. The service expects the correct `convertedAmount` to be provided in the request payload when dealing with multi-currency scenarios.
-*   **Assumption 4:** The `update` operation's strategy (delete and re-create) is an intentional design choice, possibly to simplify the logic of recalculating balances and relations. This has the side effect of changing the unique identifier (`id`) of a transaction when it is edited.
+---

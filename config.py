@@ -34,7 +34,7 @@ API_DETAIL_DESIGN_PATH = os.path.join(DOCS_DIRECTORY, "api_design", "api_detail_
 
 # PRD Paths
 PRDS_DIRECTORY = os.path.join(DOCS_DIRECTORY, "prds")
-EXAMPLE_PRD_PATH = os.path.join(PRDS_DIRECTORY, "example.md")
+EXAMPLE_PRD_PATH = os.path.join(DOCS_DIRECTORY, "context_docs", "example_prd.md")
 
 # Taskmaster Paths
 TASKMASTER_STATUS_FILE = os.path.join(WORKING_DIRECTORY, ".taskmaster", "current_status.md")
