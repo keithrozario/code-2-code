@@ -1,16 +1,12 @@
 import jwt
-from fastapi.testclient import TestClient
-from main import app
 from moneynote.schemas.currency import Currency
 
-client = TestClient(app)
-
-def test_get_all_currencies_unauthenticated():
+def test_get_all_currencies_unauthenticated(client):
     response = client.get("/currencies/all")
     assert response.status_code == 401
     assert response.json() == {"detail": "Not authenticated"}
 
-def test_get_all_currencies_authenticated():
+def test_get_all_currencies_authenticated(client):
     token = jwt.encode({"sub": "test-user"}, "secret", algorithm="HS256")
     response = client.get("/currencies/all", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200

@@ -1,16 +1,12 @@
 import jwt
-from fastapi.testclient import TestClient
-from main import app
 from moneynote.schemas.book_template import BookTemplate
 
-client = TestClient(app)
-
-def test_get_all_book_templates_unauthenticated():
+def test_get_all_book_templates_unauthenticated(client):
     response = client.get("/book-templates/all")
     assert response.status_code == 401
     assert response.json() == {"detail": "Not authenticated"}
 
-def test_get_all_book_templates_authenticated():
+def test_get_all_book_templates_authenticated(client):
     token = jwt.encode({"sub": "test-user"}, "secret", algorithm="HS256")
     response = client.get("/book-templates/all", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200

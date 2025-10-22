@@ -1,14 +1,22 @@
 from contextlib import asynccontextmanager
+import logging
 
 from fastapi import FastAPI
 from moneynote.routers import book_templates, currencies, system
-from moneynote.services.data_loader import load_book_templates, load_currencies
-
+from moneynote.services.data_loader_service import DataLoaderService, DataFileError
+from config import settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    load_currencies()
-    load_book_templates()
+    data_loader = DataLoaderService()
+    try:
+        data_loader.load_all_data(settings)
+        app.state.currencies = data_loader.currencies
+        app.state.book_templates = data_loader.book_templates
+        logging.info("Successfully loaded static data.")
+    except DataFileError as e:
+        logging.critical("Failed to load static data on startup. Application will not start. Error: %s", e)
+        raise
     yield
 
 app = FastAPI(lifespan=lifespan)

@@ -8,4 +8,13 @@ dependencies = [
     "isort>=7.0.0",
     "mrkdwn-analysis>=0.1.6",
     "pexpect>=4.9.0",
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "pydantic-settings",
+    "python-jose[cryptography]",
+    "passlib[bcrypt]",
+    "pytest",
+    "httpx",
+    "pyjwt",
 ]
