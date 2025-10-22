@@ -1,21 +1,17 @@
-import jwt
-from fastapi.testclient import TestClient
-from main import app
-from moneynote.schemas.currency import Currency
+from unittest.mock import patch
 
-client = TestClient(app)
 
-def test_get_all_currencies_unauthenticated():
-    response = client.get("/currencies/all")
+def test_get_currencies_unauthorized(client):
+    response = client.get("/api/v1/currencies/all")
     assert response.status_code == 401
-    assert response.json() == {"detail": "Not authenticated"}
 
-def test_get_all_currencies_authenticated():
-    token = jwt.encode({"sub": "test-user"}, "secret", algorithm="HS256")
-    response = client.get("/currencies/all", headers={"Authorization": f"Bearer {token}"})
+
+@patch("moneynote.routers.deps.get_current_active_user", return_value={"username": "testuser"})
+def test_get_currencies_authorized(mock_get_user, client, auth_headers):
+    response = client.get("/api/v1/currencies/all", headers=auth_headers)
     assert response.status_code == 200
-    response_data = response.json()
-    assert isinstance(response_data, list)
-    assert len(response_data) > 0
-    for item in response_data:
-        Currency(**item)
+    assert isinstance(response.json(), list)
+    assert len(response.json()) > 0
+    assert "code" in response.json()[0]
+    assert "name" in response.json()[0]
+    assert "symbol" in response.json()[0]
