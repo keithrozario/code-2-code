@@ -37,6 +37,7 @@ with open(config.API_DETAIL_DESIGN_PATH, 'r') as api_detail_design:
 # Update the PRD
 with open(prd_file_path, 'a') as prd_file:
     prd_file.write(status_as_md)
+    prd_file.write("\n# Architecture Principles to follow: \n\n")
     prd_file.write(api_detail_design_as_md)
 gen_task_from_prd(prd_file_path)
 expand_all_task_master_tasks()
