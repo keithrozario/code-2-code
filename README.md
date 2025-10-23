@@ -17,6 +17,11 @@ This approach means that the solution:
 * Creates a plan for execution that is broken into phases
 * Allows for re-writing of business logic and design
 
+## Demo
+
+[![Watch the video]](https://youtu.be/SwrSkUDiE90)
+
+
 ## Design Tenets
 
 * We aim to automate as much as possible - but
