@@ -19,7 +19,7 @@ This approach means that the solution:
 
 ## Demo
 
-[![Watch the video]](https://youtu.be/SwrSkUDiE90)
+[![Watch the video](https://i9.ytimg.com/vi_webp/SwrSkUDiE90/maxresdefault.webp?v=68fab78f&sqp=CPTt6scG&rs=AOn4CLCJe9RKIRIpLaohnLFAHm92rRC5CQ)](https://youtu.be/SwrSkUDiE90)
 
 
 ## Design Tenets
