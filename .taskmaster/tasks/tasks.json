@@ -2,672 +2,670 @@
   "master": {
     "tasks": [
       {
-        "id": 1,
-        "title": "Define Pydantic Schemas and Create Static Data Files",
-        "description": "Create the Pydantic models for Currency and BookTemplate and the corresponding static JSON data files that will be loaded by the application.",
-        "details": "In `moneynote/schemas/`, create new files or update existing ones to define `Currency` and `BookTemplate` Pydantic schemas matching the PRD. In `moneynote/data/`, create `currency.json` and `book_tpl.json` with sample data as specified in the data model section of the PRD.",
-        "testStrategy": "Manual verification of file contents and schema definitions. The schemas will be implicitly tested by the data loader service tests.",
+        "id": 11,
+        "title": "Update Data Models and Create Database Migration",
+        "description": "Update the `User` model to support binding and create a new `InviteCode` model. This involves modifying SQLAlchemy models and generating a database migration with Alembic.",
+        "details": "In `moneynote/models/user.py`, ensure the `User` model's `username` and `password_hash` columns are nullable to accommodate guest accounts. Create a new file `moneynote/models/invite_code.py` with an `InviteCode` model mapping to `t_invite_code`. This table should at least contain `code` (string, unique) and `is_used` (boolean) columns. After defining the models, run `alembic revision --autogenerate` to create the migration script.",
+        "testStrategy": "Review the generated Alembic migration script to ensure it correctly alters `t_user_user` and creates `t_invite_code`. Apply the migration to a test database to confirm it runs without errors.",
         "priority": "high",
         "dependencies": [],
-        "status": "done",
+        "status": "pending",
         "subtasks": [
           {
             "id": 1,
-            "title": "Define the Currency Pydantic Schema",
-            "description": "Create a new file for the Currency schema and define the model structure, ensuring it inherits from the existing base model.",
+            "title": "Make User Model Fields Nullable",
+            "description": "Modify the User model in `moneynote/models/user.py` to allow `username` and `password_hash` to be nullable. This supports guest user accounts that are not yet bound to credentials.",
             "dependencies": [],
-            "details": "In the `moneynote/schemas/` directory, create a new file named `currency.py`. Inside this file, import the `Base` model from `moneynote.schemas.base`. Define a new Pydantic class `Currency` that inherits from `Base`. Based on standard currency attributes, add the following fields: `code: str`, `name: str`, and `symbol: str`.",
-            "status": "done",
-            "testStrategy": "Manual verification of the file `moneynote/schemas/currency.py` to ensure it contains the `Currency` class inheriting from `Base` with the correct fields."
+            "details": "In the file `moneynote/models/user.py`, locate the `User` class. Change the `nullable=False` argument to `nullable=True` for both the `username` and `password_hash` columns.",
+            "status": "pending",
+            "testStrategy": "Code review to confirm the `nullable` property is set to `True` for the specified columns."
           },
           {
             "id": 2,
-            "title": "Define the BookTemplate Pydantic Schema",
-            "description": "Create a new file for the BookTemplate schema and define its model structure, following the project's conventions.",
+            "title": "Create InviteCode Model File",
+            "description": "Create a new file `moneynote/models/invite_code.py` and define the `InviteCode` SQLAlchemy model within it.",
             "dependencies": [],
-            "details": "In the `moneynote/schemas/` directory, create a new file named `book_template.py`. Import the `Base` model from `moneynote.schemas.base`. Define a new Pydantic class `BookTemplate` that inherits from `Base`. Add the following fields to the model: `id: str`, `name: str`, and `description: str`.",
-            "status": "done",
-            "testStrategy": "Manual verification of the file `moneynote/schemas/book_template.py` to ensure it contains the `BookTemplate` class inheriting from `Base` with the correct fields."
+            "details": "Create the new file. Inside, import `Column`, `Integer`, `String`, `Boolean` from `sqlalchemy` and `Base` from `.base`. Define a new class `InviteCode(Base)` with `__tablename__ = 't_invite_code'`. Add the following columns: `id` (Integer, primary_key=True), `code` (String(50), unique=True, nullable=False), and `is_used` (Boolean, nullable=False, default=False).",
+            "status": "pending",
+            "testStrategy": "Code review to ensure the new model is defined correctly according to SQLAlchemy conventions and project requirements."
           },
           {
             "id": 3,
-            "title": "Expose New Schemas in the Schemas Module",
-            "description": "Update the `__init__.py` file in the schemas directory to make the new Currency and BookTemplate models easily importable from the `moneynote.schemas` package.",
-            "dependencies": [],
-            "details": "Modify the file `moneynote/schemas/__init__.py`. Add import statements to expose the newly created `Currency` and `BookTemplate` schemas. The file should be updated to include `from .currency import Currency` and `from .book_template import BookTemplate`.",
-            "status": "done",
-            "testStrategy": "Manual verification of `moneynote/schemas/__init__.py` to confirm the new import lines are present."
+            "title": "Register New InviteCode Model for Alembic Discovery",
+            "description": "Update `moneynote/models/__init__.py` to import the new `InviteCode` model, making it discoverable by Alembic for autogeneration.",
+            "dependencies": [
+              "11.2"
+            ],
+            "details": "In `moneynote/models/__init__.py`, add the line `from .invite_code import InviteCode`. Then, add `'InviteCode'` to the `__all__` list to follow the existing pattern in the file.",
+            "status": "pending",
+            "testStrategy": "Verify that the import statement and the `__all__` list are correctly updated in `moneynote/models/__init__.py`."
           },
           {
             "id": 4,
-            "title": "Create Static Currency Data File",
-            "description": "Create the directory and JSON file containing the list of supported currencies.",
-            "dependencies": [],
-            "details": "Create a new directory `moneynote/data/`. Inside this directory, create a new file named `currency.json`. Populate this file with a JSON array of currency objects that conform to the `Currency` schema. Include at least three sample currencies, for example: USD, EUR, and JPY.",
-            "status": "done",
-            "testStrategy": "Manual verification of the file `moneynote/data/currency.json` to ensure it exists, is valid JSON, and its objects match the `Currency` schema."
+            "title": "Generate Alembic Migration Script",
+            "description": "Run the Alembic command to automatically generate a new database migration script based on the model changes.",
+            "dependencies": [
+              "11.1",
+              "11.3"
+            ],
+            "details": "From the project's root directory, execute the command: `alembic revision --autogenerate -m \"Add InviteCode model and make User fields nullable\"`. This will create a new revision file in the `alembic/versions` directory.",
+            "status": "pending",
+            "testStrategy": "Confirm that a new migration file is created in `alembic/versions/` after running the command."
           },
           {
             "id": 5,
-            "title": "Create Static Book Template Data File",
-            "description": "Create the JSON file containing the list of available book templates.",
-            "dependencies": [],
-            "details": "In the `moneynote/data/` directory, create a new file named `book_tpl.json`. Populate this file with a JSON array of book template objects that conform to the `BookTemplate` schema. Include at least two sample templates, such as a 'Personal' template and a 'Business' template.",
-            "status": "done",
-            "testStrategy": "Manual verification of the file `moneynote/data/book_tpl.json` to ensure it exists, is valid JSON, and its objects match the `BookTemplate` schema."
+            "title": "Review and Finalize Generated Migration Script",
+            "description": "Inspect the newly generated migration script to ensure it accurately reflects the intended database schema changes and that both upgrade and downgrade paths are correct.",
+            "dependencies": [
+              "11.4"
+            ],
+            "details": "Open the new file in `alembic/versions/`. In the `upgrade()` function, verify the presence of `op.create_table('t_invite_code', ...)` with the correct columns and constraints. Also, confirm there are two `op.alter_column('t_user_user', ...)` calls to set `nullable=True` for `username` and `password_hash`. Check that the `downgrade()` function correctly reverses these operations.",
+            "status": "pending",
+            "testStrategy": "Apply the migration to a local/test database (`alembic upgrade head`) and inspect the database schema to confirm the `t_invite_code` table is created and the `t_user_user` table is altered as expected."
           }
         ]
       },
       {
-        "id": 2,
-        "title": "Add Version and Base URL to Application Configuration",
-        "description": "Update the application's configuration to include the application version and a base URL for testing purposes.",
-        "details": "Modify the Pydantic Settings class in `moneynote/core/config.py`. Add two new fields: `APP_VERSION` and `BASE_URL`. These should be loaded from environment variables. Provide default values for local development.",
-        "testStrategy": "Unit test that the settings object correctly loads these values from environment variables and uses defaults when they are not set.",
+        "id": 12,
+        "title": "Define Pydantic Schemas for Session and Binding",
+        "description": "Create the Pydantic schemas required for the `/initState` response and the `/bind` request body.",
+        "details": "In a relevant schema file like `moneynote/schemas/user.py`, define `UserSessionVo`, `BookSessionVo`, and `GroupSessionVo` to structure the `initState` response, including fields like `id` and `name`. Create a `UserBind` schema for the `PUT /bind` request body, containing `username: str`, `password: str`, and `inviteCode: str`.",
+        "testStrategy": "No direct testing is needed for schemas, but they will be validated by unit tests for the services and integration tests for the endpoints that use them.",
         "priority": "high",
         "dependencies": [],
-        "status": "done",
+        "status": "pending",
         "subtasks": [
           {
             "id": 1,
-            "title": "Add APP_VERSION Field to Settings Class",
-            "description": "Modify the `Settings` class in `moneynote/core/config.py` to include the new `APP_VERSION` field.",
+            "title": "Define UserBind Schema for the /bind Endpoint",
+            "description": "Create the Pydantic schema for the request body of the `PUT /bind` endpoint. This schema will be used to validate the data sent when a user binds their account.",
             "dependencies": [],
-            "details": "In the `Settings` class within `moneynote/core/config.py`, add a new attribute `APP_VERSION: str = \"0.1.0\"`. This will allow the application version to be loaded from an environment variable, with a sensible default for local development.",
-            "status": "done",
-            "testStrategy": "This will be tested in a subsequent subtask by verifying that the settings object contains this field with the correct default value."
+            "details": "In `moneynote/schemas/user.py`, define a new Pydantic class `UserBind` that inherits from `BaseModel`. This class should include the following fields: `username: str`, `password: str`, and `inviteCode: str`.",
+            "status": "pending",
+            "testStrategy": "This schema will be implicitly tested by the integration tests for the `/bind` endpoint (Task 19), which will validate request body handling."
           },
           {
             "id": 2,
-            "title": "Add BASE_URL Field to Settings Class",
-            "description": "Modify the `Settings` class in `moneynote/core/config.py` to include the new `BASE_URL` field for testing purposes.",
+            "title": "Define UserSessionVo Schema for the /initState Response",
+            "description": "Create the Pydantic schema for the user portion of the `GET /initState` response. This will represent the essential user session information.",
             "dependencies": [],
-            "details": "In the `Settings` class within `moneynote/core/config.py`, add a new attribute `BASE_URL: str = \"http://localhost:8000\"`. This will define a base URL for the application, loaded from an environment variable, with a default pointing to the local development server.",
-            "status": "done",
-            "testStrategy": "This will be tested in a subsequent subtask by verifying that the settings object contains this field with the correct default value."
+            "details": "In `moneynote/schemas/user.py`, define a new Pydantic class `UserSessionVo` that inherits from `BaseModel`. It should contain `id: int` and `name: str` fields. Add a `Config` inner class with `orm_mode = True` to allow mapping from ORM models.",
+            "status": "pending",
+            "testStrategy": "This schema will be validated by unit and integration tests for the `get_initial_state` service and `/initState` endpoint (Tasks 15 and 19)."
           },
           {
             "id": 3,
-            "title": "Create Unit Test for Default Configuration Values",
-            "description": "Add a new test case to `tests/core/test_config.py` to verify that `APP_VERSION` and `BASE_URL` are assigned their default values when the corresponding environment variables are not set.",
-            "dependencies": [
-              "2.1",
-              "2.2"
-            ],
-            "details": "In `tests/core/test_config.py`, create a new test function. Use `unittest.mock.patch.dict` to ensure the environment variables `APP_VERSION` and `BASE_URL` are not present. Reload the `config` module using `importlib.reload` and assert that `settings.APP_VERSION` is \"0.1.0\" and `settings.BASE_URL` is \"http://localhost:8000\".",
-            "status": "done",
-            "testStrategy": "This unit test will directly confirm that the default values are correctly implemented as per the task requirements."
+            "title": "Define BookSessionVo Schema for the /initState Response",
+            "description": "Create the Pydantic schema for the user's default book portion of the `GET /initState` response.",
+            "dependencies": [],
+            "details": "In `moneynote/schemas/user.py`, define a new Pydantic class `BookSessionVo` that inherits from `BaseModel`. It should contain `id: int` and `name: str` fields. Add a `Config` inner class with `orm_mode = True`.",
+            "status": "pending",
+            "testStrategy": "This schema will be validated by unit and integration tests for the `get_initial_state` service and `/initState` endpoint (Tasks 15 and 19)."
           },
           {
             "id": 4,
-            "title": "Create Unit Test for Environment Variable Loading",
-            "description": "Add a new test case to `tests/core/test_config.py` to confirm that `APP_VERSION` and `BASE_URL` are correctly loaded from environment variables when they are set.",
-            "dependencies": [
-              "2.1",
-              "2.2"
-            ],
-            "details": "Following the existing pattern in `tests/core/test_config.py`, create a test function that uses `unittest.mock.patch.dict` to set `APP_VERSION` to \"test-v9.9.9\" and `BASE_URL` to \"http://test.example.com\". Reload the `config` module and assert that the `settings` object's attributes match these custom values.",
-            "status": "done",
-            "testStrategy": "This unit test will verify that the Pydantic settings class correctly overrides default values with those from the environment."
+            "title": "Define GroupSessionVo Schema for the /initState Response",
+            "description": "Create the Pydantic schema for the user's group portion of the `GET /initState` response.",
+            "dependencies": [],
+            "details": "In `moneynote/schemas/user.py`, define a new Pydantic class `GroupSessionVo` that inherits from `BaseModel`. It should contain `id: int` and `name: str` fields. Add a `Config` inner class with `orm_mode = True`.",
+            "status": "pending",
+            "testStrategy": "This schema will be validated by unit and integration tests for the `get_initial_state` service and `/initState` endpoint (Tasks 15 and 19)."
           },
           {
             "id": 5,
-            "title": "Document New Environment Variables in .env.example",
-            "description": "Update the project's example environment file to include the new configuration variables for other developers.",
+            "title": "Define Composite InitStateResponse Schema",
+            "description": "Create the main Pydantic schema that composes the session VOs into the final structure for the `GET /initState` response body.",
             "dependencies": [
-              "2.1",
-              "2.2"
+              "12.2",
+              "12.3",
+              "12.4"
             ],
-            "details": "Locate the `.env.example` file in the project root. Add new lines for the `APP_VERSION` and `BASE_URL` variables, documenting their purpose and default values. For example: `APP_VERSION=0.1.0` and `BASE_URL=http://localhost:8000`. If the file does not exist, create it.",
-            "status": "done",
-            "testStrategy": "This is a documentation task. Correctness can be verified by code review, ensuring the new variables are present in the `.env.example` file."
+            "details": "In `moneynote/schemas/user.py`, define a new Pydantic class `InitStateResponse`. This schema will assemble the previously defined VOs. It should contain the fields: `user: UserSessionVo`, `book: Optional[BookSessionVo] = None`, and `group: Optional[GroupSessionVo] = None`. Import `Optional` from the `typing` module.",
+            "status": "pending",
+            "testStrategy": "This composite schema is the primary response model for the `/initState` endpoint and will be thoroughly validated by its integration tests (Task 19)."
           }
         ]
       },
       {
-        "id": 3,
-        "title": "Create Data Loader Service for Caching Static JSON",
-        "description": "Implement a service to read and cache the contents of `currency.json` and `book_tpl.json` into memory upon application startup.",
-        "details": "Create a new file `moneynote/services/data_loader_service.py`. This service should contain functions to read `currency.json` and `book_tpl.json`, parse them, and validate their contents against the Pydantic schemas. It should cache the resulting lists of objects. Implement robust error handling to log a critical error and prevent application startup if files are missing or malformed, as per the PRD's risk mitigation.",
-        "testStrategy": "Write unit tests for the data loader service. Use mock file systems to test for successful loading, file-not-found errors, and JSON parsing/validation errors. Verify that appropriate exceptions are raised.",
+        "id": 13,
+        "title": "Implement CRUD Functions for User and Invite Code",
+        "description": "Create the necessary Data Access Layer functions to interact with the user and invite code tables for the new features.",
+        "details": "In `moneynote/crud/crud_user.py`, add a `get_by_username` function to check for username uniqueness. In `moneynote/crud/crud_user.py` ensure the `update` function can modify `username` and `password_hash`. Create a new file `moneynote/crud/crud_invite_code.py` with functions to fetch an invite code (`get_by_code`) and to mark it as used (`update`).",
+        "testStrategy": "Write unit tests for each new CRUD function, mocking the database session and asserting that the correct SQLAlchemy methods are called with the right parameters.",
         "priority": "high",
         "dependencies": [
-          1
+          11
         ],
-        "status": "done",
+        "status": "pending",
         "subtasks": [
           {
             "id": 1,
-            "title": "Update Configuration with Data File Paths",
-            "description": "Add the file paths for `currency.json` and `book_tpl.json` to the `Settings` class in `moneynote/config.py` to make them configurable and centrally managed.",
+            "title": "Implement `get_by_username` in `CRUDUser`",
+            "description": "In `moneynote/crud/crud_user.py`, add a new method `get_by_username` to the `CRUDUser` class. This method should accept a database session and a username string, and return the corresponding `User` object or `None` if not found.",
             "dependencies": [],
-            "details": "Modify the `Settings` class in `moneynote/config.py`. Add two new attributes: `CURRENCY_DATA_PATH` with a default value of `\"moneynote/static/currency.json\"` and `BOOK_TPL_DATA_PATH` with a default value of `\"moneynote/static/book_tpl.json\"`. This will allow the service to access these paths via the application settings.",
-            "status": "done",
-            "testStrategy": "Verify that the settings object, when instantiated, contains the correct default paths for the two JSON files."
+            "details": "Follow the existing pattern of the `get_by_email` method. The new method signature should be `def get_by_username(self, db: Session, *, username: str) -> Optional[User]:`. The implementation should query the `User` model, filtering by the `username` column.",
+            "status": "pending",
+            "testStrategy": "Add a unit test for `get_by_username`, mocking the database session and asserting that `db.query(User).filter(...).first()` is called with the correct parameters."
           },
           {
             "id": 2,
-            "title": "Create DataLoaderService Class and Custom Exceptions",
-            "description": "Create the new file `moneynote/services/data_loader_service.py` and define the `DataLoaderService` class structure, along with a custom exception for loading errors.",
+            "title": "Update `UserUpdate` Schema and `CRUDUser.update` Method",
+            "description": "Modify the `UserUpdate` schema in `moneynote/schemas/user.py` to allow updating the username and hashed password. Then, adjust the `CRUDUser.update` method in `moneynote/crud/crud_user.py` to correctly handle these fields.",
             "dependencies": [],
-            "details": "Create the file `moneynote/services/data_loader_service.py`. In this file, define a custom exception class `class DataFileError(Exception): pass`. Then, define the `DataLoaderService` class. In its `__init__` method, initialize `self.currencies: list[Currency] = []` and `self.book_templates: list[BookTemplate] = []`. Import `Currency` and `BookTemplate` from `moneynote.schemas`.",
-            "status": "done",
-            "testStrategy": "Unit test to ensure the `DataLoaderService` can be instantiated and its `currencies` and `book_templates` attributes are empty lists by default."
+            "details": "In `moneynote/schemas/user.py`, add `username: Optional[str] = None` and `hashed_password: Optional[str] = None` to the `UserUpdate` Pydantic model. In `moneynote/crud/crud_user.py`, modify the `CRUDUser.update` method to remove the special handling for a raw `password`. The updated data, including `username` and `hashed_password`, will be passed directly to the `super().update()` call.",
+            "status": "pending",
+            "testStrategy": "Update the unit tests for `CRUDUser.update` to verify that `username` and `hashed_password` can be updated correctly. Test that the old logic for hashing a raw `password` is removed or no longer triggered."
           },
           {
             "id": 3,
-            "title": "Implement a Generic JSON File Validation Method",
-            "description": "Add a private helper method to `DataLoaderService` to load, parse, and validate a list of objects from a JSON file against a given Pydantic model.",
-            "dependencies": [
-              "3.2"
-            ],
-            "details": "Implement a private method `_load_and_validate_json(self, file_path: str, model: Type[BaseModel]) -> list[BaseModel]`. This method should open and read the file at `file_path`, parse its JSON content, and then use `pydantic.parse_obj_as(list[model], ...)` to validate the data. It must wrap `FileNotFoundError`, `json.JSONDecodeError`, and `pydantic.ValidationError` and raise the custom `DataFileError` with a descriptive message.",
-            "status": "done",
-            "testStrategy": "Unit test this private method using mocks for the file system. Test the success case, a file not found case, a JSON decoding error case, and a Pydantic validation error case, ensuring `DataFileError` is raised appropriately."
+            "title": "Create `moneynote/crud/crud_invite_code.py` and Define `CRUDInviteCode`",
+            "description": "Create a new file `moneynote/crud/crud_invite_code.py`. In this file, define the `CRUDInviteCode` class that inherits from `CRUDBase` and instantiate it for use in other modules.",
+            "dependencies": [],
+            "details": "The new file should import `CRUDBase` from `moneynote.crud.base`, the `InviteCode` model from `moneynote.models.invite_code`, and the `InviteCodeCreate` and `InviteCodeUpdate` schemas from `moneynote.schemas.invite_code`. Define the class as `class CRUDInviteCode(CRUDBase[InviteCode, InviteCodeCreate, InviteCodeUpdate]): pass`. Finally, create an instance: `invite_code = CRUDInviteCode(InviteCode)`.",
+            "status": "pending",
+            "testStrategy": "This is primarily a structural task. Verification can be done by ensuring the application can import the `invite_code` object from the new module without errors."
           },
           {
             "id": 4,
-            "title": "Implement Specific Data Loading and Caching Methods",
-            "description": "Create public methods in `DataLoaderService` to load currencies and book templates using the generic loader and cache the results in instance attributes.",
+            "title": "Implement `get_by_code` in `CRUDInviteCode`",
+            "description": "In the newly created `moneynote/crud/crud_invite_code.py`, add a `get_by_code` method to the `CRUDInviteCode` class to fetch an invite code record from the database.",
             "dependencies": [
-              "3.1",
-              "3.3"
+              "13.3"
             ],
-            "details": "In `DataLoaderService`, implement two methods: `load_currencies(self, settings: Settings)` and `load_book_templates(self, settings: Settings)`. Each method will call `_load_and_validate_json`, passing the appropriate file path from the `settings` object (`settings.CURRENCY_DATA_PATH` or `settings.BOOK_TPL_DATA_PATH`) and the corresponding Pydantic schema (`Currency` or `BookTemplate`). The validated list of objects should be assigned to `self.currencies` and `self.book_templates` respectively.",
-            "status": "done",
-            "testStrategy": "Unit test these methods, mocking the `_load_and_validate_json` method to ensure it's called with the correct parameters and that the instance attributes are correctly updated with the mock return value."
+            "details": "The method should accept a database session and a `code` string. It should query the `InviteCode` model, filtering on the `code` column, and return the first result or `None`. The method signature should be `def get_by_code(self, db: Session, *, code: str) -> Optional[InviteCode]:`.",
+            "status": "pending",
+            "testStrategy": "Write a unit test for `get_by_code`, mocking the database session and asserting that the correct query is executed to find the invite code."
           },
           {
             "id": 5,
-            "title": "Implement Main Loader Entrypoint with Error Handling and Logging",
-            "description": "Create a single public method `load_all_data()` that orchestrates the loading process and implements the final error handling and logging strategy.",
+            "title": "Ensure `CRUDInviteCode` Provides an `update` Method",
+            "description": "The `CRUDInviteCode` class, by inheriting from `CRUDBase`, already has a generic `update` method. This task is to confirm that the class is set up correctly to use this inherited method for marking an invite code as used.",
             "dependencies": [
-              "3.4"
+              "13.3"
             ],
-            "details": "In `DataLoaderService`, create a public method `load_all_data(self, settings: Settings)`. This method will call `self.load_currencies(settings)` and `self.load_book_templates(settings)`. Wrap these calls in a `try...except DataFileError as e:` block. In the `except` block, use Python's `logging` module to log a critical error (e.g., `logging.critical(\"Failed to load static data: %s\", e)`) and then re-raise the exception to halt application startup as required by the PRD.",
-            "status": "done",
-            "testStrategy": "Unit test `load_all_data`. Verify that both `load_currencies` and `load_book_templates` are called. Mock one of the sub-methods to raise a `DataFileError` and assert that a critical error is logged and the exception is re-raised."
+            "details": "No new code needs to be written for the `update` method itself within `crud_invite_code.py`. The implementation is inherited from `CRUDBase`. The `bind_user` service will call this method with a dictionary of fields to update (e.g., `is_used=True`). This subtask is complete once the `CRUDInviteCode` class is correctly defined as per subtask 13.3, as this provides the required functionality.",
+            "status": "pending",
+            "testStrategy": "Write a unit test that calls `invite_code.update`. Mock the database session and a `db_obj`, and verify that `db.add()` and `db.commit()` are called, confirming the inherited `update` logic is functioning as expected for the `InviteCode` model."
           }
         ]
       },
       {
-        "id": 4,
-        "title": "Integrate Data Loader into Application Startup",
-        "description": "Hook the new data loader service into the FastAPI application's startup lifecycle event.",
-        "details": "In `main.py`, use the `@app.on_event('startup')` decorator to call the data loader service. The loaded data (currencies and book templates) should be stored in a globally accessible way, for instance, on the `app.state` object, to be available for endpoint logic.",
-        "testStrategy": "Integration testing will verify this. When the test client starts the app, the data should be loaded. Subsequent endpoint tests will confirm if the data is accessible.",
+        "id": 14,
+        "title": "Add Password Hashing Utility and Dependency",
+        "description": "Integrate a password hashing library and create utility functions for hashing and verification.",
+        "details": "Add `passlib` with `bcrypt` support to the project's dependencies in `pyproject.toml`. In `moneynote/security.py`, create a `get_password_hash(password: str) -> str` function and a `verify_password(plain_password: str, hashed_password: str) -> bool` function using `passlib.context.CryptContext`.",
+        "testStrategy": "Write unit tests for the `get_password_hash` and `verify_password` functions to ensure they correctly hash passwords and that verification works for both correct and incorrect passwords.",
         "priority": "high",
-        "dependencies": [
-          3
-        ],
-        "status": "done",
+        "dependencies": [],
+        "status": "pending",
         "subtasks": [
           {
             "id": 1,
-            "title": "Import Data Loader Service and Logging in main.py",
-            "description": "Modify `moneynote/main.py` to import the necessary modules for data loading and logging. This includes the `data_loader_service` from `moneynote.services` and Python's built-in `logging` module.",
+            "title": "Add passlib with bcrypt to pyproject.toml",
+            "description": "Modify the project's dependency file, `pyproject.toml`, to include the `passlib` library with support for the `bcrypt` hashing algorithm.",
             "dependencies": [],
-            "details": "In `moneynote/main.py`, add the following import statements at the top of the file: `from moneynote.services import data_loader_service` and `import logging`. This prepares the file for the subsequent steps.",
-            "status": "done",
-            "testStrategy": "Code review to ensure imports are correct and follow project conventions."
+            "details": "In `pyproject.toml`, under the `[tool.poetry.dependencies]` section, add the following line: `passlib = {extras = [\"bcrypt\"], version = \"^1.7.4\"}`. After editing the file, run `poetry lock && poetry install` to update the project's environment.",
+            "status": "pending",
+            "testStrategy": "Verify the dependency is installed correctly by running `poetry show passlib` in the terminal."
           },
           {
             "id": 2,
-            "title": "Define the Startup Event Handler Function",
-            "description": "In `moneynote/main.py`, create the asynchronous function that will be executed on application startup and decorate it correctly.",
+            "title": "Create and configure CryptContext in security.py",
+            "description": "In `moneynote/security.py`, import `CryptContext` from `passlib.context` and create a configured instance to be used for hashing and verification.",
             "dependencies": [
-              "4.1"
+              "14.1"
             ],
-            "details": "Below the `app = FastAPI(...)` instantiation in `moneynote/main.py`, add a new async function decorated with `@app.on_event('startup')`. The function should be named `load_static_data` and should initially be empty. Example: `@app.on_event('startup')\nasync def load_static_data():\n    pass`",
-            "status": "done",
-            "testStrategy": "Run the application to ensure it starts without errors after adding the empty event handler."
+            "details": "Add `from passlib.context import CryptContext` to the imports in `moneynote/security.py`. Then, create a module-level variable: `pwd_context = CryptContext(schemes=[\"bcrypt\"], deprecated=\"auto\")`. This context will be used by the hashing and verification functions.",
+            "status": "pending",
+            "testStrategy": "No direct testing for this subtask. Its correctness will be verified by the tests for the functions that use it."
           },
           {
             "id": 3,
-            "title": "Load Currencies and Store on app.state",
-            "description": "Implement the logic within the startup event handler to call the data loader service for currencies and store the result on the application state.",
+            "title": "Implement get_password_hash function",
+            "description": "Create the `get_password_hash` function in `moneynote/security.py` to hash a plain-text password.",
             "dependencies": [
-              "4.2"
+              "14.2"
             ],
-            "details": "Inside the `load_static_data` function in `moneynote/main.py`, call `data_loader_service.load_currencies()`. Assign the returned data to `app.state.currencies`. Add a log info message indicating that currencies have been loaded successfully.",
-            "status": "done",
-            "testStrategy": "Temporarily add a print statement or use a debugger to verify that `app.state.currencies` is populated after startup."
+            "details": "Define the function `get_password_hash(password: str) -> str`. Inside the function, use the `pwd_context` instance to hash the password: `return pwd_context.hash(password)`.",
+            "status": "pending",
+            "testStrategy": "Unit tests will be written in a subsequent subtask to verify that the function returns a string and that the hash is different from the input password."
           },
           {
             "id": 4,
-            "title": "Load Book Templates and Store on app.state",
-            "description": "Implement the logic within the startup event handler to call the data loader service for book templates and store the result on the application state.",
+            "title": "Implement verify_password function",
+            "description": "Create the `verify_password` function in `moneynote/security.py` to check a plain-text password against a hashed password.",
             "dependencies": [
-              "4.2"
+              "14.2"
             ],
-            "details": "Inside the `load_static_data` function in `moneynote/main.py`, call `data_loader_service.load_book_templates()`. Assign the returned data to `app.state.book_templates`. Add a log info message indicating that book templates have been loaded successfully.",
-            "status": "done",
-            "testStrategy": "Temporarily add a print statement or use a debugger to verify that `app.state.book_templates` is populated after startup."
+            "details": "Define the function `verify_password(plain_password: str, hashed_password: str) -> bool`. Inside the function, use the `pwd_context` instance to verify the password: `return pwd_context.verify(plain_password, hashed_password)`.",
+            "status": "pending",
+            "testStrategy": "Unit tests will be written in a subsequent subtask to verify that the function returns `True` for a correct password and `False` for an incorrect one."
           },
           {
             "id": 5,
-            "title": "Implement Critical Error Handling for Data Loading",
-            "description": "Wrap the data loading calls in the startup event with a try/except block to handle potential errors, log them as critical, and prevent the application from starting if loading fails.",
+            "title": "Write unit tests for password utility functions",
+            "description": "Create a new test file `tests/test_security.py` and add unit tests for the `get_password_hash` and `verify_password` functions to ensure they work correctly.",
             "dependencies": [
-              "4.3",
-              "4.4"
+              "14.3",
+              "14.4"
             ],
-            "details": "In the `load_static_data` function, wrap the calls to `load_currencies()` and `load_book_templates()` in a `try...except Exception as e` block. In the `except` block, use `logging.critical` to log a message like 'Failed to load static data on startup. Application will not start. Error: {e}'. Then, re-raise the exception to ensure the FastAPI application startup is halted.",
-            "status": "done",
-            "testStrategy": "Manually test by temporarily renaming or corrupting `currency.json` or `book_tpl.json` and verifying that the application fails to start and logs a critical error."
+            "details": "In `tests/test_security.py`, import the two new functions. Write a test case for `get_password_hash` to ensure it returns a non-empty string. Write test cases for `verify_password` that check both a correct password (should return `True`) and an incorrect password (should return `False`).",
+            "status": "pending",
+            "testStrategy": "Run `pytest tests/test_security.py` and ensure all new tests pass."
           }
         ]
       },
       {
-        "id": 5,
-        "title": "Implement `GET /version` Endpoint",
-        "description": "Create the API endpoint to return the application's current version from the configuration.",
-        "details": "In `moneynote/routers/`, create a new router (e.g., `system.py`) or use an existing one. Add a `GET /version` endpoint that depends on the authentication mechanism from `deps.py`. The endpoint logic should access the settings object and return the `APP_VERSION` in the specified JSON format.",
-        "testStrategy": "Integration test to verify the endpoint returns a 200 status and the correct version string with a valid token. Test for a 401/403 response when no token is provided.",
+        "id": 15,
+        "title": "Implement `get_initial_state` Service Logic",
+        "description": "Create the business logic for the `initState` feature, which fetches the core session data for a user.",
+        "details": "In `moneynote/services/user_service.py`, create a new function `get_initial_state(db: Session, user_id: int)`. This function will use `crud_user` to fetch the user, then use the `user.default_book_id` and `user.group_id` to fetch the corresponding book and group records via their respective CRUD modules. It should handle cases where the book or group might be null and assemble the data into a dictionary or a dedicated data object.",
+        "testStrategy": "Write unit tests for the `get_initial_state` service function. Mock the CRUD functions to simulate different scenarios, such as a user with a default book, a user without one, and a user not found.",
         "priority": "medium",
         "dependencies": [
-          2
+          13
         ],
-        "status": "done",
+        "status": "pending",
         "subtasks": [
           {
             "id": 1,
-            "title": "Create New Router File for System Endpoints",
-            "description": "Create a new file at `moneynote/routers/system.py` to house system-level API endpoints, starting with the version endpoint.",
+            "title": "Define `InitialState` Response Schema",
+            "description": "Create a new Pydantic schema `InitialState` to define the structure of the data returned by the `get_initial_state` service. This schema will encapsulate the user, their default book, and their group.",
             "dependencies": [],
-            "details": "Following the project's structure seen in `moneynote/routers/users.py` and `auth.py`, create the file `moneynote/routers/system.py`. This file will contain the router for system-related endpoints.",
-            "status": "done",
-            "testStrategy": "N/A"
+            "details": "In `moneynote/schemas/user.py`, add a new class `InitialState(BaseModel)`. It should contain three fields: `user: User`, `book: Optional[Book]`, and `group: Optional[Group]`. You will need to import `Optional` from `typing`, `BaseModel` from `pydantic`, `Book` from `.book`, and `Group` from `.group`.",
+            "status": "pending",
+            "testStrategy": "No specific test is needed for this schema, as it will be validated by the tests for the service function that uses it."
           },
           {
             "id": 2,
-            "title": "Define Pydantic Schema for Version Response",
-            "description": "Create a Pydantic model to define the structure of the JSON response for the `/version` endpoint, ensuring a consistent API contract.",
-            "dependencies": [],
-            "details": "Create a new file `moneynote/schemas/system.py`. Inside this file, define a Pydantic `BaseModel` named `VersionResponse` with a single string field: `version: str`. This will model the expected output: `{\"version\": \"...\"}`.",
-            "status": "done",
-            "testStrategy": "N/A"
+            "title": "Create `get_initial_state` Function and Fetch User",
+            "description": "In `moneynote/services/user_service.py`, create the `get_initial_state` function. This function will fetch the specified user from the database and handle the case where the user does not exist.",
+            "dependencies": [
+              "15.1"
+            ],
+            "details": "Define the function `get_initial_state(db: Session, user_id: int) -> InitialState:`. Import necessary modules: `Session` from `sqlalchemy.orm`, `HTTPException` and `status` from `fastapi`, `crud_user` from `moneynote.crud`, and the new `InitialState` schema from `moneynote.schemas`. Use `crud_user.get(db, id=user_id)` to retrieve the user. If the user is not found, raise an `HTTPException` with `status_code=status.HTTP_404_NOT_FOUND` and detail 'User not found'.",
+            "status": "pending",
+            "testStrategy": "Write a unit test that mocks `crud_user.get` to return `None` and assert that an `HTTPException` with status 404 is raised."
           },
           {
             "id": 3,
-            "title": "Implement the GET /version Endpoint Logic",
-            "description": "In `moneynote/routers/system.py`, implement the `GET /version` endpoint that retrieves and returns the application version from the configuration settings.",
+            "title": "Integrate Default Book Fetching Logic",
+            "description": "Extend the `get_initial_state` function to fetch the user's default book using the `default_book_id` from the user object.",
             "dependencies": [
-              "5.1",
-              "5.2"
+              "15.2"
             ],
-            "details": "In `moneynote/routers/system.py`, import `APIRouter`, `Depends` from `fastapi`, `get_settings` and `get_current_active_user` from `moneynote.deps`, `Settings` from `moneynote.config`, and `VersionResponse` from `moneynote.schemas.system`. Create an `APIRouter` instance. Define an async function for the `GET /version` path with `response_model=VersionResponse`. The endpoint must be protected by `Depends(get_current_active_user)`. Inject the settings via `settings: Settings = Depends(get_settings)` and return `VersionResponse(version=settings.APP_VERSION)`.",
-            "status": "done",
-            "testStrategy": "This logic will be tested via integration tests in a subsequent subtask."
+            "details": "In `moneynote/services/user_service.py`, import `crud_book`. Inside `get_initial_state`, after fetching the user, initialize a variable `book = None`. Check if `user.default_book_id` has a value. If it does, use `crud_book.get(db, id=user.default_book_id)` to fetch the book and assign it to the `book` variable. The function should gracefully handle if the book is not found (i.e., `book` remains `None`).",
+            "status": "pending",
+            "testStrategy": "Write a unit test that mocks `crud_user.get` to return a user with a `default_book_id`. Mock `crud_book.get` to return a book object and assert it's in the final result. Also, test the case where `default_book_id` is present but `crud_book.get` returns `None`."
           },
           {
             "id": 4,
-            "title": "Integrate System Router into FastAPI Application",
-            "description": "Modify `moneynote/main.py` to include the newly created system router, making the `/version` endpoint accessible through the main application.",
+            "title": "Integrate Group Fetching Logic",
+            "description": "Extend the `get_initial_state` function to fetch the user's group using the `group_id` from the user object.",
             "dependencies": [
-              "5.3"
+              "15.2"
             ],
-            "details": "Open `moneynote/main.py`. Import the `router` object from `moneynote.routers.system`. Register it with the main FastAPI app instance using `app.include_router(system.router, prefix=\"/api/v1\", tags=[\"system\"])`, following the pattern used for other routers like `users` and `auth`.",
-            "status": "done",
-            "testStrategy": "Manual verification by running the application and checking the OpenAPI docs at `/docs` for the new `/api/v1/version` endpoint."
+            "details": "In `moneynote/services/user_service.py`, import `crud_group`. Inside `get_initial_state`, initialize a variable `group = None`. Check if `user.group_id` has a value. If it does, use `crud_group.get(db, id=user.group_id)` to fetch the group and assign it to the `group` variable. The function should gracefully handle if the group is not found (i.e., `group` remains `None`).",
+            "status": "pending",
+            "testStrategy": "Write a unit test that mocks `crud_user.get` to return a user with a `group_id`. Mock `crud_group.get` to return a group object and assert it's in the final result. Also, test the case where `group_id` is present but `crud_group.get` returns `None`."
           },
           {
             "id": 5,
-            "title": "Add Integration Tests for GET /version Endpoint",
-            "description": "Create integration tests to verify the functionality and security of the new `/version` endpoint, ensuring it returns the correct data and is properly authenticated.",
+            "title": "Assemble and Return Final `InitialState` Object",
+            "description": "Complete the `get_initial_state` function by assembling the fetched user, book, and group data into the `InitialState` schema object and returning it.",
             "dependencies": [
-              "5.4"
+              "15.3",
+              "15.4"
             ],
-            "details": "Create a new test file, `moneynote/tests/api/v1/test_system.py`. Add a test case that makes an authenticated request to `GET /api/v1/version` and asserts a 200 OK status and that the response body contains the correct `APP_VERSION`. Add a second test case that makes a request without an authentication token and asserts a 401 Unauthorized status code.",
-            "status": "done",
-            "testStrategy": "Use the existing test client fixture and utilities for creating authenticated headers to write the tests."
+            "details": "At the end of the `get_initial_state` function, create and return an instance of the `InitialState` schema: `return InitialState(user=user, book=book, group=group)`. This combines the results from the previous steps into the final, structured response object.",
+            "status": "pending",
+            "testStrategy": "Write a comprehensive unit test that simulates a user with both a book and a group, and another test for a user with neither. Assert that the returned `InitialState` object contains the correct data (or `None`) for each field."
           }
         ]
       },
       {
-        "id": 6,
-        "title": "Implement `GET /test3` Endpoint",
-        "description": "Create the API endpoint to return the application's base URL for testing and configuration.",
-        "details": "In the same router as the version endpoint, add a `GET /test3` endpoint protected by authentication. The logic should access the settings object and return the `BASE_URL` in the specified JSON format (`{\"base_url\": \"...\"}`).",
-        "testStrategy": "Integration test to verify the endpoint returns a 200 status and the correct URL with a valid token. Test for a 401/403 response when no token is provided.",
+        "id": 16,
+        "title": "Implement `bind_user` Service Logic",
+        "description": "Create the business logic for binding a username and password to an existing user account, including all validations.",
+        "details": "In `moneynote/services/user_service.py`, create a function `bind_user(db: Session, user_id: int, bind_data: UserBind)`. This function will: 1. Use `crud_invite_code` to validate the invite code. 2. Use `crud_user.get_by_username` to check for username uniqueness. 3. Use `security.get_password_hash` to hash the password. 4. Use `crud_user.update` to save the new username and hashed password. 5. Raise specific `HTTPException`s with error codes for each validation failure (e.g., `bind.username.exists`, `bind.invite.code.invalid`).",
+        "testStrategy": "Write unit tests for the `bind_user` service function, covering all business logic paths: successful binding, username already taken, invalid invite code, and used invite code.",
         "priority": "medium",
         "dependencies": [
-          2
+          13,
+          14
         ],
-        "status": "done",
+        "status": "pending",
         "subtasks": [
           {
             "id": 1,
-            "title": "Add BASE_URL to Configuration",
-            "description": "Add the `BASE_URL` field to the application's settings model to make it accessible throughout the application.",
+            "title": "Define `bind_user` Function and Add Imports",
+            "description": "In `moneynote/services/user_service.py`, create the function signature for `bind_user(db: Session, user_id: int, bind_data: UserBind)`. Add all necessary imports: `Session` from `sqlalchemy.orm`, `HTTPException` from `fastapi`, `crud_user` and `crud_invite_code` from `moneynote.crud`, `security` from `moneynote.core`, and the `UserBind` schema from `moneynote.schemas`.",
             "dependencies": [],
-            "details": "In `moneynote/config.py`, modify the `Settings` class to include a new field `BASE_URL: str`. Assign a default value, for example, `\"http://localhost:8000\"`. This ensures the setting is available for the new endpoint to consume.",
-            "status": "done",
-            "testStrategy": "This change will be implicitly tested by the integration test in a later subtask, which will rely on this setting being present."
+            "details": "Create the basic structure of the `bind_user` function. Ensure all required modules and schemas are imported at the top of the file to prepare for implementing the business logic. The function should initially be a stub that returns `None` or has a `pass` statement.",
+            "status": "pending",
+            "testStrategy": "No specific test needed for this setup task, but subsequent tests will fail until this is complete."
           },
           {
             "id": 2,
-            "title": "Define the BaseUrlResponse Schema",
-            "description": "Create a Pydantic schema for the JSON response of the `/test3` endpoint to ensure a consistent and validated output format.",
-            "dependencies": [],
-            "details": "In `moneynote/schemas/system.py`, add a new Pydantic model class named `BaseUrlResponse`. This class should inherit from `BaseModel` and contain a single field: `base_url: str`.",
-            "status": "done",
-            "testStrategy": "The FastAPI framework will use this schema for response validation and OpenAPI documentation generation. Correct implementation will be verified by the endpoint's integration test."
+            "title": "Implement Invite Code Validation",
+            "description": "Inside the `bind_user` function, implement the logic to validate the invite code provided in `bind_data`. Use `crud_invite_code.get_by_code` to fetch the code. If the code is not found or if its `is_used` attribute is `True`, raise an `HTTPException` with `status_code=400` and a detail of `bind.invite.code.invalid`.",
+            "dependencies": [
+              "16.1"
+            ],
+            "details": "This is the first validation step. Call `crud_invite_code.get_by_code(db, code=bind_data.invite_code)`. Check the result. If it's `None` or `result.is_used`, raise the specified exception. Keep the valid invite code object in a variable for later use.",
+            "status": "pending",
+            "testStrategy": "Write a unit test case that calls `bind_user` with a non-existent invite code and asserts that the correct `HTTPException` is raised. Write another test case for an invite code that is already marked as used."
           },
           {
             "id": 3,
-            "title": "Create the GET /test3 Endpoint Route",
-            "description": "Add the route definition for the `GET /test3` endpoint in the system router, including authentication and response model specifications.",
+            "title": "Implement Username Uniqueness Check",
+            "description": "Add logic to check if the username from `bind_data` is already taken. Use `crud_user.get_by_username` to query for an existing user with that username. If a user is found, raise an `HTTPException` with `status_code=400` and a detail of `bind.username.exists`.",
             "dependencies": [
-              "6.1",
-              "6.2"
+              "16.1"
             ],
-            "details": "In `moneynote/routers/system.py`, add a new endpoint using the `@router.get()` decorator for the path `/test3`. Configure it with `response_model=schemas.BaseUrlResponse`, `dependencies=[Depends(deps.get_current_user)]`, and `tags=[\"System\"]` to match the conventions used by the existing `/version` endpoint.",
-            "status": "done",
-            "testStrategy": "This subtask sets up the route structure. The logic will be implemented in the next step."
+            "details": "This is the second validation step. Call `crud_user.get_by_username(db, username=bind_data.username)`. If the result is not `None`, it means the username is taken, and the specific exception should be raised.",
+            "status": "pending",
+            "testStrategy": "Write a unit test case where `crud_user.get_by_username` is mocked to return an existing user. Assert that calling `bind_user` raises the `HTTPException` for an existing username."
           },
           {
             "id": 4,
-            "title": "Implement the Endpoint Logic",
-            "description": "Write the function body for the `/test3` endpoint to retrieve the `BASE_URL` from settings and return it.",
+            "title": "Hash Password and Update User Record",
+            "description": "Implement the logic to update the user's credentials. First, fetch the user object using `crud_user.get(db, id=user_id)`. Then, use `security.get_password_hash` to hash the password from `bind_data`. Finally, use `crud_user.update` to save the new `username` and `hashed_password` to the user's record.",
             "dependencies": [
-              "6.3"
+              "16.1",
+              "16.2",
+              "16.3"
             ],
-            "details": "In `moneynote/routers/system.py`, implement the function for the `/test3` route (e.g., `get_base_url`). The function should access the imported `settings` object from `moneynote.config` and return an instance of the `schemas.BaseUrlResponse` model, populated with the value of `settings.BASE_URL`.",
-            "status": "done",
-            "testStrategy": "The logic will be directly tested by the integration test, which will assert the content of the response body."
+            "details": "Create a dictionary containing the update data: `{'username': bind_data.username, 'hashed_password': security.get_password_hash(bind_data.password)}`. Pass this dictionary to the `obj_in` parameter of the `crud_user.update` function.",
+            "status": "pending",
+            "testStrategy": "In a successful path unit test, assert that `security.get_password_hash` is called once with the correct password. Also, assert that `crud_user.update` is called with the correct user object and an update dictionary containing the new username and the hashed password."
           },
           {
             "id": 5,
-            "title": "Write Integration Tests for the /test3 Endpoint",
-            "description": "Add integration tests to verify the functionality and security of the new `/test3` endpoint.",
+            "title": "Mark Invite Code as Used and Return User",
+            "description": "After the user record has been successfully updated, mark the invite code as used. Use `crud_invite_code.update` on the invite code object retrieved in the validation step, setting its `is_used` flag to `True` and associating the `user_id`. Finally, return the updated user object from the `bind_user` function.",
             "dependencies": [
-              "6.4"
+              "16.4"
             ],
-            "details": "In `tests/integration/test_system.py`, add two test functions following the existing patterns: 1. `test_get_base_url_authenticated`: Uses the `authorized_user_headers` fixture to make an authenticated request to `/api/v1/system/test3`. Assert that the status code is 200 and the response body is `{\"base_url\": settings.BASE_URL}`. 2. `test_get_base_url_unauthenticated`: Makes a request without authentication and asserts that the status code is 401.",
-            "status": "done",
-            "testStrategy": "These tests will confirm that the endpoint works as expected for both authenticated and unauthenticated scenarios, validating the implementation from the previous subtasks."
+            "details": "This step ensures an invite code cannot be reused. Call `crud_invite_code.update` with the invite code object and an update dictionary like `{'is_used': True, 'used_by_user_id': user_id}`. The function should return the user object that was returned by `crud_user.update`.",
+            "status": "pending",
+            "testStrategy": "In the successful path unit test, assert that `crud_invite_code.update` is called with the correct invite code object and the correct update data. Also, assert that the final return value of `bind_user` is the updated user object."
           }
         ]
       },
       {
-        "id": 7,
-        "title": "Implement `GET /currencies/all` Endpoint",
-        "description": "Create the API endpoint to return the list of all supported currencies.",
-        "details": "Create a new router file `moneynote/routers/currencies.py`. Add a `GET /currencies/all` endpoint protected by authentication. The endpoint should retrieve the cached currency list from `app.state` (or the chosen global access method) and return it as a JSON array.",
-        "testStrategy": "Integration test to verify the endpoint returns a 200 status and a JSON array matching the contents of `currency.json` when a valid token is used. Test for a 401/403 response without a token.",
+        "id": 17,
+        "title": "Create `GET /initState` API Endpoint",
+        "description": "Expose the `get_initial_state` service logic through a new API endpoint in the user router.",
+        "details": "In `moneynote/routers/users.py`, create a new FastAPI endpoint for `GET /initState`. This endpoint must be protected by the existing `get_current_user` dependency. It will call the `user_service.get_initial_state` function and return the result, using the schemas defined in task 12 for the response model.",
+        "testStrategy": "Integration tests will be written in a later task. Manual testing can be done via Swagger UI to confirm the endpoint works as expected.",
         "priority": "medium",
         "dependencies": [
-          4
+          12,
+          15
         ],
-        "status": "done",
+        "status": "pending",
         "subtasks": [
           {
             "id": 1,
-            "title": "Create `moneynote/routers/currencies.py` and Initialize Router",
-            "description": "Create a new Python file at `moneynote/routers/currencies.py`. Inside this file, import `APIRouter` from `fastapi` and instantiate a router object. This file will contain the currency-related endpoints.",
+            "title": "Import `InitialState` Schema and `user_service` in `users.py`",
+            "description": "Update the import statements in `moneynote/routers/users.py` to include the `InitialState` response schema from task 12 and the `user_service` module from task 15.",
             "dependencies": [],
-            "details": "The file should contain the basic boilerplate for a FastAPI router: `from fastapi import APIRouter; router = APIRouter()`.",
-            "status": "done",
-            "testStrategy": "File existence and basic syntax check."
-          },
-          {
-            "id": 2,
-            "title": "Define Pydantic Schema for Currency Data",
-            "description": "To ensure type safety and proper API documentation, define a Pydantic model for the currency data. Based on the project structure, this should be in a new file `moneynote/schemas/currency.py`.",
-            "dependencies": [],
-            "details": "Create `moneynote/schemas/currency.py` and define a `Currency` model inheriting from `pydantic.BaseModel`. The model should have fields like `code: str`, `name: str`, and `symbol: str` to match the structure of the data loaded from `currency.json`.",
-            "status": "done",
-            "testStrategy": "Unit test the Pydantic model to ensure it validates correct data and rejects incorrect data."
-          },
-          {
-            "id": 3,
-            "title": "Define `GET /all` Endpoint with Authentication",
-            "description": "In `moneynote/routers/currencies.py`, define an async function for the `GET /all` route. This function should be decorated with `@router.get(\"/all\")`. Import and apply the authentication dependency from `moneynote.dependencies` to protect the endpoint.",
-            "dependencies": [
-              "7.1"
-            ],
-            "details": "Import `Depends` from `fastapi`, `User` from `moneynote.models.user`, and `get_current_active_user` from `moneynote.dependencies`. The endpoint signature should be `async def get_all_currencies(current_user: User = Depends(get_current_active_user))`. The function body can be a placeholder (`pass`) for now.",
-            "status": "done",
-            "testStrategy": "An integration test can be prepared to check for a 401/403 response when calling this endpoint without a valid token."
-          },
-          {
-            "id": 4,
-            "title": "Implement Endpoint Logic to Return Currencies from `app.state`",
-            "description": "Implement the body of the `get_all_currencies` function. It needs to access the cached currency list from the application state and return it. The endpoint's response model should also be set.",
-            "dependencies": [
-              "7.2",
-              "7.3"
-            ],
-            "details": "Import `Request` from `fastapi`, `List` from `typing`, and the `Currency` schema from `moneynote.schemas.currency`. Add `request: Request` to the function signature. The function body should be `return request.app.state.currencies`. Update the decorator to `@router.get(\"/all\", response_model=List[Currency])`.",
-            "status": "done",
-            "testStrategy": "Integration test to verify the endpoint returns a 200 status and a JSON array of currencies when a valid token is provided."
-          },
-          {
-            "id": 5,
-            "title": "Register the Currencies Router in `main.py`",
-            "description": "Integrate the new `currencies` router into the main FastAPI application in `moneynote/main.py`. This will make the `/currencies/all` endpoint accessible through the API.",
-            "dependencies": [
-              "7.4"
-            ],
-            "details": "In `moneynote/main.py`, add `from moneynote.routers import currencies` to the import section. Then, add the line `app.include_router(currencies.router, prefix=\"/currencies\", tags=[\"currencies\"])` to register the router with the main `app` instance.",
-            "status": "done",
-            "testStrategy": "After this change, the full integration test for the endpoint should pass, confirming it's correctly wired into the application."
-          }
-        ]
-      },
-      {
-        "id": 8,
-        "title": "Implement `GET /book-templates/all` Endpoint",
-        "description": "Create the API endpoint to return the list of all available book templates.",
-        "details": "Create a new router file `moneynote/routers/book_templates.py`. Add a `GET /book-templates/all` endpoint protected by authentication. The endpoint should retrieve the cached book template list from `app.state` and return it as a JSON array.",
-        "testStrategy": "Integration test to verify the endpoint returns a 200 status and a JSON array matching the contents of `book_tpl.json` when a valid token is used. Test for a 401/403 response without a token.",
-        "priority": "medium",
-        "dependencies": [
-          4
-        ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Create `book_templates.py` and Initialize APIRouter",
-            "description": "Create a new file at `moneynote/routers/book_templates.py`. In this file, import `APIRouter` from `fastapi` and create a router instance with the prefix `/book-templates` and the tag `Book Templates`.",
-            "dependencies": [],
-            "details": "Following the pattern in other router files like `currencies.py`, the new file should contain:\n```python\nfrom fastapi import APIRouter\n\nrouter = APIRouter(\n    prefix=\"/book-templates\",\n    tags=[\"Book Templates\"],\n)\n```",
-            "status": "done",
-            "testStrategy": "Code review to ensure file creation and correct router initialization."
-          },
-          {
-            "id": 2,
-            "title": "Define the Endpoint Path and Function Signature",
-            "description": "In `moneynote/routers/book_templates.py`, define an asynchronous function `get_all_book_templates` decorated with `@router.get(\"/all\")`. The function should accept `request: Request` as an argument to access the application state.",
-            "dependencies": [
-              "8.1"
-            ],
-            "details": "Import `Request` from `fastapi`. The function signature should be `async def get_all_book_templates(request: Request):`. The response model can be set to `list` for now.",
-            "status": "done",
-            "testStrategy": "Static analysis to check for the correct decorator, path, and function signature."
-          },
-          {
-            "id": 3,
-            "title": "Add Authentication Dependency to the Endpoint",
-            "description": "Secure the `GET /all` endpoint by adding the authentication dependency. Import the `get_current_user` dependency from `moneynote.auth.deps` and add it to the `dependencies` list of the `@router.get` decorator.",
-            "dependencies": [
-              "8.2"
-            ],
-            "details": "The decorator should be updated to `@router.get(\"/all\", dependencies=[Depends(deps.get_current_user)])`. You will need to import `Depends` from `fastapi` and `deps` from `moneynote.auth`.",
-            "status": "done",
-            "testStrategy": "An integration test will later confirm that accessing this endpoint without a token results in a 401/403 error."
-          },
-          {
-            "id": 4,
-            "title": "Implement Endpoint Logic to Return Book Templates",
-            "description": "Inside the `get_all_book_templates` function, implement the logic to retrieve the list of book templates from the application state and return it. The data is expected to be available at `request.app.state.book_templates`.",
-            "dependencies": [
-              "8.3"
-            ],
-            "details": "The implementation should be a single line: `return request.app.state.book_templates`. This relies on Task 4, which loads this data into the app state on startup. FastAPI will handle the JSON serialization.",
-            "status": "done",
-            "testStrategy": "An integration test will verify that the endpoint returns a JSON array matching the contents of `book_tpl.json` when properly authenticated."
-          },
-          {
-            "id": 5,
-            "title": "Register the Book Templates Router in `main.py`",
-            "description": "Integrate the newly created router into the main FastAPI application by importing it in `moneynote/main.py` and using `app.include_router()`.",
-            "dependencies": [
-              "8.4"
-            ],
-            "details": "In `moneynote/main.py`, add `from moneynote.routers import book_templates` with the other router imports. Then, add the line `app.include_router(book_templates.router)` to register it with the application.",
-            "status": "done",
-            "testStrategy": "After this change, the `/docs` page should show the new `/book-templates/all` endpoint. Running the application and hitting the endpoint will confirm it's correctly registered."
-          }
-        ]
-      },
-      {
-        "id": 9,
-        "title": "Include New Routers in Main Application",
-        "description": "Ensure the main FastAPI application is aware of the new routers for system, currencies, and book templates.",
-        "details": "In `main.py`, import and include the newly created routers (`system_router`, `currencies_router`, `book_templates_router`) using `app.include_router()`. Ensure they are prefixed correctly under `/api/v1` if applicable.",
-        "testStrategy": "This is verified by the successful execution of the integration tests for the new endpoints. If the routers are not included, the tests will fail with 404 Not Found errors.",
-        "priority": "medium",
-        "dependencies": [
-          5,
-          6,
-          7,
-          8
-        ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Import All New Routers in `main.py`",
-            "description": "Modify `moneynote/main.py` to import the `system_router`, `currencies_router`, and `book_templates_router` from their respective modules.",
-            "dependencies": [],
-            "details": "Based on the existing pattern in `moneynote/main.py`, add the following import statements alongside the other router imports:\n```python\nfrom moneynote.routers.system import router as system_router\nfrom moneynote.routers.currencies import router as currencies_router\nfrom moneynote.routers.book_templates import router as book_templates_router\n```",
-            "status": "done",
+            "details": "In `moneynote/routers/users.py`, add `from ..schemas.user_schemas import InitialState` and `from ..services import user_service`. Verify that other necessary imports like `APIRouter`, `Depends`, `Session`, `get_db`, `get_current_user`, and `models` are already present for use in subsequent steps.",
+            "status": "pending",
             "testStrategy": ""
           },
           {
             "id": 2,
-            "title": "Include the System Router in the FastAPI App",
-            "description": "In `moneynote/main.py`, register the `system_router` with the main FastAPI application instance, ensuring it is prefixed correctly.",
+            "title": "Create the `GET /initState` Route Decorator",
+            "description": "In `moneynote/routers/users.py`, add the FastAPI decorator for the new endpoint. This will define the path, HTTP method, and the response model.",
             "dependencies": [
-              "9.1"
+              "17.1"
             ],
-            "details": "Following the pattern for `users_router`, add the following line to the router inclusion section of `moneynote/main.py`:\n`app.include_router(system_router, prefix=\"/api/v1\", tags=[\"System\"])`",
-            "status": "done",
+            "details": "Below the existing router definition (`router = APIRouter(...)`), add a new decorator: `@router.get(\"/initState\", response_model=InitialState, summary=\"Get Initial User State\")`. This sets the path and ensures the JSON response conforms to the `InitialState` schema.",
+            "status": "pending",
             "testStrategy": ""
           },
           {
             "id": 3,
-            "title": "Include the Currencies Router in the FastAPI App",
-            "description": "In `moneynote/main.py`, register the `currencies_router` with the main FastAPI application instance, ensuring it is prefixed correctly.",
+            "title": "Define the Endpoint Function with Dependencies",
+            "description": "Create the Python function signature for the `/initState` endpoint, injecting the required database session and the authenticated user object.",
             "dependencies": [
-              "9.1"
+              "17.2"
             ],
-            "details": "Following the pattern for `users_router`, add the following line to the router inclusion section of `moneynote/main.py`:\n`app.include_router(currencies_router, prefix=\"/api/v1\", tags=[\"Currencies\"])`",
-            "status": "done",
+            "details": "Directly below the decorator from the previous subtask, define the function signature as: `def get_user_initial_state(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)) -> InitialState:`. This correctly injects the dependencies needed for the endpoint's logic.",
+            "status": "pending",
             "testStrategy": ""
           },
           {
             "id": 4,
-            "title": "Include the Book Templates Router in the FastAPI App",
-            "description": "In `moneynote/main.py`, register the `book_templates_router` with the main FastAPI application instance, ensuring it is prefixed correctly.",
+            "title": "Call the `user_service.get_initial_state` Function",
+            "description": "Inside the new endpoint function, implement the call to the business logic layer to fetch the initial state data for the authenticated user.",
             "dependencies": [
-              "9.1"
+              "17.3"
             ],
-            "details": "Following the pattern for `users_router`, add the following line to the router inclusion section of `moneynote/main.py`:\n`app.include_router(book_templates_router, prefix=\"/api/v1\", tags=[\"Book Templates\"])`",
-            "status": "done",
+            "details": "Inside the `get_user_initial_state` function, add the line `initial_state = user_service.get_initial_state(db=db, user_id=current_user.id)`. This retrieves the user ID from the `current_user` object (provided by the `get_current_user` dependency) and passes it to the service function.",
+            "status": "pending",
             "testStrategy": ""
           },
           {
             "id": 5,
-            "title": "Review and Organize Router Configuration",
-            "description": "Review the `moneynote/main.py` file to ensure all router imports and `app.include_router` calls are clean, consistently formatted, and logically ordered.",
+            "title": "Return the Fetched Initial State Data",
+            "description": "Complete the endpoint implementation by returning the data retrieved from the service layer, allowing FastAPI to serialize it into a JSON response.",
             "dependencies": [
-              "9.2",
-              "9.3",
-              "9.4"
+              "17.4"
             ],
-            "details": "Verify that all new routers are grouped with the other `/api/v1` routers. Ensure imports are sorted according to PEP 8. This final check improves code readability and maintainability.",
-            "status": "done",
+            "details": "Add the final line `return initial_state` to the `get_user_initial_state` function. This will pass the result from the service call back to FastAPI, which will handle the response generation based on the `response_model`.",
+            "status": "pending",
             "testStrategy": ""
           }
         ]
       },
       {
-        "id": 10,
-        "title": "Write Integration Tests for All Phase 1 Endpoints",
-        "description": "Create a comprehensive suite of integration tests for all four new endpoints to verify functionality and security.",
-        "details": "In the `tests/` directory, create test files corresponding to the new routers. Using FastAPI's `TestClient`, write tests for each endpoint (`/version`, `/test3`, `/currencies/all`, `/book-templates/all`). Cover both the happy path (200 OK with correct data) and the unauthorized path (401/403 without a valid token), as outlined in the PRD's test cases.",
-        "testStrategy": "Run the pytest suite and ensure all new tests pass. This task validates the completion of all other implementation tasks.",
+        "id": 18,
+        "title": "Create `PUT /bind` API Endpoint",
+        "description": "Expose the `bind_user` service logic through a new API endpoint for updating a user's credentials.",
+        "details": "In `moneynote/routers/users.py`, create a new FastAPI endpoint for `PUT /bind`. It must be protected by the `get_current_user` dependency. It will accept a `UserBind` schema in the request body and pass the data to the `user_service.bind_user` function. It should correctly propagate HTTP exceptions from the service layer.",
+        "testStrategy": "Integration tests will be written in a later task. Manual testing can be done via Swagger UI to confirm all success and error responses.",
         "priority": "medium",
         "dependencies": [
-          9
+          12,
+          16
         ],
-        "status": "done",
+        "status": "pending",
         "subtasks": [
           {
             "id": 1,
-            "title": "Create Test Files and Structure for New Routers",
-            "description": "Create the necessary test files within the `tests/` directory to house the new integration tests. This involves creating a `routers` subdirectory and the specific test files for the system and data endpoints.",
+            "title": "Import necessary schemas and services in users.py",
+            "description": "In `moneynote/routers/users.py`, update the import statements to include the `UserBind` schema required for the request body and the `User` schema for the response model.",
             "dependencies": [],
-            "details": "Based on the project structure with `moneynote/routers/system.py` and `moneynote/routers/data.py`, create corresponding test files: `tests/routers/test_system.py` and `tests/routers/test_data.py`. Add basic boilerplate to each file, such as importing `TestClient` and the `client` fixture from `conftest.py`.",
-            "status": "done",
-            "testStrategy": "Verify that the new empty test files are created in the correct location and that the test suite (e.g., `pytest`) can discover them."
+            "details": "Locate the import section at the top of `moneynote/routers/users.py`. Modify the line `from .. import services, schemas` or add new lines to specifically import `schemas.UserBind` and ensure `schemas.User` is available. The `user_service` is already imported via `services`.",
+            "status": "pending",
+            "testStrategy": "Verify the file is syntactically correct after adding the imports."
           },
           {
             "id": 2,
-            "title": "Implement Integration Tests for System Endpoints (/version, /test3)",
-            "description": "In `tests/routers/test_system.py`, write integration tests for the `GET /version` and `GET /test3` endpoints. Cover both authenticated and unauthenticated requests.",
+            "title": "Define the `PUT /bind` endpoint signature",
+            "description": "In `moneynote/routers/users.py`, create the function signature for the new endpoint using the `@router.put` decorator. Specify the path `/bind` and set the `response_model` to `schemas.User`.",
             "dependencies": [
-              "10.1"
+              "18.1"
             ],
-            "details": "Using the `client` fixture from `conftest.py`, write four test functions: \n1. `test_get_version_unauthorized`: Call `/version` without headers, assert status code 401. \n2. `test_get_version_authorized`: Call `/version` with `{\"Authorization\": \"Bearer fake-token\"}` header, assert status code 200 and correct JSON response (`{\"version\": \"...\"}`). \n3. `test_get_test3_unauthorized`: Call `/test3` without headers, assert status code 401. \n4. `test_get_test3_authorized`: Call `/test3` with auth header, assert status code 200 and correct JSON response (`{\"base_url\": \"...\"}`).",
-            "status": "done",
-            "testStrategy": "Run `pytest tests/routers/test_system.py` and ensure all four tests pass, correctly validating the endpoint's security and data response."
+            "details": "Add the following code block to `moneynote/routers/users.py`:\n\n```python\n@router.put(\"/bind\", response_model=schemas.User)\nasync def bind_user_credentials():\n    pass\n```\n\nThis creates the basic structure of the endpoint. The function name `bind_user_credentials` is a suggestion; a suitable name should be chosen.",
+            "status": "pending",
+            "testStrategy": "Run the FastAPI development server and check the `/docs` page to see if the new `PUT /users/bind` endpoint appears correctly."
           },
           {
             "id": 3,
-            "title": "Implement Integration Tests for /currencies/all Endpoint",
-            "description": "In `tests/routers/test_data.py`, write integration tests for the `GET /currencies/all` endpoint, verifying both security and data integrity.",
+            "title": "Inject request body and database session dependencies",
+            "description": "Update the endpoint function signature to accept the request body, typed as `schemas.UserBind`, and to depend on the database session `db: Session`.",
             "dependencies": [
-              "10.1"
+              "18.2"
             ],
-            "details": "Using the `client` fixture, write two test functions:\n1. `test_get_currencies_unauthorized`: Call `/currencies/all` without headers and assert a 401 status code.\n2. `test_get_currencies_authorized`: Call `/currencies/all` with an `{\"Authorization\": \"Bearer fake-token\"}` header. Assert a 200 status code and that the response body is a JSON list. Assert that the list is not empty and that at least one item in the list has the expected keys (`code`, `name`, `symbol`).",
-            "status": "done",
-            "testStrategy": "Run `pytest tests/routers/test_data.py` and ensure the tests for the currencies endpoint pass."
+            "details": "Modify the function signature created in the previous subtask. Add a parameter for the request body `bind_data: schemas.UserBind` and another for the database session `db: Session = Depends(get_db)`. Ensure `get_db` is imported from `..database`.",
+            "status": "pending",
+            "testStrategy": "Check the `/docs` page again. The endpoint should now show a request body field expecting the `UserBind` schema and a parameter for the database dependency."
           },
           {
             "id": 4,
-            "title": "Implement Integration Tests for /book-templates/all Endpoint",
-            "description": "In `tests/routers/test_data.py`, add integration tests for the `GET /book-templates/all` endpoint, verifying both security and data integrity.",
+            "title": "Add `get_current_user` authentication dependency",
+            "description": "Protect the endpoint by adding the `get_current_user` dependency to the function signature. This will ensure only authenticated users can access this endpoint and will provide the user's data to the function.",
             "dependencies": [
-              "10.1"
+              "18.3"
             ],
-            "details": "In the same file as the previous subtask, add two more test functions:\n1. `test_get_book_templates_unauthorized`: Call `/book-templates/all` without headers and assert a 401 status code.\n2. `test_get_book_templates_authorized`: Call `/book-templates/all` with an `{\"Authorization\": \"Bearer fake-token\"}` header. Assert a 200 status code and that the response body is a JSON list. Assert that the list is not empty and that at least one item has the expected keys (`template_id`, `name`, `description`).",
-            "status": "done",
-            "testStrategy": "Run `pytest tests/routers/test_data.py` and ensure all tests in the file, including the new book template tests, pass."
+            "details": "Add the `current_user: models.User = Depends(get_current_user)` parameter to the endpoint's function signature. The `get_current_user` dependency is already imported from `..auth`. The type hint `models.User` should be used for clarity, and `models` should be imported if not already.",
+            "status": "pending",
+            "testStrategy": "Use the Swagger UI (`/docs`) to try and execute the endpoint without an authentication token. It should fail with a 401 Unauthorized error."
           },
           {
             "id": 5,
-            "title": "Refactor Authentication into a Reusable `auth_headers` Fixture",
-            "description": "To improve maintainability and reduce code duplication, create a shared pytest fixture for the authentication headers and refactor the newly created tests to use it.",
+            "title": "Implement service layer call and return result",
+            "description": "In the body of the endpoint function, call the `user_service.bind_user` function, passing the database session, the current user object, and the request body data. Return the result of this service call.",
             "dependencies": [
-              "10.2",
-              "10.3",
-              "10.4"
+              "18.4"
             ],
-            "details": "In `tests/conftest.py`, add a new function-scoped fixture named `auth_headers` that returns the dictionary `{\"Authorization\": \"Bearer fake-token\"}`. Then, go through `tests/routers/test_system.py` and `tests/routers/test_data.py` and replace the hardcoded header dictionary in the authorized test cases with this new `auth_headers` fixture.",
-            "status": "done",
-            "testStrategy": "Re-run the entire test suite (`pytest`) and confirm that all tests still pass after the refactoring. This ensures the fixture is working correctly and has been integrated properly."
+            "details": "The implementation should be a single line: `return services.user_service.bind_user(db=db, user=current_user, user_bind=bind_data)`. FastAPI will automatically handle propagating any `HTTPException` raised by the service and will serialize the returned `models.User` object into a `schemas.User` response.",
+            "status": "pending",
+            "testStrategy": "Manually test the endpoint via Swagger UI. Test a successful update, and test error cases like providing a username that is already taken to ensure the 400 error from the service layer is correctly returned."
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "title": "Write Integration Tests for Phase 2 Endpoints",
+        "description": "Create a suite of integration tests for the new `/initState` and `/bind` endpoints to ensure they are working correctly from an API consumer's perspective.",
+        "details": "In the `tests/` directory, create a new test file. For `GET /initState`, write tests for success (200 OK), unauthorized (401), and user not found (404). For `PUT /bind`, write tests for success (200 OK), unauthorized (401), and bad requests (400) for cases like duplicate username and invalid invite code. Use FastAPI's `TestClient`.",
+        "testStrategy": "Run the Pytest suite and ensure all new tests pass. Check test coverage to confirm the new endpoints and service logic are adequately tested.",
+        "priority": "low",
+        "dependencies": [
+          17,
+          18
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Test File and Implement Unauthorized (401) Tests",
+            "description": "Create a new test file and add tests for the `/initState` and `/bind` endpoints to ensure they return a 401 Unauthorized error when no authentication token is provided.",
+            "dependencies": [],
+            "details": "In the `tests/api/v1/` directory, create a new file named `test_phase2_endpoints.py`. Add a test function `test_get_init_state_unauthorized` that makes a GET request to `/api/v1/initState` without an `Authorization` header. Add another test `test_bind_user_unauthorized` that makes a PUT request to `/api/v1/bind` with a sample body but no `Authorization` header. Both tests must assert that the HTTP status code is 401.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement Success (200) and Not Found (404) Tests for GET /initState",
+            "description": "Write tests to verify the success and user-not-found scenarios for the `/initState` endpoint.",
+            "dependencies": [
+              "19.1"
+            ],
+            "details": "In `tests/api/v1/test_phase2_endpoints.py`, create `test_get_init_state_success`. Use the `normal_user_token_headers` fixture to make an authenticated GET request to `/api/v1/initState`. Assert a 200 OK status and validate that the response body contains the expected user, book, and group data. Then, create `test_get_init_state_user_not_found`. This test should create a user, generate a token, delete the user from the DB, and then make a request with the stale token, asserting a 404 Not Found status code, which should be raised by the `get_current_active_user` dependency.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement Success (200) Test for PUT /bind",
+            "description": "Write a test for the successful binding of a username and password to a user account using a valid invite code.",
+            "dependencies": [
+              "19.1"
+            ],
+            "details": "In `tests/api/v1/test_phase2_endpoints.py`, create `test_bind_user_success`. This test requires setting up a user (e.g., via `create_random_user`) and a valid, unused invite code in the database. Use the user's token from the `normal_user_token_headers` fixture. Call `PUT /api/v1/bind` with a payload containing a unique username, a password, and the valid invite code. Assert a 200 OK status. Additionally, verify that the user's `username` and `password_hash` fields are updated in the database and that the invite code is marked as used.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement Bad Request (400) Test for Duplicate Username on PUT /bind",
+            "description": "Write a test to ensure the `/bind` endpoint correctly handles requests with a username that is already taken.",
+            "dependencies": [
+              "19.1"
+            ],
+            "details": "In `tests/api/v1/test_phase2_endpoints.py`, create `test_bind_user_duplicate_username`. The setup involves creating two users. The first user already has a username. The test will use the token of the second user to attempt to bind with the first user's username. Make a PUT request to `/api/v1/bind` with the duplicate username. Assert that the status code is 400 and that the response body contains a specific error message or code indicating the username is already in use.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Implement Bad Request (400) Tests for Invalid and Used Invite Codes on PUT /bind",
+            "description": "Write tests to ensure the `/bind` endpoint rejects requests with invalid or already used invite codes.",
+            "dependencies": [
+              "19.1"
+            ],
+            "details": "In `tests/api/v1/test_phase2_endpoints.py`, create two tests. First, `test_bind_user_invalid_invite_code`: use an authenticated user's token to make a PUT request to `/api/v1/bind` with an invite code that does not exist in the database. Assert a 400 status code and a relevant error message. Second, `test_bind_user_used_invite_code`: create an invite code, mark it as used in the database, and then attempt to bind with it. Assert a 400 status code and a specific error message for a used code.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "title": "Update API Documentation",
+        "description": "Update the project's API documentation (e.g., Swagger/OpenAPI) to reflect the addition of the new endpoints.",
+        "details": "Since FastAPI automatically generates OpenAPI documentation from code, this task involves reviewing the generated docs at `/docs`. Ensure that the descriptions, request bodies, and response models for `GET /initState` and `PUT /bind` are clear, accurate, and helpful for API consumers. Add or refine docstrings in the router functions as needed to improve the documentation.",
+        "testStrategy": "Navigate to the auto-generated Swagger UI and visually inspect the documentation for the two new endpoints. Verify that all parameters, headers, and response codes specified in the PRD are correctly documented.",
+        "priority": "low",
+        "dependencies": [
+          17,
+          18
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add Docstring and Summary to GET /initState Endpoint",
+            "description": "Enhance the documentation for the `GET /initState` endpoint by adding a detailed docstring to its function and a concise summary in the decorator.",
+            "dependencies": [],
+            "details": "In `moneynote/api/v1/endpoints/auth.py`, locate the `init_state` function. Add a Python docstring that explains its purpose: to create a temporary guest user and return an initial state object containing the guest user's details and an authentication token. Also, add a `summary` argument to the `@router.get` decorator, for example: `summary=\"Create Guest User and Get Initial State\"`.",
+            "status": "pending",
+            "testStrategy": "After implementation, run the app and check the `/docs` page. The `GET /initState` endpoint should have a clear summary and a detailed description section."
+          },
+          {
+            "id": 2,
+            "title": "Add Docstring and Summary to PUT /bind Endpoint",
+            "description": "Enhance the documentation for the `PUT /bind` endpoint by adding a detailed docstring to its function and a concise summary in the decorator.",
+            "dependencies": [],
+            "details": "In `moneynote/api/v1/endpoints/auth.py`, locate the `bind_user` function. Add a Python docstring explaining that this endpoint converts the current guest user (identified by the auth token) into a permanent user by binding them to a username, password, and a valid invite code. Add a `summary` argument to the `@router.put` decorator, for example: `summary=\"Bind Guest User to a Permanent Account\"`.",
+            "status": "pending",
+            "testStrategy": "After implementation, run the app and check the `/docs` page. The `PUT /bind` endpoint should have a clear summary and a detailed description section."
+          },
+          {
+            "id": 3,
+            "title": "Add Field Descriptions to InitStateResponse Schema",
+            "description": "Improve the clarity of the `GET /initState` response model by adding descriptions to its fields.",
+            "dependencies": [],
+            "details": "In `moneynote/schemas/auth.py`, find the `InitStateResponse` Pydantic model. Use `pydantic.Field` to add a `description` for each field. For the `user` field, describe it as 'The newly created guest user object.' For the `token` field, describe it as 'The JWT access token for authenticating subsequent requests for the guest user.'",
+            "status": "pending",
+            "testStrategy": "Check the `/docs` page for the `GET /initState` endpoint. In the 'Responses' section, expand the schema for the 200 response and verify that the descriptions for `user` and `token` are displayed."
+          },
+          {
+            "id": 4,
+            "title": "Add Field Descriptions to UserBind Schema",
+            "description": "Improve the clarity of the `PUT /bind` request body model by adding descriptions to its fields.",
+            "dependencies": [],
+            "details": "In `moneynote/schemas/auth.py`, find the `UserBind` Pydantic model. Use `pydantic.Field` to add a `description` for each field. Describe `username`, `password`, and `invite_code` clearly, explaining their purpose and any constraints (e.g., 'A valid, unused invite code.').",
+            "status": "pending",
+            "testStrategy": "Check the `/docs` page for the `PUT /bind` endpoint. In the 'Request body' section, expand the schema and verify that the descriptions for `username`, `password`, and `invite_code` are displayed."
+          },
+          {
+            "id": 5,
+            "title": "Final Review and Verification of Generated API Docs",
+            "description": "Perform a final review of the auto-generated Swagger/OpenAPI documentation to ensure all recent changes are correctly reflected and the documentation is clear, accurate, and helpful.",
+            "dependencies": [
+              "20.1",
+              "20.2",
+              "20.3",
+              "20.4"
+            ],
+            "details": "Run the FastAPI application locally. Open a web browser and navigate to the `/docs` URL. Systematically review the endpoints for `GET /initState` and `PUT /bind`. Verify that: 1. The summaries are present and correct. 2. The detailed descriptions from the docstrings are visible. 3. The request body schema for `/bind` has field descriptions. 4. The response schema for `/initState` has field descriptions. 5. The overall presentation is professional and easy for an API consumer to understand.",
+            "status": "pending",
+            "testStrategy": "Visually confirm that all documentation elements added in the previous subtasks are rendered correctly in the Swagger UI. Try the 'Try it out' feature to ensure the example values and schemas match expectations."
           }
         ]
       }
     ],
     "metadata": {
       "created": "2025-10-21T09:07:27.806Z",
-      "updated": "2025-10-22T02:11:28.296Z",
+      "updated": "2025-10-28T06:30:10.212Z",
       "description": "Tasks for master context"
     }
   }
