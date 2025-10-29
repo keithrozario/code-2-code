@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 import logging
 
 from fastapi import FastAPI
-from moneynote.routers import book_templates, currencies, system
+from moneynote.routers import book_templates, currencies, system, users
 from moneynote.services.data_loader_service import DataLoaderService, DataFileError
 from config import settings
 
@@ -24,6 +24,8 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(system.router, tags=['System'])
 app.include_router(currencies.router)
 app.include_router(book_templates.router, prefix="/book-templates", tags=["book-templates"])
+app.include_router(users.router, prefix="/users", tags=["users"])
+
 
 @app.get("/")
 def read_root():

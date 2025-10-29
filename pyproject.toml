@@ -13,8 +13,8 @@ dependencies = [
     "pydantic",
     "pydantic-settings",
     "python-jose[cryptography]",
-    "passlib[bcrypt]",
     "pytest",
     "httpx",
     "pyjwt",
+    "bcrypt>=5.0.0",
 ]
