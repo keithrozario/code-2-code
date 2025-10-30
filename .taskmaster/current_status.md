@@ -11,4 +11,13 @@ The following task have been executed and completed, do not repeat them, assume 
 - [✔] Implement `GET /currencies/all` Endpoint
 - [✔] Implement `GET /book-templates/all` Endpoint
 - [✔] Include New Routers in Main Application
-- [✔] Write Integration Tests for All Phase 1 Endpoints
+- [✔] Write Integration Tests for All Phase 1 Endpoints- [✔] Update Data Models and Create Database Migration
+- [✔] Define Pydantic Schemas for Session and Binding
+- [✔] Implement CRUD Functions for User and Invite Code
+- [✔] Add Password Hashing Utility and Dependency
+- [✔] Implement `get_initial_state` Service Logic
+- [✔] Implement `bind_user` Service Logic
+- [✔] Create `GET /initState` API Endpoint
+- [✔] Create `PUT /bind` API Endpoint
+- [✔] Write Integration Tests for Phase 2 Endpoints
+- [✔] Update API Documentation
