@@ -1,3 +1,38 @@
+# Project: Money-note rewrite
+
+## Introduction
+
+The project will re-write money note from Java to a new tech stack written below.
+
+In version 1 we will retain all functionality in moneynote and only perform a technical re-write.
+
+## Tech Stack
+
+* The backend is API driven, written in Python using Fast API.
+* The Database is a SQLite3 file named `moneynote.db`
+* The Database will implement exactly the data model used in the old version.
+* The frontend will be implemented react-js
+* Any authentication of the user will be done by an API gateway, we will not perform authentication in code here.
+* The api will write directly into the database
+* There will always be a JWT token in the request, requests without JWT tokens will be rejected by the API Gateway.
+
+## App
+
+* The app is in the `./app` directory. 
+
+## Database
+
+* Reimplement the database in SQLite3 by implementing the models in code.
+* The database is in `./app/db/moneynote.db` there is only one database, use this.
+* The database definition is in `./technical_design/database_design/database_schema.md`
+
+## Backend
+* The backend is API driven, written in Python and based on Fast API
+* Use `uv` for the package management, namely
+  * Use `uv add` instead of pip install
+  * Assume that you are already in the virtual environment
+* Execute test by `PYTHONPATH=. pytest` command
+
 # Task Master AI - Agent Integration Guide`
 
 ## Daily Development Workflow
