@@ -19,6 +19,7 @@ In version 1 we will retain all functionality in moneynote and only perform a te
 ## App
 
 * The app is in the `./app` directory. 
+* The tests are in the `./app/tests` directory.
 
 ## Database
 
