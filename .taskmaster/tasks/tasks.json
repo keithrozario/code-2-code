@@ -9,7 +9,7 @@
         "testStrategy": "This task is a prerequisite for testing. The functionality will be tested in a dedicated testing task (ID 17). Manual verification can be done by checking the OpenAPI docs (`/docs`) to ensure the endpoint and schema are correctly rendered.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -20,7 +20,7 @@
         "testStrategy": "Unit tests should be written for the new CRUD functions to ensure they correctly query and update the database. Test `get_by_username` with existing and non-existing usernames. Test `update_credentials` to verify the fields are updated correctly.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "cancelled",
         "subtasks": []
       },
       {
@@ -33,7 +33,7 @@
         "dependencies": [
           12
         ],
-        "status": "pending",
+        "status": "cancelled",
         "subtasks": []
       },
       {
@@ -44,7 +44,7 @@
         "testStrategy": "Unit tests for the `crud_invitation` functions. An integration test should verify that the Alembic migration applies and reverts correctly.",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
+        "status": "cancelled",
         "subtasks": []
       },
       {
@@ -58,7 +58,7 @@
           13,
           14
         ],
-        "status": "pending",
+        "status": "cancelled",
         "subtasks": []
       },
       {
@@ -72,7 +72,7 @@
           11,
           15
         ],
-        "status": "pending",
+        "status": "cancelled",
         "subtasks": []
       },
       {
@@ -83,7 +83,7 @@
         "testStrategy": "This is a schema definition task. Correctness will be validated by its usage in the endpoint implementation and the corresponding integration tests (Task 20).",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -96,7 +96,7 @@
         "dependencies": [
           17
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -109,7 +109,7 @@
         "dependencies": [
           18
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -122,13 +122,13 @@
         "dependencies": [
           19
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-10-31T03:35:47.373Z",
-      "updated": "2025-11-03T06:02:57.535Z",
+      "updated": "2025-11-03T07:54:00.443Z",
       "description": "Tasks for master context"
     }
   }

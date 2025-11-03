@@ -7,4 +7,5 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
+    default_group_id = Column(Integer, nullable=True)
+    default_book_id = Column(Integer, nullable=True)

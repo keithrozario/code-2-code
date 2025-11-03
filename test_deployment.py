@@ -2,10 +2,10 @@ import sys
 import json
 import requests
 from jose import jwt
+import argparse
 
 # --- Configuration ---
-BASE_URL = "https://money-note-api-209692124655.us-central1.run.app"
-
+BASE_URL = ""
 
 # --- JWT Generation ---
 def generate_dummy_jwt() -> str:
@@ -23,7 +23,6 @@ def generate_dummy_jwt() -> str:
 
 
 # --- Main Functions ---
-
 
 def make_request(endpoint: str, token: str):
     """Makes a GET request to a specific endpoint and prints the response."""
@@ -80,7 +79,20 @@ def make_unauthenticated_request(endpoint: str):
 
 
 def main():
-    """Runs all tests."""
+    global BASE_URL
+
+    parser = argparse.ArgumentParser(description="Test deployed application endpoints.")
+    parser.add_argument("--env", type=str, default="deployed",
+                        help="Specify the environment: 'local' or 'deployed' (default). If 'local', uses http://localhost:8080. Otherwise, uses the deployed Cloud Run URL.")
+    args = parser.parse_args()
+
+    if args.env == "local":
+        BASE_URL = "http://localhost:8080"
+        print("Running tests against LOCAL environment (http://localhost:8080)\n")
+    else:
+        BASE_URL = "https://money-note-api-6j7ycme5ya-uc.a.run.app" # Updated deployed URL
+        print(f"Running tests against DEPLOYED environment ({BASE_URL})\n")
+
     print("Generating a dummy JWT for testing...\n")
     jwt_token = generate_dummy_jwt()
 
@@ -93,6 +105,25 @@ def main():
 
     for endpoint in endpoints_to_test:
         make_request(endpoint, jwt_token)
+
+    # Test for /initState expecting a 404 (user not found in empty database)
+    print("\n--- Testing /api/v1/users/initState (expecting 404 for non-existent user) ---")
+    url_init_state = f"{BASE_URL}/api/v1/users/initState"
+    headers_auth = {"Authorization": f"Bearer {jwt_token}"}
+    try:
+        response = requests.get(url_init_state, headers=headers_auth)
+        if response.status_code == 404:
+            print(f"Status: 404 Not Found (Expected)")
+            print(f"Response Body: {json.dumps(response.json(), indent=2)}\n")
+            assert response.json() == {"detail": "User not found"}
+        else:
+            print(f"Error: Expected 404 for /initState, but got {response.status_code}", file=sys.stderr)
+            print(f"Response Body: {response.text}", file=sys.stderr)
+            sys.exit(1)
+            
+    except requests.exceptions.RequestException as err:
+        print(f"An error occurred during /initState test: {err}", file=sys.stderr)
+        sys.exit(1)
 
     print("\n--- Running Unauthenticated Tests ---")
     make_unauthenticated_request("/api/v1/currencies/all")
