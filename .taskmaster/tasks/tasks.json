@@ -9,7 +9,7 @@
         "testStrategy": "Write a unit test to verify that the settings model correctly loads the `APP_VERSION` and `BASE_URL` from environment variables. Check default values if applicable.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -17,7 +17,7 @@
             "description": "Modify the `Settings` class in `moneynote/core/config.py` to include the `APP_VERSION` configuration field.",
             "dependencies": [],
             "details": "In the `Settings` class within `moneynote/core/config.py`, add a new attribute `APP_VERSION: str = \"0.1.0\"`. This will allow the application version to be loaded from an environment variable, with a sensible default.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "This will be tested in a subsequent subtask by verifying that the setting can be loaded from an environment variable."
           },
           {
@@ -28,7 +28,7 @@
               "1.1"
             ],
             "details": "In the `Settings` class within `moneynote/core/config.py`, add a new attribute `BASE_URL: str = \"http://localhost:8000\"`. This will allow the application's base URL to be configured via an environment variable.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "This will be tested in a subsequent subtask by verifying that the setting can be loaded from an environment variable."
           },
           {
@@ -39,7 +39,7 @@
               "1.2"
             ],
             "details": "Locate the `.env.example` file in the project root and add the following lines: `APP_VERSION=0.1.0` and `BASE_URL=http://localhost:8000`. This serves as documentation for developers.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual verification by checking the contents of the `.env.example` file after the change."
           },
           {
@@ -48,7 +48,7 @@
             "description": "Create a new test file `tests/core/test_config.py` to house the unit tests for the application's configuration settings.",
             "dependencies": [],
             "details": "In the `tests/core/` directory, create a new file named `test_config.py`. Add initial boilerplate, including imports for `pytest`, `os`, and the `get_settings` function from `moneynote.core.config`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "The existence and basic structure of the file will be verified by the test runner in the next step."
           },
           {
@@ -60,7 +60,7 @@
               "1.4"
             ],
             "details": "Use `pytest`'s `monkeypatch` fixture to set and unset the `APP_VERSION` and `BASE_URL` environment variables. Write a test to confirm the default values are used when the variables are not set. Write another test to confirm the values are overridden correctly when the variables are set. Remember to clear the `lru_cache` for `get_settings` before each test run to ensure isolation (e.g., `get_settings.cache_clear()`).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run `pytest tests/core/test_config.py` and ensure all tests pass."
           }
         ]
@@ -73,7 +73,7 @@
         "testStrategy": "Manual verification of JSON files. The Pydantic schemas will be tested implicitly when the data loading service and endpoints are tested.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -81,7 +81,7 @@
             "description": "Create the necessary directory structure for storing static data files and Pydantic schemas, which are currently missing from the project structure.",
             "dependencies": [],
             "details": "Create a `data` directory inside the `moneynote` package. Create a `schemas` directory inside the `moneynote` package. Add an empty `__init__.py` file to `moneynote/schemas` to ensure it is treated as a Python package.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual verification of the directory structure: `moneynote/data/` and `moneynote/schemas/__init__.py` should exist."
           },
           {
@@ -92,7 +92,7 @@
               "2.1"
             ],
             "details": "In the `moneynote/data` directory, create a file named `currency.json`. Populate it with a JSON array of currency objects. Each object must have `code` (e.g., \"USD\"), `name` (e.g., \"United States Dollar\"), and `symbol` (e.g., \"$\") keys. Include at least three sample currencies like USD, EUR, and JPY.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual verification of the file `moneynote/data/currency.json` to ensure it exists and contains valid JSON data in the specified format."
           },
           {
@@ -103,7 +103,7 @@
               "2.1"
             ],
             "details": "In the `moneynote/schemas` directory, create a file named `currency.py`. Inside this file, import `BaseModel` from `pydantic` and define a class `Currency(BaseModel)`. The model must have the following fields: `code: str`, `name: str`, and `symbol: str` to match the structure of `currency.json`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "The schema will be implicitly tested by later tasks that load and serve this data. For now, ensure the Python file is free of syntax errors."
           },
           {
@@ -114,7 +114,7 @@
               "2.1"
             ],
             "details": "In `moneynote/data`, create `book_tpl.json`. Populate it with a JSON array of book template objects. Each object must have an `id` (string), `name` (string), `description` (string), and an `accounts` array. Each object in the `accounts` array must have `name` (string), `type` (string, e.g., \"ASSET\"), and `description` (string). Create at least two sample templates (e.g., 'Personal Finance', 'Small Business').",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual verification of the file `moneynote/data/book_tpl.json` to ensure it contains valid JSON with the specified nested structure."
           },
           {
@@ -125,7 +125,7 @@
               "2.1"
             ],
             "details": "In `moneynote/schemas`, create `book_template.py`. Import `BaseModel` from `pydantic` and `List` from `typing`. Define two models: 1. `AccountTemplate(BaseModel)` with fields `name: str`, `type: str`, and `description: str`. 2. `BookTemplate(BaseModel)` with fields `id: str`, `name: str`, `description: str`, and `accounts: List[AccountTemplate]`. This structure must correspond to the `book_tpl.json` file.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "The schema will be implicitly tested by later tasks. For now, ensure the Python file is free of syntax errors and the nested model is defined correctly."
           }
         ]
@@ -140,7 +140,7 @@
         "dependencies": [
           2
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -148,7 +148,7 @@
             "description": "Create the new file `moneynote/services/data_cache_service.py` and define the basic structure for the `DataCacheService` class. This includes importing necessary Pydantic models and setting up empty methods.",
             "dependencies": [],
             "details": "In the new file `moneynote/services/data_cache_service.py`, create a class `DataCacheService`. Import `List` from `typing`, `Currency` from `moneynote.schemas.currency`, and `BookTemplate` from `moneynote.schemas.book_template`. The class should have an `__init__` method and define private attributes `_currencies: List[Currency]` and `_book_templates: List[BookTemplate]`, initialized as empty lists. Also, create placeholder public methods `get_currencies(self) -> List[Currency]:` and `get_book_templates(self) -> List[BookTemplate]:` that currently do nothing but will later return the cached data.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify the file and class structure are created correctly. This subtask is foundational and will be tested by subsequent subtasks."
           },
           {
@@ -159,7 +159,7 @@
               "3.1"
             ],
             "details": "Inside the `DataCacheService`'s `__init__` method, use `pathlib.Path` and `__file__` to construct absolute paths to `currency.json` and `book_tpl.json` within the `moneynote/data` directory. This ensures the path is correct regardless of where the application is run from. Read the contents of both files. Wrap the file-opening logic in a `try...except FileNotFoundError` block. If a file is not found, log a critical error using `logging.getLogger(__name__)` and raise a `RuntimeError` to halt application startup.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manually test by temporarily renaming one of the JSON files and ensuring the application fails to start with the correct error message."
           },
           {
@@ -170,7 +170,7 @@
               "3.2"
             ],
             "details": "After successfully reading the file content, use the `json.loads()` function to parse the JSON string. Then, use Pydantic's `parse_obj_as(List[Model], parsed_json)` to validate the data structure and types against the `Currency` and `BookTemplate` models. Assign the resulting lists of Pydantic objects to the `_currencies` and `_book_templates` private attributes. This logic should be within the `__init__` method.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "This will be implicitly tested by the next subtask's error handling and later by integration tests for the endpoints."
           },
           {
@@ -181,7 +181,7 @@
               "3.3"
             ],
             "details": "Wrap the JSON parsing and Pydantic validation logic in `try...except` blocks. Specifically, catch `json.JSONDecodeError` for invalid JSON and `pydantic.ValidationError` for data that fails schema validation. In either case, log a detailed, critical error message including the exception details and raise a `RuntimeError` to prevent the application from starting with corrupted or invalid data.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manually test by introducing a syntax error into `currency.json` (e.g., a trailing comma) and then by changing a key (e.g., `\"code\"` to `\"kode\"`) to ensure the application fails to start with the appropriate logged error in each case."
           },
           {
@@ -192,7 +192,7 @@
               "3.4"
             ],
             "details": "Implement the `get_currencies` and `get_book_templates` methods to return a copy of the cached data (e.g., `return self._currencies.copy()`) to prevent external modification. At the bottom of `moneynote/services/data_cache_service.py`, create a module-level instance: `data_cache_service = DataCacheService()`. Below that, define a dependency provider function `def get_data_cache_service() -> DataCacheService:` that simply returns the `data_cache_service` instance. This function will be used by FastAPI's dependency injection system in later tasks.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Code review to ensure the singleton pattern is correctly implemented and that getters return copies. The functionality will be fully verified when endpoints in tasks 6 and 7 are implemented and tested."
           }
         ]
@@ -207,7 +207,7 @@
         "dependencies": [
           3
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -215,7 +215,7 @@
             "description": "Modify `moneynote/main.py` to import the `DataCacheService` from `moneynote.services.data_cache_service` and the standard `logging` module to prepare for the startup event implementation.",
             "dependencies": [],
             "details": "Add `from moneynote.services.data_cache_service import DataCacheService` and `import logging` at the top of `moneynote/main.py`. This sets the stage for using the service and logging its initialization status.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Code review and linter check to ensure imports are correct and unused import errors are not introduced yet."
           },
           {
@@ -226,7 +226,7 @@
               "4.1"
             ],
             "details": "Below the `app = FastAPI()` instantiation in `moneynote/main.py`, add the following code block:\n\n```python\n@app.on_event(\"startup\")\nasync def startup_event():\n    pass\n```\nThis creates the dedicated function that FastAPI will execute once upon application launch.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run the application to ensure it still starts without errors. The new function should be empty and have no side effects yet."
           },
           {
@@ -237,7 +237,7 @@
               "4.2"
             ],
             "details": "Modify the `startup_event` function to call the `DataCacheService` constructor. This will trigger the data loading logic defined in Task 3. The function should look like this for now:\n\n```python\n@app.on_event(\"startup\")\nasync def startup_event():\n    DataCacheService()\n```",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manually run the application. If the data files (`currency.json`, `book_tpl.json`) are present and valid, the application should start. If they are missing, the application should fail to start, as the exception from the service will not be caught yet."
           },
           {
@@ -248,7 +248,7 @@
               "4.3"
             ],
             "details": "In `moneynote/main.py`, update the `startup_event` function. The `DataCacheService()` call should be inside a `try` block. The `except Exception as e:` block should log a critical error message detailing the failure and then re-raise the exception. This ensures FastAPI's startup process is halted as required.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Temporarily rename or corrupt `currency.json`. Run the application and verify that it fails to start and that a critical error message is printed to the console/log."
           },
           {
@@ -259,7 +259,7 @@
               "4.4"
             ],
             "details": "In the `startup_event` function in `moneynote/main.py`, after the `DataCacheService()` call and within the `try` block, add a log statement like `logging.info(\"Data cache initialized successfully.\")`. This provides clear confirmation in the application logs that this critical startup step was completed.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run the application with valid data files. Check the application logs to confirm the presence of the success message 'Data cache initialized successfully.'"
           }
         ]
@@ -274,7 +274,7 @@
         "dependencies": [
           1
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -282,7 +282,7 @@
             "description": "Create the necessary directory structure and the new router file for the system endpoints.",
             "dependencies": [],
             "details": "Create a new directory `moneynote/routers/`. Inside this directory, create a new empty Python file named `system.py`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify that the file `moneynote/routers/system.py` exists in the project structure."
           },
           {
@@ -293,7 +293,7 @@
               "5.1"
             ],
             "details": "In `moneynote/routers/system.py`, import `APIRouter`, `Depends` from `fastapi`. Also, import the existing `get_settings` function and `Settings` class from `moneynote.config`. Instantiate the router object: `router = APIRouter()`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "The file should be syntactically correct Python. A linter can be run on the file."
           },
           {
@@ -304,7 +304,7 @@
               "5.2"
             ],
             "details": "In `moneynote/routers/system.py`, create a new route using `@router.get(\"/version\")`. The route function should use `Depends(get_settings)` to inject the configuration. It should return a dictionary containing the `APP_VERSION` from the settings object, like `{\"version\": settings.APP_VERSION}`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "After implementation, run the server and make a GET request to `/api/v1/version` to verify it returns the correct version string from `moneynote/config.py`."
           },
           {
@@ -315,7 +315,7 @@
               "5.2"
             ],
             "details": "In `moneynote/routers/system.py`, create another route using `@router.get(\"/test3\")`. This route function should also use `Depends(get_settings)` to inject the configuration. It should return a dictionary containing the `BASE_URL` from the settings object, like `{\"base_url\": settings.BASE_URL}`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "After implementation, run the server and make a GET request to `/api/v1/test3` to verify it returns the correct base URL from `moneynote/config.py`."
           },
           {
@@ -327,7 +327,7 @@
               "5.4"
             ],
             "details": "In `main.py`, import the `router` object from `moneynote.routers.system`. Below the `app` instantiation, add the line `app.include_router(system_router, prefix=\"/api/v1\", tags=[\"System\"])` to register the new endpoints.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run the application and check the interactive API docs (e.g., at `/docs`) to ensure the `/api/v1/version` and `/api/v1/test3` endpoints are listed under the 'System' tag."
           }
         ]
@@ -667,7 +667,7 @@
     ],
     "metadata": {
       "created": "2025-10-31T03:35:47.373Z",
-      "updated": "2025-10-31T03:35:47.373Z",
+      "updated": "2025-11-03T03:18:52.146Z",
       "description": "Tasks for master context"
     }
   }

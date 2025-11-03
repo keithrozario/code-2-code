@@ -1,0 +1,51 @@
+[
+  {
+    "id": "personal_finance",
+    "name": "Personal Finance",
+    "description": "A template for managing personal finances.",
+    "accounts": [
+      {
+        "name": "Checking Account",
+        "type": "ASSET",
+        "description": "Everyday spending account"
+      },
+      {
+        "name": "Savings Account",
+        "type": "ASSET",
+        "description": "Emergency fund and savings"
+      },
+      {
+        "name": "Credit Card",
+        "type": "LIABILITY",
+        "description": "Credit card debt"
+      }
+    ]
+  },
+  {
+    "id": "small_business",
+    "name": "Small Business",
+    "description": "A template for managing small business finances.",
+    "accounts": [
+      {
+        "name": "Business Checking",
+        "type": "ASSET",
+        "description": "Business operating account"
+      },
+      {
+        "name": "Business Savings",
+        "type": "ASSET",
+        "description": "Business savings and reserves"
+      },
+      {
+        "name": "Accounts Receivable",
+        "type": "ASSET",
+        "description": "Money owed to the business"
+      },
+      {
+        "name": "Accounts Payable",
+        "type": "LIABILITY",
+        "description": "Money the business owes"
+      }
+    ]
+  }
+]
