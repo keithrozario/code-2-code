@@ -342,7 +342,7 @@
         "dependencies": [
           4
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -350,7 +350,7 @@
             "description": "Create a new, empty Python file to house the currency-related API endpoints. This file will follow the pattern established by `moneynote/routers/system.py`.",
             "dependencies": [],
             "details": "Create the file `moneynote/routers/currencies.py`. This file will contain the `APIRouter` for currency-related endpoints.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify the file `moneynote/routers/currencies.py` exists in the correct directory."
           },
           {
@@ -361,7 +361,7 @@
               "6.1"
             ],
             "details": "In `moneynote/routers/currencies.py`, import `APIRouter` and `Depends` from `fastapi`, `List` from `typing`, `Currency` from `moneynote.schemas.currency`, and `DataCacheService`, `get_data_cache_service` from `moneynote.services.data_cache_service`. Then, create the router instance: `router = APIRouter()`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run a syntax check on the file to ensure imports are correct and the router is instantiated without errors."
           },
           {
@@ -372,7 +372,7 @@
               "6.2"
             ],
             "details": "Add the following decorator and function signature in `moneynote/routers/currencies.py`:\n```python\n@router.get(\"/all\", response_model=List[Currency], tags=[\"currencies\"])\ndef get_all_currencies(service: DataCacheService = Depends(get_data_cache_service)):\n    pass\n```",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "The application should be able to start without errors related to this new route definition. The OpenAPI docs (`/docs`) should show the new endpoint signature correctly."
           },
           {
@@ -383,7 +383,7 @@
               "6.3"
             ],
             "details": "In `moneynote/routers/currencies.py`, replace the `pass` statement in the `get_all_currencies` function with the implementation. The function should call `service.get_currencies()` and return the result directly.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual testing by placing a breakpoint inside the function and ensuring `service.get_currencies()` is called and returns the expected data structure."
           },
           {
@@ -394,7 +394,7 @@
               "6.4"
             ],
             "details": "In `main.py`, add `from moneynote.routers import currencies` at the top with the other router imports. Then, add `app.include_router(currencies.router, prefix=\"/api/v1/currencies\", tags=[\"currencies\"])` below the inclusion of the `system` router.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run the application and make a GET request to `/api/v1/currencies/all`. Verify that it returns a 200 OK status and a JSON array of currency objects."
           }
         ]
@@ -409,7 +409,7 @@
         "dependencies": [
           4
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -417,7 +417,7 @@
             "description": "Create a new file named `book_templates.py` inside the `moneynote/routers/` directory. Add the basic imports for `APIRouter` from `fastapi` and instantiate the router.",
             "dependencies": [],
             "details": "The file `moneynote/routers/book_templates.py` should be created. It should contain the initial boilerplate code: `from fastapi import APIRouter\n\nrouter = APIRouter()`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify the file `moneynote/routers/book_templates.py` exists and contains the router instantiation."
           },
           {
@@ -428,7 +428,7 @@
               "7.1"
             ],
             "details": "Import `List` from `typing` and `BookTemplate` from `moneynote.schemas.book_template`. Define the function `async def get_all_book_templates():` and decorate it with `@router.get(\"/all\", response_model=List[BookTemplate])`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Review the code to ensure the decorator is correctly applied with the path and `response_model`."
           },
           {
@@ -439,7 +439,7 @@
               "7.2"
             ],
             "details": "Import `Depends` from `fastapi`, `DataCacheService` from `moneynote.services.data_cache_service`, and `get_data_cache_service` from `moneynote.dependencies`. Update the function signature to: `async def get_all_book_templates(cache_service: DataCacheService = Depends(get_data_cache_service)):`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Check that the function signature correctly uses `Depends` to inject the `DataCacheService`."
           },
           {
@@ -450,7 +450,7 @@
               "7.3"
             ],
             "details": "The body of the `get_all_book_templates` function should consist of a single line: `return cache_service.get_book_templates()`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify the function body calls the correct method on the service and returns the result."
           },
           {
@@ -461,7 +461,7 @@
               "7.4"
             ],
             "details": "Add `from .routers import book_templates` to the import section of `moneynote/main.py`. Then, add the line `app.include_router(book_templates.router, prefix=\"/api/v1/book-templates\", tags=[\"Book Templates\"])` to register the new routes with the application.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run the application and access the OpenAPI docs (e.g., at `/docs`) to confirm the new `/api/v1/book-templates/all` endpoint is listed under the 'Book Templates' tag."
           }
         ]
@@ -478,7 +478,7 @@
           6,
           7
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -486,7 +486,7 @@
             "description": "Update `moneynote/routers/system.py` to import the necessary dependencies for JWT authentication before applying them to the endpoints in subsequent tasks.",
             "dependencies": [],
             "details": "In `moneynote/routers/system.py`, add the following import statements: `from moneynote.routers.deps import get_current_user` and `from moneynote.models import User`. The `Depends` class should already be imported from `fastapi`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -497,7 +497,7 @@
               "8.1"
             ],
             "details": "In `moneynote/routers/system.py`, modify the function signature for the `get_version` endpoint to `def get_version(current_user: User = Depends(get_current_user)):`. This will make the endpoint require a valid Bearer token.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -508,7 +508,7 @@
               "8.1"
             ],
             "details": "In `moneynote/routers/system.py`, modify the function signature for the `get_base_url` endpoint to `def get_base_url(current_user: User = Depends(get_current_user)):`. This will make the endpoint require a valid Bearer token.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -517,7 +517,7 @@
             "description": "Apply JWT authentication to the `GET /currencies` endpoint in `moneynote/routers/currencies.py`.",
             "dependencies": [],
             "details": "First, add the necessary imports to `moneynote/routers/currencies.py`: `from moneynote.routers.deps import get_current_user` and `from moneynote.models import User`. Then, modify the `get_all_currencies` function signature to include the authentication dependency: `current_user: User = Depends(get_current_user)`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -526,7 +526,7 @@
             "description": "Apply JWT authentication to the `GET /book-templates` endpoint in `moneynote/routers/book_templates.py`.",
             "dependencies": [],
             "details": "First, add the necessary imports to `moneynote/routers/book_templates.py`: `from moneynote.routers.deps import get_current_user` and `from moneynote.models import User`. Then, modify the `get_all_book_templates` function signature to include the authentication dependency: `current_user: User = Depends(get_current_user)`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -541,7 +541,7 @@
         "dependencies": [
           8
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -549,7 +549,7 @@
             "description": "Create the new test file `tests/routers/test_system.py`. Set up the basic structure by importing `TestClient` from `fastapi.testclient` and the `app` from `moneynote.main`. Instantiate the client following the pattern in `tests/routers/test_book_templates.py`.",
             "dependencies": [],
             "details": "In the `tests/routers/` directory, create a new file named `test_system.py`. Add the necessary boilerplate code:\n\n```python\nfrom fastapi.testclient import TestClient\nfrom moneynote.main import app\n\nclient = TestClient(app)\n```\nThis file will house the integration tests for the `/version` and `/test3` endpoints.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Ensure the file is created in the correct directory and contains the initial client setup code."
           },
           {
@@ -560,7 +560,7 @@
               "9.1"
             ],
             "details": "Add two test functions, `test_get_version_authorized` and `test_get_test3_authorized`. Both functions must accept the `mock_auth` fixture as an argument. For each test, make a GET request to the respective endpoint (`/api/v1/version` and `/api/v1/test3`) and assert that the response status code is 200. Also, assert that the response JSON contains the expected keys ('version' and 'base_url' respectively).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run pytest and confirm that the two new tests pass, verifying they correctly mock authentication and receive a 200 OK response."
           },
           {
@@ -571,7 +571,7 @@
               "9.1"
             ],
             "details": "Add two test functions, `test_get_version_unauthorized` and `test_get_test3_unauthorized`. These functions should *not* use the `mock_auth` fixture. For each test, make a GET request to the endpoint and assert that the status code is 401 and the response body is `{\"detail\": \"Not authenticated\"}`, matching the existing pattern in `test_book_templates.py`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run pytest and confirm the new unauthorized tests pass with a 401 status code."
           },
           {
@@ -580,7 +580,7 @@
             "description": "Create the test file `tests/routers/test_currencies.py` and implement the happy path integration test for the `GET /currencies/all` endpoint, covering test case TC-P1-03.",
             "dependencies": [],
             "details": "Create `tests/routers/test_currencies.py` with the standard `TestClient` setup. Add a test function `test_get_all_currencies_authorized` that uses the `mock_auth` fixture. This test should make a GET request to `/api/v1/currencies/all`, assert a 200 OK status code, and validate that the response JSON matches the data loaded by `data_cache_service.get_currencies()`. You will need to import `data_cache_service` to get the expected data for comparison.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run pytest and verify the test passes, ensuring the endpoint returns the correct currency data from the cache service when authenticated."
           },
           {
@@ -591,7 +591,7 @@
               "9.4"
             ],
             "details": "Add a test function `test_get_all_currencies_unauthorized` to `tests/routers/test_currencies.py`. This test should make a GET request to `/api/v1/currencies/all` without using the `mock_auth` fixture. Assert that the response status code is 401 and the JSON body is `{\"detail\": \"Not authenticated\"}`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run the full test suite with pytest and ensure all new tests, including this one, pass. Check test coverage for the `currencies` router."
           }
         ]
@@ -606,7 +606,7 @@
         "dependencies": [
           8
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -614,7 +614,7 @@
             "description": "Create the new test file `tests/routers/test_book_templates.py` and add the necessary initial imports, such as `json` and `fastapi.testclient.TestClient`. This sets up the foundational structure for the integration tests.",
             "dependencies": [],
             "details": "Following the pattern in `tests/routers/test_currencies.py`, create the file `tests/routers/test_book_templates.py`. Add the standard imports: `import json` and `from fastapi.testclient import TestClient`. No test functions need to be implemented in this step.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify the file `tests/routers/test_book_templates.py` is created and contains the specified import statements."
           },
           {
@@ -625,7 +625,7 @@
               "10.1"
             ],
             "details": "In `tests/routers/test_book_templates.py`, define a test function that takes the `client: TestClient` fixture. Make a GET request to `/api/v1/book-templates/all`. Assert that the `response.status_code` is 401. Also, assert that the response JSON matches `{'detail': 'Not authenticated'}` as seen in other tests.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run pytest and confirm that `test_get_all_book_templates_unauthorized` passes."
           },
           {
@@ -636,7 +636,7 @@
               "10.1"
             ],
             "details": "In `tests/routers/test_book_templates.py`, create a new test function `test_get_all_book_templates_success`. Use the `client: TestClient` fixture to make a GET request to `/api/v1/book-templates/all`. Include the header `{'Authorization': 'Bearer fake-token'}` in the request, mimicking the pattern in `test_currencies.py`. Assert that the `response.status_code` is 200.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run pytest and ensure the new test passes, confirming that an authenticated request is successful."
           },
           {
@@ -647,7 +647,7 @@
               "10.3"
             ],
             "details": "Inside the `test_get_all_book_templates_success` test function, before the assertions, add a `with open('data/book_tpl.json', 'r') as f:` block to read the file and use `json.load(f)` to parse its content into a variable, for example, `expected_data`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Add a temporary `assert expected_data is not None` to verify that the data is loaded correctly during the test run."
           },
           {
@@ -659,7 +659,7 @@
               "10.4"
             ],
             "details": "In the `test_get_all_book_templates_success` function, after the status code assertion and loading the expected data, add a final assertion: `assert response.json() == expected_data`. This will verify that the endpoint returns the correct data structure and content.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run the full test suite with pytest and ensure all tests in `test_book_templates.py` pass, confirming both unauthorized and authorized (with correct data) scenarios work as expected."
           }
         ]
@@ -667,7 +667,7 @@
     ],
     "metadata": {
       "created": "2025-10-31T03:35:47.373Z",
-      "updated": "2025-11-03T03:18:52.146Z",
+      "updated": "2025-11-03T05:14:05.989Z",
       "description": "Tasks for master context"
     }
   }

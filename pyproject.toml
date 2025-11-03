@@ -5,8 +5,12 @@ description = "Code to Code Test"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "fastapi>=0.120.4",
+    "httpx>=0.28.1",
     "isort>=7.0.0",
     "mrkdwn-analysis>=0.1.6",
     "pydantic-settings>=2.11.0",
     "pytest>=8.4.2",
+    "sqlalchemy>=2.0.44",
+    "uvicorn>=0.38.0",
 ]
