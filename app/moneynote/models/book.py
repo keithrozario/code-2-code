@@ -12,3 +12,6 @@ class Book(Base):
 
     group = relationship("Group", back_populates="books")
     owner = relationship("User", back_populates="books")
+    categories = relationship("Category", back_populates="book")
+    tags = relationship("Tag", back_populates="book")
+    payees = relationship("Payee", back_populates="book")

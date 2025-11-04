@@ -11,7 +11,7 @@ def get_by_name(db: Session, name: str) -> Book | None:
     return db.execute(select(Book).filter(Book.name == name)).scalar_one_or_none()
 
 def create(db: Session, book: BookCreate, user_id: int) -> Book:
-    db_book = Book(**book.dict(), user_id=user_id)
+    db_book = Book(**book.model_dump(), user_id=user_id)
     db.add(db_book)
     db.commit()
     db.refresh(db_book)
