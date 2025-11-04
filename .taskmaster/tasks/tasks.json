@@ -2,153 +2,140 @@
   "master": {
     "tasks": [
       {
-        "id": 21,
-        "title": "Define SQLAlchemy Models and Migration for Group and Book",
-        "description": "Create the SQLAlchemy ORM models for `t_user_group` and `t_user_book` based on the PRD. Establish the necessary relationships, such as the link between a book and its group, and a group to its owner. Generate an Alembic migration script to create these new tables in the database.",
-        "details": "Create `moneynote/models/group.py` and `moneynote/models/book.py`. The `Group` model should map to `t_user_group` and include columns like `name`, `owner_id`, `default_currency_code`. The `Book` model should map to `t_user_book` with columns like `name`, `group_id`, `default_currency_code`. After creating the models, run `alembic revision --autogenerate` to create the migration script and review it for correctness.",
-        "testStrategy": "Run the Alembic migration (`alembic upgrade head`) on a test database to confirm the tables and columns are created correctly. Manually inspect the database schema to verify it matches the PRD specifications.",
+        "id": 31,
+        "title": "Implement GET /groups Endpoint with Pagination",
+        "description": "Create the API endpoint to retrieve a paginated list of all groups the current authenticated user is a member of, as specified in FS-001.",
+        "details": "In `moneynote/routers/groups.py`, add a new route for `GET /groups`.\nThis endpoint will accept optional query parameters `page: int = 0` and `size: int = 100`.\nIt should depend on `get_current_user` to identify the user.\nThe router will call a new service method, e.g., `group_service.get_user_groups(db: Session, user_id: int, page: int, size: int)`. \nThis service method will in turn call a new CRUD function, `crud_group.get_multi_by_user_id(db, user_id, offset, limit)`, which executes the SQL join between `t_user_group` and `t_user_group_user` as defined in the PRD.",
+        "testStrategy": "Verify that a 200 OK response is returned. Create a test user and associate them with multiple groups. Call the endpoint and assert that the response contains the correct number of groups and that the group data is accurate. Test pagination by setting `page` and `size` and verifying the subset of results. Test the case where a user belongs to zero groups, expecting an empty list.",
         "priority": "high",
         "dependencies": [],
-        "status": "done",
-        "subtasks": [],
-        "updatedAt": "2025-11-03T08:55:57.310Z"
+        "status": "pending",
+        "subtasks": []
       },
       {
-        "id": 22,
-        "title": "Define Pydantic Schemas for Group and Book Operations",
-        "description": "Create all necessary Pydantic schemas for handling group and book creation requests and responses, as specified in the PRD.",
-        "details": "In the `moneynote/schemas/` directory, create `group.py` and `book.py`. Implement the following schemas: `GroupAddForm`, `BookAddForm`, `BookAddByTemplateForm`, `BookAddByBookForm`. Also, create response schemas like `Group` and `Book` to be used for serializing the data returned by the API endpoints.",
-        "testStrategy": "Unit tests can be written to validate the schemas with sample valid and invalid data to ensure they raise appropriate validation errors.",
+        "id": 32,
+        "title": "Implement PUT /groups/{id} Endpoint for Group Updates",
+        "description": "Develop the endpoint to allow a group owner to update the details of a specific group, including its name, notes, default currency, and default book (FS-002).",
+        "details": "In `moneynote/schemas/group.py`, define a `GroupUpdate` Pydantic model with fields: `name: str`, `notes: Optional[str]`, `defaultCurrencyCode: str`, `defaultBookId: int`.\nIn `moneynote/routers/groups.py`, add a `PUT /groups/{id}` route. It will call a `group_service.update_group` method.\nThe service method must perform the following logic within a single database transaction:\n1. Retrieve the group by `id`.\n2. Verify the `current_user.id` matches the group's `owner_id`. If not, raise `HTTPException(status_code=403)`.\n3. Before updating, check for name conflicts with other groups owned by the same user, as per the PRD's SQL logic. If a conflict exists, raise `HTTPException(status_code=409)`.\n4. Update the group object with the new data from the `GroupUpdate` model and commit the transaction.",
+        "testStrategy": "Write integration tests based on TC-P4-02 and TC-P4-03. Test the happy path where an owner successfully updates a group. Test the 403 Forbidden case by having a non-owner attempt an update. Test the 409 Conflict case by trying to rename a group to a name that already exists for that user. Test the 404 Not Found case for a non-existent group ID.",
         "priority": "high",
+        "dependencies": [
+          31
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 33,
+        "title": "Implement DELETE /groups/{id} Endpoint with Validation",
+        "description": "Create the endpoint to delete a group, ensuring that deletion is blocked if the group still contains books (FS-003).",
+        "details": "In `moneynote/routers/groups.py`, add a `DELETE /groups/{id}` route that returns a `204 No Content` on success.\nIt will call a `group_service.delete_group` method.\nThe service method must execute the following logic in an atomic transaction:\n1. Fetch the group by `id`.\n2. Verify the `current_user.id` is the `owner_id`. If not, raise `HTTPException(status_code=403)`.\n3. Execute a count query on `t_user_book` where `group_id` matches. If the count > 0, raise `HTTPException(status_code=409, detail=\"Group cannot be deleted as it still contains books.\")`.\n4. If the check passes, delete all corresponding entries from the `t_user_group_user` association table.\n5. Delete the group from the `t_user_group` table.\n6. Commit the transaction.",
+        "testStrategy": "Write integration tests based on TC-P4-04 and TC-P4-05. Create a group with at least one book and verify that a DELETE request returns 409 Conflict. Create an empty group, delete it, and verify the response is 204 No Content and that the group and its user associations are removed from the database.",
+        "priority": "high",
+        "dependencies": [
+          31
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 34,
+        "title": "Create Pydantic Schemas and CRUD functions for Book Management",
+        "description": "Define the necessary Pydantic response models and create the dynamic CRUD function required for querying books.",
+        "details": "In `moneynote/schemas/book.py`, ensure a `BookDetails` schema exists that matches the fields of the `t_user_book` table for use in response models.\nIn `moneynote/crud/crud_book.py`, implement a new function: `get_multi_by_group_filtered(db: Session, group_id: int, filters: dict, sort: str, offset: int, limit: int)`. This function will dynamically build a SQLAlchemy query based on the `filters` dictionary which may contain `name` (for a LIKE search) and `enable` (for a boolean match). It will apply sorting, limit, and offset before executing.",
+        "testStrategy": "This is a non-endpoint task. Validate through unit tests for the `crud_book.get_multi_by_group_filtered` function. Test that it correctly builds the WHERE clause when `name` and `enable` filters are provided, both separately and together. Test that it returns an empty list for non-matching filters.",
+        "priority": "medium",
         "dependencies": [],
-        "status": "done",
+        "status": "pending",
         "subtasks": []
       },
       {
-        "id": 23,
-        "title": "Implement Basic CRUD Functions for Group and Book",
-        "description": "Create the data access layer functions for creating and querying `Group` and `Book` entities.",
-        "details": "Create `moneynote/crud/crud_group.py` and `moneynote/crud/crud_book.py`. Implement functions like `create_group(db, group_in)`, `get_group_by_name_and_owner(db, name, owner_id)`, `create_book(db, book_in)`, and `get_book_by_name_and_group(db, name, group_id)`. These functions will encapsulate the direct SQLAlchemy database interactions.",
-        "testStrategy": "Write unit tests for each CRUD function, using a mock database session to verify that the correct SQLAlchemy methods are called with the expected parameters.",
-        "priority": "high",
-        "dependencies": [
-          "21"
-        ],
-        "status": "done",
-        "subtasks": []
-      },
-      {
-        "id": 24,
-        "title": "Implement Bulk/Copy CRUD Functions for Book Entities",
-        "description": "Implement efficient, bulk-operation CRUD functions for copying categories, tags, and payees from one book to another, as required for the copy and template features.",
-        "details": "In the existing CRUD files (`crud_category.py`, `crud_tag.py`, `crud_payee.py`), add new functions that perform bulk inserts. For the copy feature, implement a function like `copy_all_from_book(db, source_book_id, new_book_id)` that uses an `INSERT INTO ... SELECT FROM ...` SQL statement for maximum efficiency. For the template feature, create a function that accepts a list of Pydantic objects and performs a bulk insert.",
-        "testStrategy": "Unit tests should be written to verify these functions. For the copy function, set up a source book with entities in a test database, run the function, and assert that the entities have been correctly duplicated for the new book.",
+        "id": 35,
+        "title": "Implement GET /books Endpoint with Filtering and Pagination",
+        "description": "Develop the primary endpoint for listing books within the user's currently active group, with support for filtering and pagination (FS-004).",
+        "details": "In `moneynote/routers/books.py`, add a `GET /books` route. This route must have a dependency that provides the `active_group_id` for the current user (e.g., `get_current_active_group_id`).\nIt will accept optional query parameters: `enable: Optional[bool]`, `name: Optional[str]`, `page: int`, `size: int`, `sort: Optional[str]`.\nThe endpoint will call a `book_service.query_books` method, passing the active group ID and all filter/pagination parameters. The service will use the `crud_book.get_multi_by_group_filtered` function created in the previous task to fetch the data.",
+        "testStrategy": "Write integration tests based on TC-P4-06. Set up a test user with an active group and populate it with several books. Test fetching all books. Test filtering by `name` and verify only matching books are returned. Test filtering by `enable=true` and `enable=false` and check results. Verify pagination works as expected.",
         "priority": "medium",
         "dependencies": [
-          "21"
+          34
         ],
-        "status": "done",
+        "status": "pending",
         "subtasks": []
       },
       {
-        "id": 25,
-        "title": "Implement `POST /books` Endpoint (Create from Scratch)",
-        "description": "Implement the API endpoint and service logic for creating a new, empty book within the user's active group.",
-        "details": "Create `moneynote/routers/books.py` and `moneynote/services/book_service.py`. In the service, create a function `create_empty_book` that validates the uniqueness of the book name within the group and uses `crud_book.create_book` to persist it. In the router, define the `POST /books` endpoint that depends on the current user, validates the `BookAddForm` payload, and calls the service function.",
-        "testStrategy": "Write an integration test that sends a request to `POST /books`. Verify a `201 Created` response is returned and check the database to confirm that a new, empty book has been created and associated with the correct group.",
-        "priority": "high",
-        "dependencies": [
-          "22",
-          "23"
-        ],
-        "status": "done",
-        "subtasks": []
-      },
-      {
-        "id": 26,
-        "title": "Implement `POST /books/template` Endpoint",
-        "description": "Implement the API endpoint and transactional service logic for creating a new book from a system-defined template.",
-        "details": "In `book_service.py`, create a function `create_book_from_template`. This function will start a database transaction, create the book record, load the specified template from the `data_loader_service`, and use the bulk CRUD functions (from task 24) to populate categories, tags, and payees. The entire operation must be atomic. Add the `POST /books/template` endpoint to `books.py` router.",
-        "testStrategy": "Write an integration test for the happy path (valid template ID) and negative path (invalid template ID). For the happy path, assert the `201 Created` response and verify that the new book and all its associated entities from the template exist in the database.",
-        "priority": "high",
-        "dependencies": [
-          "22",
-          "23",
-          "24"
-        ],
-        "status": "done",
-        "subtasks": []
-      },
-      {
-        "id": 27,
-        "title": "Implement `POST /groups` Endpoint",
-        "description": "Implement the API endpoint and transactional service logic for creating a new group, which includes the creation of a default book from a template.",
-        "details": "Create `moneynote/routers/groups.py` and `moneynote/services/group_service.py`. The service logic must be transactional. It will validate the group name, create the `Group` entity, create the user-group ownership relation, and then call the `book_service.create_book_from_template` logic (from task 26) to create the initial book. Add the `POST /groups` endpoint to the new router.",
-        "testStrategy": "Write an integration test that sends a valid `GroupAddForm`. Assert a `201 Created` response and verify in the database that the group, the user-group relation, the default book, and all the book's template-based entities have been created correctly within a single transaction.",
-        "priority": "high",
-        "dependencies": [
-          "22",
-          "23",
-          "26"
-        ],
-        "status": "done",
-        "subtasks": []
-      },
-      {
-        "id": 28,
-        "title": "Implement `POST /books/copy` Endpoint",
-        "description": "Implement the API endpoint and transactional service logic for creating a new book by copying the structure of an existing book.",
-        "details": "In `book_service.py`, create a function `create_book_by_copying`. It must validate the source book's existence and user's access. The function will be transactional: it creates the new book record, then uses the efficient `INSERT...SELECT` CRUD functions (from task 24) to duplicate all categories, tags, and payees from the source book to the new book. Add the `POST /books/copy` endpoint to the `books.py` router.",
-        "testStrategy": "Write an integration test. First, create a source book with several categories/tags. Then, call `POST /books/copy`. Assert the `201 Created` response and verify the new book's structure is an exact duplicate of the source book's structure in the database.",
-        "priority": "high",
-        "dependencies": [
-          "22",
-          "23",
-          "24"
-        ],
-        "status": "done",
-        "subtasks": []
-      },
-      {
-        "id": 29,
-        "title": "Write Integration Tests for Group and Basic Book Creation",
-        "description": "Write a comprehensive suite of integration tests for the `POST /groups` and `POST /books` endpoints, covering both happy paths and error conditions.",
-        "details": "In `tests/`, create `test_groups.py` and `test_books.py`. For `POST /groups`, test successful creation, duplicate name conflict (409), and bad request (400). For `POST /books`, test successful creation of an empty book, duplicate name conflict (409), and bad request (400). Use a test client and a dedicated test database for all tests.",
-        "testStrategy": "These are the tests themselves. Execution will be via `pytest`. Each test case should clean up after itself to ensure test isolation.",
+        "id": 36,
+        "title": "Implement GET /books/{id} Endpoint for Book Details",
+        "description": "Create the endpoint to retrieve the complete details for a single, specific book, ensuring the book belongs to the user's active group (FS-005).",
+        "details": "In `moneynote/routers/books.py`, add a `GET /books/{id}` route.\nThis route must also depend on `get_current_active_group_id`.\nIt will call a `book_service.get_book_details` method, passing the `book_id` and `active_group_id`.\nThe service method will fetch the book from `crud_book.get(id=book_id)`. After fetching, it MUST validate that `book.group_id == active_group_id`. If they do not match, it must raise `HTTPException(status_code=404, detail=\"Book not found\")` to prevent leaking information about the existence of books in other groups.",
+        "testStrategy": "Write integration tests based on TC-P4-07 and TC-P4-08. Test the happy path by requesting a book that exists within the user's active group, expecting a 200 OK and correct data. Test the 404 Not Found case by requesting a non-existent book ID. Crucially, test the security case by requesting a book ID that exists but belongs to a different group, and assert that the response is 404 Not Found.",
         "priority": "medium",
         "dependencies": [
-          "25",
-          "27"
+          34
         ],
-        "status": "done",
+        "status": "pending",
         "subtasks": []
       },
       {
-        "id": 30,
-        "title": "Write Integration Tests for Advanced Book Creation",
-        "description": "Write a comprehensive suite of integration tests for the `POST /books/template` and `POST /books/copy` endpoints.",
-        "details": "In `tests/test_books.py`, add tests for the advanced creation methods. For `POST /books/template`, test with a valid `templateId` and an invalid one (404). For `POST /books/copy`, test with a valid source `bookId` and an invalid/inaccessible one (404). Verify the integrity of the created data in the database for all successful cases.",
-        "testStrategy": "These are the tests themselves. Execution will be via `pytest`. The tests will require setting up prerequisite data (e.g., a source book to copy from) before making the API call.",
+        "id": 37,
+        "title": "Refine Authentication Dependency for Active Group",
+        "description": "Create or update a shared dependency to reliably provide the 'active group ID' to endpoints that require it, such as GET /books.",
+        "details": "In `moneynote/routers/deps.py`, define a new dependency function, e.g., `async def get_current_active_group_id(request: Request, current_user: User = Depends(get_current_user)) -> int:`. This function should read the active group ID from a custom header like `X-Active-Group-ID` in the incoming request. It should perform validation to ensure the user is a member of the provided group ID. If the header is missing or the user is not a member, it should raise an `HTTPException(status_code=400, detail=\"Invalid or missing active group ID\")`. This dependency will be injected into the `/books` endpoints.",
+        "testStrategy": "Unit test the dependency function. Mock requests with and without the `X-Active-Group-ID` header. Mock the user and their group memberships. Verify that the correct group ID is returned when the header is present and valid. Verify that an HTTPException is raised when the header is missing or when the user is not a member of the group specified in the header.",
+        "priority": "high",
+        "dependencies": [
+          35,
+          36
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 38,
+        "title": "Optimize Database Queries with Indexes",
+        "description": "Add database indexes to foreign keys and frequently queried columns to mitigate performance risks associated with large datasets.",
+        "details": "Using Alembic, generate a new migration script.\nIn the `upgrade()` function of the migration, add indexes to the following columns:\n- `t_user_group_user`: `user_id`, `group_id`\n- `t_user_book`: `group_id`, `name`\n- `t_user_group`: `owner_id`\nExample using SQLAlchemy in Alembic:\n`op.create_index(op.f('ix_t_user_book_group_id'), 't_user_book', ['group_id'], unique=False)`\n`op.create_index(op.f('ix_t_user_book_name'), 't_user_book', ['name'], unique=False)`\nApply the migration to the database schema.",
+        "testStrategy": "This is a database schema change. Validation is done by inspecting the database schema after running the Alembic migration to confirm that the indexes have been created successfully. Performance can be qualitatively assessed by running `EXPLAIN QUERY PLAN` on the generated SQL statements before and after adding the indexes, particularly for the `GET /groups` and `GET /books?name=...` queries.",
         "priority": "medium",
         "dependencies": [
-          "26",
-          "28"
+          31,
+          35
         ],
-        "status": "done",
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 39,
+        "title": "Implement Centralized Exception Handling",
+        "description": "Create a FastAPI exception handler to catch common errors like 404, 403, and 409 and return them in a standardized JSON error format.",
+        "details": "In `main.py`, add a custom exception handler for `HTTPException`.\n```python\nfrom fastapi import FastAPI, Request\nfrom fastapi.responses import JSONResponse\nfrom fastapi.exceptions import HTTPException\n\napp = FastAPI()\n\n@app.exception_handler(HTTPException)\nasync def http_exception_handler(request: Request, exc: HTTPException):\n    return JSONResponse(\n        status_code=exc.status_code,\n        content={\"detail\": exc.detail},\n    )\n```\nEnsure this handler is registered with the FastAPI app instance. This will standardize error responses across all endpoints implemented in this phase, matching the format `{\"detail\": \"Error message\"}`.",
+        "testStrategy": "Manually trigger different HTTPExceptions from an endpoint (e.g., by requesting a non-existent ID for a 404, or attempting an action as a non-owner for a 403). Verify that the response body for all errors consistently follows the `{\"detail\": \"...\"}` JSON structure and that the status code is correct.",
+        "priority": "low",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 40,
+        "title": "Documentation Update for Phase 4 Endpoints",
+        "description": "Update the project's API documentation (e.g., Swagger/OpenAPI docs) to reflect the newly added GET, PUT, and DELETE endpoints for Groups and Books.",
+        "details": "Review the auto-generated OpenAPI documentation served by FastAPI at `/docs`. For each new endpoint, ensure the Pydantic models and FastAPI route declarations generate clear and accurate documentation. Add `description` and `summary` arguments to the FastAPI route decorators (`@router.get`, `@router.put`, etc.) to provide context for each endpoint's purpose, parameters, and possible responses as outlined in the PRD.",
+        "testStrategy": "Run the application locally and navigate to the `/docs` URL. Review the sections for `groups` and `books`. Verify that all new endpoints (`GET /groups`, `PUT /groups/{id}`, `DELETE /groups/{id}`, `GET /books`, `GET /books/{id}`) are present. Check that request bodies, query parameters, and response models are correctly documented.",
+        "priority": "low",
+        "dependencies": [
+          31,
+          32,
+          33,
+          35,
+          36
+        ],
+        "status": "pending",
         "subtasks": []
       }
     ],
     "metadata": {
-      "version": "1.0.0",
-      "lastModified": "2025-11-03T08:55:57.310Z",
-      "taskCount": 10,
-      "completedCount": 0,
-      "tags": [
-        "master"
-      ],
       "created": "2025-11-04T01:48:36.155Z",
-      "description": "Tasks for master context",
-      "updated": "2025-11-04T05:23:25.802Z"
+      "updated": "2025-11-04T05:46:10.682Z",
+      "description": "Tasks for master context"
     }
   }
 }

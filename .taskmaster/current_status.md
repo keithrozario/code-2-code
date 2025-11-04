@@ -20,4 +20,13 @@ The following task have been executed and completed, do not repeat them, assume 
 - [✔] Define Pydantic Schemas for `GET /initState`
 - [✔] Implement `GET /initState` Endpoint and Service Logic
 - [✔] Verify and Add CRUD Functions for `initState`
-- [✔] Write Integration Tests for `GET /initState` Endpoint
+- [✔] Write Integration Tests for `GET /initState` Endpoint- [✔] Define SQLAlchemy Models and Migration for Group and Book
+- [✔] Define Pydantic Schemas for Group and Book Operations
+- [✔] Implement Basic CRUD Functions for Group and Book
+- [✔] Implement Bulk/Copy CRUD Functions for Book Entities
+- [✔] Implement `POST /books` Endpoint (Create from Scratch)
+- [✔] Implement `POST /books/template` Endpoint
+- [✔] Implement `POST /groups` Endpoint
+- [✔] Implement `POST /books/copy` Endpoint
+- [✔] Write Integration Tests for Group and Basic Book Creation
+- [✔] Write Integration Tests for Advanced Book Creation

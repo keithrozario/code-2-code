@@ -8,14 +8,25 @@ from app.moneynote.models import Base, User, Group, Book
 from app.moneynote.schemas.group import GroupCreate
 from app.moneynote.schemas.book import BookCreate
 from app.moneynote.routers.deps import get_current_user
-from app.moneynote.crud import crud_group, crud_book, crud_category, crud_tag, crud_payee
+from app.moneynote.crud import (
+    crud_group,
+    crud_book,
+    crud_category,
+    crud_tag,
+    crud_payee,
+)
 
 # Setup test database
 from sqlalchemy import create_engine
+
 SQLALCHEMY_DATABASE_URL = "sqlite:///./app/tests/test_books_router.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+)
 from sqlalchemy.orm import sessionmaker
+
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 
 @pytest.fixture(name="session")
 def session_fixture():
@@ -27,6 +38,7 @@ def session_fixture():
         db.close()
         Base.metadata.drop_all(bind=engine)
 
+
 @pytest.fixture(name="client")
 def client_fixture(session):
     def override_get_db():
@@ -34,9 +46,11 @@ def client_fixture(session):
             yield session
         finally:
             session.close()
+
     app.dependency_overrides[get_db] = override_get_db
     yield TestClient(app)
     app.dependency_overrides.clear()
+
 
 @pytest.fixture(name="test_user")
 def test_user_fixture(session: Session):
@@ -46,15 +60,23 @@ def test_user_fixture(session: Session):
     session.refresh(user)
     return user
 
+
 @pytest.fixture(name="test_group")
 def test_group_fixture(session: Session, test_user: User):
-    group = crud_group.create(db=session, group=GroupCreate(name="Test Group"), user_id=test_user.id)
+    group = crud_group.create(
+        db=session, group=GroupCreate(name="Test Group"), user_id=test_user.id
+    )
     return group
+
 
 def test_create_book(client: TestClient, test_user: User, test_group: Group, mock_auth):
     user_id = test_user.id
     group_id = test_group.id
-    response = client.post("/api/v1/books/", json={"name": "Test Book", "group_id": group_id}, headers={"Authorization": "Bearer test"})
+    response = client.post(
+        "/api/v1/books/",
+        json={"name": "Test Book", "group_id": group_id},
+        headers={"Authorization": "Bearer test"},
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Test Book"
@@ -66,10 +88,21 @@ def test_create_book(client: TestClient, test_user: User, test_group: Group, moc
     book = db.query(Book).filter(Book.name == "Test Book").first()
     assert book is not None
 
-def test_create_book_from_template(client: TestClient, test_user: User, test_group: Group, mock_auth):
+
+def test_create_book_from_template(
+    client: TestClient, test_user: User, test_group: Group, mock_auth
+):
     user_id = test_user.id
     group_id = test_group.id
-    response = client.post("/api/v1/books/template", json={"name": "Template Book", "group_id": group_id, "template_id": "personal_finance"}, headers={"Authorization": "Bearer test"})
+    response = client.post(
+        "/api/v1/books/template",
+        json={
+            "name": "Template Book",
+            "group_id": group_id,
+            "template_id": "personal_finance",
+        },
+        headers={"Authorization": "Bearer test"},
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Template Book"
@@ -82,17 +115,34 @@ def test_create_book_from_template(client: TestClient, test_user: User, test_gro
     assert book is not None
     # We can add more assertions here to check for copied categories, etc.
 
-def test_copy_book(client: TestClient, session: Session, test_user: User, test_group: Group, mock_auth):
+
+def test_copy_book(
+    client: TestClient, session: Session, test_user: User, test_group: Group, mock_auth
+):
     user_id = test_user.id
     group_id = test_group.id
 
     # Create a book to copy from and add a category to it
-    from_book = crud_book.create(db=session, book=BookCreate(name="From Book", group_id=group_id), user_id=user_id)
-    category_to_copy = crud_category.Category(name="Test Category", book_id=from_book.id, type=1)
+    from_book = crud_book.create(
+        db=session,
+        book=BookCreate(name="From Book", group_id=group_id),
+        user_id=user_id,
+    )
+    category_to_copy = crud_category.Category(
+        name="Test Category", book_id=from_book.id, type=1
+    )
     session.add(category_to_copy)
     session.commit()
 
-    response = client.post("/api/v1/books/copy", json={"from_book_id": from_book.id, "new_book_name": "Copied Book", "group_id": group_id}, headers={"Authorization": "Bearer test"})
+    response = client.post(
+        "/api/v1/books/copy",
+        json={
+            "from_book_id": from_book.id,
+            "new_book_name": "Copied Book",
+            "group_id": group_id,
+        },
+        headers={"Authorization": "Bearer test"},
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Copied Book"
@@ -103,5 +153,9 @@ def test_copy_book(client: TestClient, session: Session, test_user: User, test_g
     db = next(app.dependency_overrides[get_db]())
     book = db.query(Book).filter(Book.name == "Copied Book").first()
     assert book is not None
-    copied_categories = db.query(crud_category.Category).filter(crud_category.Category.book_id == book.id).all()
+    copied_categories = (
+        db.query(crud_category.Category)
+        .filter(crud_category.Category.book_id == book.id)
+        .all()
+    )
     assert len(copied_categories) > 0
