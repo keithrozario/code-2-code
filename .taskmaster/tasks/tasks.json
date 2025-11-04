@@ -76,34 +76,6 @@
         "subtasks": []
       },
       {
-        "id": 37,
-        "title": "Refine Authentication Dependency for Active Group",
-        "description": "Create or update a shared dependency to reliably provide the 'active group ID' to endpoints that require it, such as GET /books.",
-        "details": "In `moneynote/routers/deps.py`, define a new dependency function, e.g., `async def get_current_active_group_id(request: Request, current_user: User = Depends(get_current_user)) -> int:`. This function should read the active group ID from a custom header like `X-Active-Group-ID` in the incoming request. It should perform validation to ensure the user is a member of the provided group ID. If the header is missing or the user is not a member, it should raise an `HTTPException(status_code=400, detail=\"Invalid or missing active group ID\")`. This dependency will be injected into the `/books` endpoints.",
-        "testStrategy": "Unit test the dependency function. Mock requests with and without the `X-Active-Group-ID` header. Mock the user and their group memberships. Verify that the correct group ID is returned when the header is present and valid. Verify that an HTTPException is raised when the header is missing or when the user is not a member of the group specified in the header.",
-        "priority": "high",
-        "dependencies": [
-          35,
-          36
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 38,
-        "title": "Optimize Database Queries with Indexes",
-        "description": "Add database indexes to foreign keys and frequently queried columns to mitigate performance risks associated with large datasets.",
-        "details": "Using Alembic, generate a new migration script.\nIn the `upgrade()` function of the migration, add indexes to the following columns:\n- `t_user_group_user`: `user_id`, `group_id`\n- `t_user_book`: `group_id`, `name`\n- `t_user_group`: `owner_id`\nExample using SQLAlchemy in Alembic:\n`op.create_index(op.f('ix_t_user_book_group_id'), 't_user_book', ['group_id'], unique=False)`\n`op.create_index(op.f('ix_t_user_book_name'), 't_user_book', ['name'], unique=False)`\nApply the migration to the database schema.",
-        "testStrategy": "This is a database schema change. Validation is done by inspecting the database schema after running the Alembic migration to confirm that the indexes have been created successfully. Performance can be qualitatively assessed by running `EXPLAIN QUERY PLAN` on the generated SQL statements before and after adding the indexes, particularly for the `GET /groups` and `GET /books?name=...` queries.",
-        "priority": "medium",
-        "dependencies": [
-          31,
-          35
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
         "id": 39,
         "title": "Implement Centralized Exception Handling",
         "description": "Create a FastAPI exception handler to catch common errors like 404, 403, and 409 and return them in a standardized JSON error format.",
