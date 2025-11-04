@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
-from app.moneynote.models.group import Group
+from app.moneynote.models import Group
 from app.moneynote.schemas.group import GroupCreate
 
 def get(db: Session, id: int) -> Group | None:

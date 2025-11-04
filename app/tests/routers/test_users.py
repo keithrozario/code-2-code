@@ -5,14 +5,11 @@ import pytest
 
 from app.main import app
 from app.database import get_db
-from app.moneynote.models.base import Base
-from app.moneynote.models.user import User
-from app.moneynote.models.group import Group
-from app.moneynote.models.book import Book
+from app.moneynote.models import Base, User, Group, Book
 from app.moneynote.routers.deps import get_current_user
 
 # Setup test database
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+SQLALCHEMY_DATABASE_URL = "sqlite:///./app/tests/test_users.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

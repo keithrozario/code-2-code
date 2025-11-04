@@ -2,16 +2,13 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
-from app.moneynote.models.base import Base
-from app.moneynote.models.user import User
-from app.moneynote.models.group import Group
-from app.moneynote.models.book import Book
+from app.moneynote.models import Base, User, Group, Book
 from app.moneynote.schemas.group import GroupCreate
 from app.moneynote.schemas.book import BookCreate
 from app.moneynote.crud import crud_book, crud_group
 
 # Setup test database
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test_crud_book.db"
+SQLALCHEMY_DATABASE_URL = "sqlite:///./app/tests/test_crud_book.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

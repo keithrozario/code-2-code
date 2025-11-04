@@ -15,3 +15,11 @@ class Book(BookBase):
     user_id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+class BookCreateFromTemplate(BookCreate):
+    template_id: str
+
+class BookCopy(BaseModel):
+    from_book_id: int
+    new_book_name: str
+    group_id: int

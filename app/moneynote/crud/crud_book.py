@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
-from app.moneynote.models.book import Book
+from app.moneynote.models import Book
 from app.moneynote.schemas.book import BookCreate
 
 def get(db: Session, id: int) -> Book | None:

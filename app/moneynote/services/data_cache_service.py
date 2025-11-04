@@ -78,6 +78,12 @@ class DataCacheService:
     def get_book_templates(self) -> List[BookTemplate]:
         return self._book_templates.copy()
 
+    def get_book_template_by_id(self, template_id: str) -> BookTemplate | None:
+        for template in self._book_templates:
+            if template.id == template_id:
+                return template
+        return None
+
 
 data_cache_service = DataCacheService()
 
