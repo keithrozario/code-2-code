@@ -11,4 +11,13 @@ The following task have been executed and completed, do not repeat them, assume 
 - [✔] Implement `GET /book-templates/all` Endpoint
 - [✔] Apply JWT Authentication to All Phase 1 Endpoints
 - [✔] Write Integration Tests for System and Currency Endpoints
-- [✔] Write Integration Tests for Book Templates Endpoint
+- [✔] Write Integration Tests for Book Templates Endpoint- [✔] Define Schema and Router for `PUT /bind`
+- [✔] Implement CRUD Functions for User Binding
+- [✔] Implement Core Service Logic for `PUT /bind`
+- [✔] Create Invitation Model, CRUD, and Migration
+- [✔] Integrate Invite Code Validation and Password Hashing
+- [✔] Write Integration Tests for `PUT /bind` Endpoint
+- [✔] Define Pydantic Schemas for `GET /initState`
+- [✔] Implement `GET /initState` Endpoint and Service Logic
+- [✔] Verify and Add CRUD Functions for `initState`
+- [✔] Write Integration Tests for `GET /initState` Endpoint

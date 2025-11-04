@@ -17,7 +17,8 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Create database tables (if they don't exist)
 # This is for initial setup; in production, you'd use Alembic migrations
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
+
 
 # Dependency to get the database session
 def get_db():

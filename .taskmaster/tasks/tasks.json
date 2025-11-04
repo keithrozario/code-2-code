@@ -2,134 +2,153 @@
   "master": {
     "tasks": [
       {
-        "id": 11,
-        "title": "Define Schema and Router for `PUT /bind`",
-        "description": "Create the `UserBind` Pydantic schema in `moneynote/schemas/user.py` for the request body of the bind endpoint. Then, add the `PUT /bind` endpoint to the `moneynote/routers/users.py` router, ensuring it uses the new schema and includes the `get_current_user` dependency.",
-        "details": "The `UserBind` schema should include `username: str`, `password: str`, and `inviteCode: str`. The router function should be defined with the correct path, method (`PUT`), and response models for success and error cases (e.g., 409 Conflict, 400 Bad Request).",
-        "testStrategy": "This task is a prerequisite for testing. The functionality will be tested in a dedicated testing task (ID 17). Manual verification can be done by checking the OpenAPI docs (`/docs`) to ensure the endpoint and schema are correctly rendered.",
+        "id": 21,
+        "title": "Define SQLAlchemy Models and Migration for Group and Book",
+        "description": "Create the SQLAlchemy ORM models for `t_user_group` and `t_user_book` based on the PRD. Establish the necessary relationships, such as the link between a book and its group, and a group to its owner. Generate an Alembic migration script to create these new tables in the database.",
+        "details": "Create `moneynote/models/group.py` and `moneynote/models/book.py`. The `Group` model should map to `t_user_group` and include columns like `name`, `owner_id`, `default_currency_code`. The `Book` model should map to `t_user_book` with columns like `name`, `group_id`, `default_currency_code`. After creating the models, run `alembic revision --autogenerate` to create the migration script and review it for correctness.",
+        "testStrategy": "Run the Alembic migration (`alembic upgrade head`) on a test database to confirm the tables and columns are created correctly. Manually inspect the database schema to verify it matches the PRD specifications.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2025-11-03T08:55:57.310Z"
+      },
+      {
+        "id": 22,
+        "title": "Define Pydantic Schemas for Group and Book Operations",
+        "description": "Create all necessary Pydantic schemas for handling group and book creation requests and responses, as specified in the PRD.",
+        "details": "In the `moneynote/schemas/` directory, create `group.py` and `book.py`. Implement the following schemas: `GroupAddForm`, `BookAddForm`, `BookAddByTemplateForm`, `BookAddByBookForm`. Also, create response schemas like `Group` and `Book` to be used for serializing the data returned by the API endpoints.",
+        "testStrategy": "Unit tests can be written to validate the schemas with sample valid and invalid data to ensure they raise appropriate validation errors.",
         "priority": "high",
         "dependencies": [],
         "status": "done",
         "subtasks": []
       },
       {
-        "id": 12,
-        "title": "Implement CRUD Functions for User Binding",
-        "description": "Enhance `moneynote/crud/crud_user.py` with the necessary functions to support the bind operation. This includes a function to retrieve a user by username and another to update a user's record with a username and hashed password.",
-        "details": "Create `get_by_username(db: Session, username: str)` to check for username uniqueness. Create `update_credentials(db: Session, user_id: int, username: str, hashed_password: str)` to persist the new credentials to the `t_user_user` table.",
-        "testStrategy": "Unit tests should be written for the new CRUD functions to ensure they correctly query and update the database. Test `get_by_username` with existing and non-existing usernames. Test `update_credentials` to verify the fields are updated correctly.",
-        "priority": "high",
-        "dependencies": [],
-        "status": "cancelled",
-        "subtasks": []
-      },
-      {
-        "id": 13,
-        "title": "Implement Core Service Logic for `PUT /bind`",
-        "description": "In `moneynote/services/user_service.py`, create the service function that orchestrates the user binding logic. This function will handle business rule validation, such as checking if the user is already bound and if the desired username is already taken.",
-        "details": "The service function will take the current user, the bind data, and the DB session. It should first check if `current_user.username` is already set (409 Conflict). Then, use `crud_user.get_by_username` to check for username uniqueness (409 Conflict). This task excludes invite code validation and password hashing, which will be handled separately.",
-        "testStrategy": "Unit tests for the service layer, mocking the CRUD functions. Test the logic that raises a 409 HTTPException if the user is already bound or if the username is taken.",
+        "id": 23,
+        "title": "Implement Basic CRUD Functions for Group and Book",
+        "description": "Create the data access layer functions for creating and querying `Group` and `Book` entities.",
+        "details": "Create `moneynote/crud/crud_group.py` and `moneynote/crud/crud_book.py`. Implement functions like `create_group(db, group_in)`, `get_group_by_name_and_owner(db, name, owner_id)`, `create_book(db, book_in)`, and `get_book_by_name_and_group(db, name, group_id)`. These functions will encapsulate the direct SQLAlchemy database interactions.",
+        "testStrategy": "Write unit tests for each CRUD function, using a mock database session to verify that the correct SQLAlchemy methods are called with the expected parameters.",
         "priority": "high",
         "dependencies": [
-          12
-        ],
-        "status": "cancelled",
-        "subtasks": []
-      },
-      {
-        "id": 14,
-        "title": "Create Invitation Model, CRUD, and Migration",
-        "description": "As per the PRD, an `inviteCode` is required. Create the SQLAlchemy model for `t_invitations` in `moneynote/models/invitation.py`, the corresponding `moneynote/crud/crud_invitation.py` for data access, and generate an Alembic migration script.",
-        "details": "The `Invitation` model should at least contain an `id`, `code` (unique), and an `is_valid` or `expires_at` field. The CRUD file should have a function like `get_by_code(code: str)` to validate a code. Run `alembic revision --autogenerate` to create the migration.",
-        "testStrategy": "Unit tests for the `crud_invitation` functions. An integration test should verify that the Alembic migration applies and reverts correctly.",
-        "priority": "medium",
-        "dependencies": [],
-        "status": "cancelled",
-        "subtasks": []
-      },
-      {
-        "id": 15,
-        "title": "Integrate Invite Code Validation and Password Hashing",
-        "description": "Update the `user_service.py` bind function to incorporate invite code validation and password hashing.",
-        "details": "Use the `crud_invitation` module (from task 14) to validate the `inviteCode` from the request, raising a 400 Bad Request if invalid. Use the existing `security.py` module's `get_password_hash` function to hash the user's password before passing it to the `crud_user.update_credentials` function.",
-        "testStrategy": "Update the service layer unit tests to include mocks for `crud_invitation` and `security.py`. Test scenarios where the invite code is valid, invalid, or expired.",
-        "priority": "high",
-        "dependencies": [
-          13,
-          14
-        ],
-        "status": "cancelled",
-        "subtasks": []
-      },
-      {
-        "id": 16,
-        "title": "Write Integration Tests for `PUT /bind` Endpoint",
-        "description": "Create a new test file in the `tests/` directory to write comprehensive integration tests for the `PUT /bind` endpoint, covering all scenarios outlined in the PRD.",
-        "details": "Test cases to implement: TC-P2-01 (successful bind), TC-P2-02 (username already exists), a test for a user who is already bound (409 Conflict), and TC-P2-03 (invalid invite code). Use test fixtures to create users and valid/invalid invitation codes.",
-        "testStrategy": "These are integration tests that will make live HTTP requests to the test client. The tests will assert the HTTP status codes and check the database state before and after the API call to ensure correctness.",
-        "priority": "medium",
-        "dependencies": [
-          11,
-          15
-        ],
-        "status": "cancelled",
-        "subtasks": []
-      },
-      {
-        "id": 17,
-        "title": "Define Pydantic Schemas for `GET /initState`",
-        "description": "In `moneynote/schemas/user.py`, define the Pydantic schemas required for the `GET /initState` response, including `UserSessionVo`, `GroupSessionVo`, `BookSessionVo`, and the main `InitStateResponse` container schema.",
-        "details": "Based on the PRD, these schemas will represent subsets of the full User, Group, and Book models. `InitStateResponse` will contain three fields: `user: UserSessionVo`, `group: Optional[GroupSessionVo]`, and `book: Optional[BookSessionVo]`.",
-        "testStrategy": "This is a schema definition task. Correctness will be validated by its usage in the endpoint implementation and the corresponding integration tests (Task 20).",
-        "priority": "high",
-        "dependencies": [],
-        "status": "done",
-        "subtasks": []
-      },
-      {
-        "id": 18,
-        "title": "Implement `GET /initState` Endpoint and Service Logic",
-        "description": "Implement the `GET /initState` endpoint in `moneynote/routers/users.py` and its corresponding business logic in `moneynote/services/user_service.py`.",
-        "details": "The router will use `get_current_user`. The service function will receive the user object, read its `default_group_id` and `default_book_id`, and use `crud_group` and `crud_book` to fetch the corresponding records. It must handle cases where default IDs are null, returning `null` for the respective objects in the response.",
-        "testStrategy": "Unit tests for the service layer, mocking the CRUD functions to simulate a user with full defaults, partial defaults (e.g., no book), and no defaults.",
-        "priority": "high",
-        "dependencies": [
-          17
+          "21"
         ],
         "status": "done",
         "subtasks": []
       },
       {
-        "id": 19,
-        "title": "Verify and Add CRUD Functions for `initState`",
-        "description": "Verify that `crud_group.py` and `crud_book.py` contain a `get(db: Session, id: int)` function. If not, implement them. These are required by the `initState` service to fetch the user's default group and book.",
-        "details": "The `initState` service logic depends on being able to fetch a group by its ID and a book by its ID. This task ensures those fundamental data access functions are present and working correctly. The existing project structure likely has these, so this may just be a verification task.",
-        "testStrategy": "If new functions are added, write unit tests for them. Verify they return the correct object when an ID exists and `None` when it does not.",
+        "id": 24,
+        "title": "Implement Bulk/Copy CRUD Functions for Book Entities",
+        "description": "Implement efficient, bulk-operation CRUD functions for copying categories, tags, and payees from one book to another, as required for the copy and template features.",
+        "details": "In the existing CRUD files (`crud_category.py`, `crud_tag.py`, `crud_payee.py`), add new functions that perform bulk inserts. For the copy feature, implement a function like `copy_all_from_book(db, source_book_id, new_book_id)` that uses an `INSERT INTO ... SELECT FROM ...` SQL statement for maximum efficiency. For the template feature, create a function that accepts a list of Pydantic objects and performs a bulk insert.",
+        "testStrategy": "Unit tests should be written to verify these functions. For the copy function, set up a source book with entities in a test database, run the function, and assert that the entities have been correctly duplicated for the new book.",
         "priority": "medium",
         "dependencies": [
-          18
+          "21"
         ],
-        "status": "done",
+        "status": "Not Started",
         "subtasks": []
       },
       {
-        "id": 20,
-        "title": "Write Integration Tests for `GET /initState` Endpoint",
-        "description": "Create integration tests for the `GET /initState` endpoint to validate its behavior in different scenarios as per the PRD.",
-        "details": "Test cases to implement: TC-P2-04 (user with valid default group and book), TC-P2-05 (user with default group but null default book), a case for a user with no defaults, and TC-P2-06 (unauthenticated access).",
-        "testStrategy": "These are integration tests making live HTTP requests. Assert the status code is 200 OK (or 401 for unauthenticated) and that the JSON response body correctly reflects the state of the user's defaults in the test database.",
+        "id": 25,
+        "title": "Implement `POST /books` Endpoint (Create from Scratch)",
+        "description": "Implement the API endpoint and service logic for creating a new, empty book within the user's active group.",
+        "details": "Create `moneynote/routers/books.py` and `moneynote/services/book_service.py`. In the service, create a function `create_empty_book` that validates the uniqueness of the book name within the group and uses `crud_book.create_book` to persist it. In the router, define the `POST /books` endpoint that depends on the current user, validates the `BookAddForm` payload, and calls the service function.",
+        "testStrategy": "Write an integration test that sends a request to `POST /books`. Verify a `201 Created` response is returned and check the database to confirm that a new, empty book has been created and associated with the correct group.",
+        "priority": "high",
+        "dependencies": [
+          "22",
+          "23"
+        ],
+        "status": "Not Started",
+        "subtasks": []
+      },
+      {
+        "id": 26,
+        "title": "Implement `POST /books/template` Endpoint",
+        "description": "Implement the API endpoint and transactional service logic for creating a new book from a system-defined template.",
+        "details": "In `book_service.py`, create a function `create_book_from_template`. This function will start a database transaction, create the book record, load the specified template from the `data_loader_service`, and use the bulk CRUD functions (from task 24) to populate categories, tags, and payees. The entire operation must be atomic. Add the `POST /books/template` endpoint to `books.py` router.",
+        "testStrategy": "Write an integration test for the happy path (valid template ID) and negative path (invalid template ID). For the happy path, assert the `201 Created` response and verify that the new book and all its associated entities from the template exist in the database.",
+        "priority": "high",
+        "dependencies": [
+          "22",
+          "23",
+          "24"
+        ],
+        "status": "Not Started",
+        "subtasks": []
+      },
+      {
+        "id": 27,
+        "title": "Implement `POST /groups` Endpoint",
+        "description": "Implement the API endpoint and transactional service logic for creating a new group, which includes the creation of a default book from a template.",
+        "details": "Create `moneynote/routers/groups.py` and `moneynote/services/group_service.py`. The service logic must be transactional. It will validate the group name, create the `Group` entity, create the user-group ownership relation, and then call the `book_service.create_book_from_template` logic (from task 26) to create the initial book. Add the `POST /groups` endpoint to the new router.",
+        "testStrategy": "Write an integration test that sends a valid `GroupAddForm`. Assert a `201 Created` response and verify in the database that the group, the user-group relation, the default book, and all the book's template-based entities have been created correctly within a single transaction.",
+        "priority": "high",
+        "dependencies": [
+          "22",
+          "23",
+          "26"
+        ],
+        "status": "Not Started",
+        "subtasks": []
+      },
+      {
+        "id": 28,
+        "title": "Implement `POST /books/copy` Endpoint",
+        "description": "Implement the API endpoint and transactional service logic for creating a new book by copying the structure of an existing book.",
+        "details": "In `book_service.py`, create a function `create_book_by_copying`. It must validate the source book's existence and user's access. The function will be transactional: it creates the new book record, then uses the efficient `INSERT...SELECT` CRUD functions (from task 24) to duplicate all categories, tags, and payees from the source book to the new book. Add the `POST /books/copy` endpoint to the `books.py` router.",
+        "testStrategy": "Write an integration test. First, create a source book with several categories/tags. Then, call `POST /books/copy`. Assert the `201 Created` response and verify the new book's structure is an exact duplicate of the source book's structure in the database.",
+        "priority": "high",
+        "dependencies": [
+          "22",
+          "23",
+          "24"
+        ],
+        "status": "Not Started",
+        "subtasks": []
+      },
+      {
+        "id": 29,
+        "title": "Write Integration Tests for Group and Basic Book Creation",
+        "description": "Write a comprehensive suite of integration tests for the `POST /groups` and `POST /books` endpoints, covering both happy paths and error conditions.",
+        "details": "In `tests/`, create `test_groups.py` and `test_books.py`. For `POST /groups`, test successful creation, duplicate name conflict (409), and bad request (400). For `POST /books`, test successful creation of an empty book, duplicate name conflict (409), and bad request (400). Use a test client and a dedicated test database for all tests.",
+        "testStrategy": "These are the tests themselves. Execution will be via `pytest`. Each test case should clean up after itself to ensure test isolation.",
         "priority": "medium",
         "dependencies": [
-          19
+          "25",
+          "27"
         ],
-        "status": "done",
+        "status": "Not Started",
+        "subtasks": []
+      },
+      {
+        "id": 30,
+        "title": "Write Integration Tests for Advanced Book Creation",
+        "description": "Write a comprehensive suite of integration tests for the `POST /books/template` and `POST /books/copy` endpoints.",
+        "details": "In `tests/test_books.py`, add tests for the advanced creation methods. For `POST /books/template`, test with a valid `templateId` and an invalid one (404). For `POST /books/copy`, test with a valid source `bookId` and an invalid/inaccessible one (404). Verify the integrity of the created data in the database for all successful cases.",
+        "testStrategy": "These are the tests themselves. Execution will be via `pytest`. The tests will require setting up prerequisite data (e.g., a source book to copy from) before making the API call.",
+        "priority": "medium",
+        "dependencies": [
+          "26",
+          "28"
+        ],
+        "status": "Not Started",
         "subtasks": []
       }
     ],
     "metadata": {
-      "created": "2025-10-31T03:35:47.373Z",
-      "updated": "2025-11-03T07:54:00.443Z",
-      "description": "Tasks for master context"
+      "version": "1.0.0",
+      "lastModified": "2025-11-03T08:55:57.310Z",
+      "taskCount": 10,
+      "completedCount": 0,
+      "tags": [
+        "master"
+      ],
+      "created": "2025-11-04T01:48:36.155Z",
+      "description": "Tasks for master context",
+      "updated": "2025-11-04T02:05:01.041Z"
     }
   }
 }

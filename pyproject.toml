@@ -5,6 +5,7 @@ description = "Code to Code Test"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "alembic>=1.17.1",
     "fastapi>=0.120.4",
     "httpx>=0.28.1",
     "isort>=7.0.0",
