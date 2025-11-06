@@ -1,4 +1,5 @@
 from pydantic import BaseModel, ConfigDict
+from typing import Optional
 
 
 class GroupBase(BaseModel):
@@ -7,6 +8,12 @@ class GroupBase(BaseModel):
 
 class GroupCreate(GroupBase):
     pass
+
+
+class GroupUpdate(GroupBase):
+    notes: Optional[str] = None
+    default_currency_code: Optional[str] = None
+    default_book_id: Optional[int] = None
 
 
 class Group(GroupBase):

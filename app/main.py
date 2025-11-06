@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse
 import logging
 from app.moneynote.services.data_cache_service import DataCacheService
 from app.moneynote.routers import system, currencies, book_templates, users, books, groups
@@ -15,6 +16,13 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
 
 app.include_router(system.router, prefix="/api/v1", tags=["System"])
 app.include_router(currencies.router, prefix="/api/v1/currencies", tags=["Currencies"])

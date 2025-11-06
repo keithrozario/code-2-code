@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
+from typing import Optional
 
 from app.moneynote.models import Book
 from app.moneynote.schemas.book import BookCreate, BookCreateFromTemplate, BookCopy
@@ -57,3 +58,28 @@ def copy_book(db: Session, book_copy: BookCopy, user_id: int) -> Book:
     crud_payee.copy_payees(db=db, from_book_id=from_book.id, to_book_id=new_book.id)
 
     return new_book
+
+def query_books(
+    db: Session,
+    group_id: int,
+    enable: Optional[bool],
+    name: Optional[str],
+    sort: Optional[str],
+    skip: int,
+    limit: int,
+) -> list[Book]:
+    filters = {}
+    if enable is not None:
+        filters["enable"] = enable
+    if name is not None:
+        filters["name"] = name
+
+    return crud_book.get_multi_by_group_filtered(
+        db=db, group_id=group_id, filters=filters, sort=sort, offset=skip, limit=limit
+    )
+
+def get_book_details(db: Session, book_id: int, active_group_id: int) -> Book:
+    book = crud_book.get(db, id=book_id)
+    if not book or book.group_id != active_group_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    return book

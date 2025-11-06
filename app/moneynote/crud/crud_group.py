@@ -16,3 +16,17 @@ def create(db: Session, group: GroupCreate, user_id: int) -> Group:
     db.commit()
     db.refresh(db_group)
     return db_group
+
+def get_multi_by_owner(
+    db: Session, user_id: int, skip: int = 0, limit: int = 100
+) -> list[Group]:
+    return (
+        db.execute(
+            select(Group)
+            .filter(Group.user_id == user_id)
+            .offset(skip)
+            .limit(limit)
+        )
+        .scalars()
+        .all()
+    )

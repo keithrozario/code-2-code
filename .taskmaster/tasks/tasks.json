@@ -9,7 +9,7 @@
         "testStrategy": "Verify that a 200 OK response is returned. Create a test user and associate them with multiple groups. Call the endpoint and assert that the response contains the correct number of groups and that the group data is accurate. Test pagination by setting `page` and `size` and verifying the subset of results. Test the case where a user belongs to zero groups, expecting an empty list.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -22,7 +22,7 @@
         "dependencies": [
           31
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -35,7 +35,7 @@
         "dependencies": [
           31
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -46,7 +46,7 @@
         "testStrategy": "This is a non-endpoint task. Validate through unit tests for the `crud_book.get_multi_by_group_filtered` function. Test that it correctly builds the WHERE clause when `name` and `enable` filters are provided, both separately and together. Test that it returns an empty list for non-matching filters.",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -59,7 +59,7 @@
         "dependencies": [
           34
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -72,7 +72,7 @@
         "dependencies": [
           34
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -83,7 +83,7 @@
         "testStrategy": "Manually trigger different HTTPExceptions from an endpoint (e.g., by requesting a non-existent ID for a 404, or attempting an action as a non-owner for a 403). Verify that the response body for all errors consistently follows the `{\"detail\": \"...\"}` JSON structure and that the status code is correct.",
         "priority": "low",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -100,13 +100,13 @@
           35,
           36
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-11-04T01:48:36.155Z",
-      "updated": "2025-11-04T05:46:10.682Z",
+      "updated": "2025-11-06T05:23:51.738Z",
       "description": "Tasks for master context"
     }
   }

@@ -5,6 +5,9 @@ from pydantic import ValidationError
 
 from app.moneynote.security import oauth2_scheme
 from app.moneynote.schemas.token import TokenData
+from app.database import get_db
+from sqlalchemy.orm import Session
+from app.moneynote.crud import crud_user
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> str:
     credentials_exception = HTTPException(
@@ -32,3 +35,12 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> str:
     if token_data.sub is None:
         raise credentials_exception
     return token_data.sub
+
+def get_current_active_group_id(
+    current_user_username: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> int:
+    user = crud_user.get_by_username(db, username=current_user_username)
+    if not user or user.default_group_id is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User does not have an active group set.")
+    return user.default_group_id
