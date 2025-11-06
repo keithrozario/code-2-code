@@ -30,3 +30,11 @@ The following task have been executed and completed, do not repeat them, assume 
 - [✔] Implement `POST /books/copy` Endpoint
 - [✔] Write Integration Tests for Group and Basic Book Creation
 - [✔] Write Integration Tests for Advanced Book Creation
+- [✔] Implement GET /groups Endpoint with Pagination
+- [✔] Implement PUT /groups/{id} Endpoint for Group Updates
+- [✔] Implement DELETE /groups/{id} Endpoint with Validation
+- [✔] Create Pydantic Schemas and CRUD functions for Book Management
+- [✔] Implement GET /books Endpoint with Filtering and Pagination
+- [✔] Implement GET /books/{id} Endpoint for Book Details
+- [✔] Implement Centralized Exception Handling
+- [✔] Documentation Update for Phase 4 Endpoints
