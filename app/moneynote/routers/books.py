@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response, status, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -89,3 +89,36 @@ async def read_book_details_endpoint(
     active_group_id: int = Depends(get_current_active_group_id)
 ):
     return book_service.get_book_details(db=db, book_id=book_id, active_group_id=active_group_id)
+
+@router.patch(
+    "/{book_id}/toggle",
+    response_model=Book,
+    tags=["Books"],
+    summary="Toggle Book Enable Status",
+    description="Toggle the 'enable' status of a specific book."
+)
+async def toggle_book_endpoint(
+    book_id: int,
+    db: Session = Depends(get_db),
+    current_user_username: str = Depends(get_current_user)
+):
+    user = crud_user.get_by_username(db, username=current_user_username)
+    return book_service.toggle_book(db=db, book_id=book_id, user_id=user.id)
+
+@router.delete(
+    "/{book_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["Books"],
+    summary="Delete Book",
+    description="Delete a book owned by the current user. Fails if the book contains transactions."
+)
+async def delete_book_endpoint(
+    book_id: int,
+    db: Session = Depends(get_db),
+    current_user_username: str = Depends(get_current_user)
+):
+    user = crud_user.get_by_username(db, username=current_user_username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    book_service.delete_book(db=db, book_id=book_id, user_id=user.id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

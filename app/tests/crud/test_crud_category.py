@@ -8,7 +8,7 @@ from app.moneynote.schemas.book import BookCreate
 from app.moneynote.crud import crud_group, crud_book, crud_category
 
 # Setup test database
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test_crud_category.db"
+SQLALCHEMY_DATABASE_URL = "sqlite:///./app/tests/test_crud_category.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

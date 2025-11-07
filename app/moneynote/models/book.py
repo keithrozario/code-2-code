@@ -15,3 +15,4 @@ class Book(Base):
     categories = relationship("Category", back_populates="book")
     tags = relationship("Tag", back_populates="book")
     payees = relationship("Payee", back_populates="book")
+    balance_flows = relationship("BalanceFlow", back_populates="book")

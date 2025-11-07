@@ -34,6 +34,16 @@ In version 1 we will retain all functionality in moneynote and only perform a te
   * Assume that you are already in the virtual environment
 * Execute test by `PYTHONPATH=. pytest` command
 
+## USAGE
+
+We use taskmaster to document our current task. After EVERY task completion:
+
+* Check if a new API endpoint was created, and update `status.md` with the Endpoint description. Follow the convention in the file.
+* Check if new functionality or functions were created and write and execute the unit test for them. Do not proceed to the next steps until the test are complete.
+* Git Commit to the current branch with all the changes after the unit test are successfully complete.
+* Then mark a task done in Taskmaster
+
+
 # Task Master AI - Agent Integration Guide`
 
 ## Daily Development Workflow

@@ -9,7 +9,7 @@
         "testStrategy": "Validation will be implicitly tested during the integration tests for the endpoints that use these schemas. Ensure that providing extra fields results in a 422 Unprocessable Entity error, and that optional fields are handled correctly when absent.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -17,7 +17,7 @@
             "description": "Define a new Pydantic class `BookUpdateForm` that inherits from `BaseModel` in the `moneynote/schemas/book.py` file. This class will serve as the schema for validating book update payloads.",
             "dependencies": [],
             "details": "In the file `moneynote/schemas/book.py`, add the class definition: `class BookUpdateForm(BaseModel): pass`. This establishes the base for the update schema.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": null
           },
           {
@@ -28,7 +28,7 @@
               1
             ],
             "details": "Based on the existing `BookBase` schema, add the following fields to `BookUpdateForm`: `name: Optional[str] = None`, `notes: Optional[str] = None`, `default_currency_id: Optional[int] = None`, `default_income_category_id: Optional[int] = None`, and `default_expense_category_id: Optional[int] = None`. Import `Optional` from `typing`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Implicitly tested via integration tests for the update endpoint. Manual verification can be done by checking if instantiating the model with a subset of fields is successful."
           },
           {
@@ -37,7 +37,7 @@
             "description": "Define a new Pydantic class `BookQueryForm` in `moneynote/schemas/book.py`. This schema will be used to validate and parse query parameters for filtering the list of books.",
             "dependencies": [],
             "details": "In `moneynote/schemas/book.py`, add the class definition: `class BookQueryForm(BaseModel): pass`. This schema will be used with FastAPI's `Depends` feature for clean query parameter handling.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": null
           },
           {
@@ -48,7 +48,7 @@
               3
             ],
             "details": "Inside the `BookQueryForm` class, add the fields `enable: Optional[bool] = None` and `name: Optional[str] = None`. These fields will capture the optional query parameters from the GET request.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Implicitly tested via integration tests for the book list endpoint. Manual verification can be done by checking that the model can be instantiated with or without these fields."
           },
           {
@@ -60,7 +60,7 @@
               4
             ],
             "details": "In `moneynote/schemas/__init__.py`, locate the line `from .book import ...` and add `BookUpdateForm` and `BookQueryForm` to the import list. This follows the existing pattern for exposing schemas.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "After modification, verify that `from moneynote.schemas import BookUpdateForm, BookQueryForm` executes without error in a Python shell or within the router files that will use these schemas."
           }
         ]
@@ -75,7 +75,7 @@
         "dependencies": [
           41
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -83,7 +83,7 @@
             "description": "Create a Pydantic model `BookQueryForm` to handle optional query parameters for filtering books. This will include `name` (string) and `enable` (boolean).",
             "dependencies": [],
             "details": "In the `schemas/book.py` file, define a new Pydantic class `BookQueryForm` that inherits from `BaseModel`. It should have two optional fields: `name: Optional[str] = None` and `enable: Optional[bool] = None`. This schema will be used by FastAPI to parse and validate the query parameters from the `GET /books/all` request.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "This schema definition will be implicitly tested by the endpoint integration test that consumes it. No dedicated unit test is required."
           },
           {
@@ -92,7 +92,7 @@
             "description": "Create the initial version of the `get_multi_by_group` function in `crud/crud_book.py` to fetch books belonging to a specific group, without filtering.",
             "dependencies": [],
             "details": "In `crud/crud_book.py`, inside the `CRUDBook` class, define a new method `get_multi_by_group(self, db: Session, *, group_id: int)`. This method should perform a SQLAlchemy query on the `Book` model, filtering by `group_id` and ordering by book name. This initial version will not include the optional filters.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "A unit test can be written to mock the DB session and verify that the correct query is constructed for fetching books by `group_id`."
           },
           {
@@ -103,7 +103,7 @@
               2
             ],
             "details": "Modify the `get_multi_by_group` function in `crud/crud_book.py`. Update its signature to accept `name: Optional[str] = None` and `enable: Optional[bool] = None`. Dynamically add `WHERE` clauses to the SQLAlchemy query. If `name` is provided, use `ilike` for partial, case-insensitive matching. If `enable` is not None, filter by the `enable` boolean field.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Update the unit test for this function to cover cases where `name`, `enable`, both, or neither are provided, ensuring the SQLAlchemy query is built correctly in each scenario."
           },
           {
@@ -114,7 +114,7 @@
               3
             ],
             "details": "Create a new function, e.g., `get_all_books`, in `services/book_service.py`. This function will accept the current user object and the filter parameters (`name` and `enable`). It will retrieve the user's `group_id` and call `crud.book.get_multi_by_group` with the `group_id` and the provided filters. It should return the list of book objects from the CRUD layer.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write a unit test for the service function. Mock the `crud.book.get_multi_by_group` dependency and verify that it is called with the correct `group_id` and filter parameters."
           },
           {
@@ -126,7 +126,7 @@
               4
             ],
             "details": "In `routers/books.py`, add a new endpoint for `GET /books/all`. The function should depend on the current user (`deps.get_current_active_user`) and the query parameters using `Depends(BookQueryForm)`. It will call the `get_all_books` service function from the previous subtask, passing the user and filter data. The endpoint should return a list of books using the `schemas.Book` response model.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write an integration test for TC-P5-06 that calls the endpoint with no filters, with the `enable` filter set to true/false, and with a partial `name` filter. Verify that the returned list is correct for each case."
           }
         ]
@@ -139,7 +139,7 @@
         "testStrategy": "Create an integration test (TC-P5-05). Fetch a book, call the toggle endpoint, fetch it again, and assert that the `enable` property has been inverted. Call the endpoint a second time and verify it toggles back.",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -147,7 +147,7 @@
             "description": "In `crud/crud_book.py`, create a new function `toggle_enable_status(db: Session, book: models.Book)`. This function will directly modify the book's 'enable' attribute, commit the transaction, and refresh the object.",
             "dependencies": [],
             "details": "The function should accept a SQLAlchemy Session and a `models.Book` object. It should implement the logic `book.enable = not book.enable`, then call `db.commit()` and `db.refresh(book)`. It must return the updated `book` object.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "A unit test should be written for this CRUD function. It will involve creating a book object in an in-memory database, passing it to the function, and asserting that the `enable` property is correctly inverted after the function call."
           },
           {
@@ -156,7 +156,7 @@
             "description": "In `services/book_service.py`, create a new service function `toggle_book(db: Session, book_id: int, current_user: models.User)`. Implement the initial logic to retrieve the book from the database using its ID.",
             "dependencies": [],
             "details": "The function must accept `db`, `book_id`, and `current_user` as arguments. Use `crud.book.get(db=db, id=book_id)` to fetch the book. If the book is not found, the service must raise an `HTTPException(status_code=404, detail='Book not found')`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test the service function. Mock `crud.book.get` to return `None` and assert that a 404 exception is raised. Then, mock it to return a valid book object and ensure no exception is raised at this stage."
           },
           {
@@ -167,7 +167,7 @@
               2
             ],
             "details": "After successfully retrieving the book object within the `toggle_book` function, add a conditional check to compare `book.group_id` with `current_user.group_id`. If the IDs do not match, raise an `HTTPException(status_code=403, detail='Not enough permissions')`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write a unit test for the service function. Provide a mock book and a mock user with different `group_id` values and assert that a 403 Forbidden exception is raised."
           },
           {
@@ -179,7 +179,7 @@
               3
             ],
             "details": "After the ownership check passes, call the `crud.book.toggle_enable_status(db=db, book=book)` function. The service function should then return the updated book object that it receives from the CRUD layer.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test the service function. Mock the `crud.book.toggle_enable_status` dependency and verify it is called exactly once with the correct book object after the ownership check passes. Assert that the service function returns the value from the mocked CRUD function."
           },
           {
@@ -190,7 +190,7 @@
               4
             ],
             "details": "Define a new router function using the `@router.patch('/{id}/toggle', response_model=schemas.BookDetails)` decorator. The function should accept `id: int` from the path and inject dependencies for `db: Session` and `current_user: models.User`. It will then call `services.book.toggle_book(...)` and return the result.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "An integration test (TC-P5-05) will be written. It will involve creating a user and a book via API, calling the new PATCH endpoint, fetching the book again, and asserting the `enable` status has changed. A second call should toggle it back, confirming the behavior."
           }
         ]
@@ -213,7 +213,7 @@
             "description": "Define a Pydantic schema for updating a book. All fields should be optional to allow for partial updates via the PUT endpoint.",
             "dependencies": [],
             "details": "In `app/schemas/book.py`, create a new class `BookUpdateForm` that inherits from a suitable base schema (e.g., `BookBase`). Ensure all fields intended for update (`name`, `notes`, `default_expense_account_id`, etc.) are made optional using `Optional[T] = None`. This schema will be used to validate the request body.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "A unit test can be written to ensure that the schema correctly validates valid partial data and rejects invalid data types."
           },
           {
@@ -222,7 +222,7 @@
             "description": "Implement a CRUD function to find a book by its exact name within a specific group. This is crucial for preventing duplicate book names during an update.",
             "dependencies": [],
             "details": "In `app/crud/crud_book.py`, within the `CRUDBook` class, add a new method `get_by_name_and_group(self, db: Session, *, name: str, group_id: int) -> Optional[models.Book]`. This method will query the `Book` model, filtering by `name` (case-sensitive) and ensuring the book's owner is part of the specified `group_id`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write a unit test for this CRUD method. Seed the test database with books in different groups, and assert that the function correctly returns a book when a match is found within the specified group and returns `None` otherwise."
           },
           {
@@ -269,7 +269,7 @@
         "testStrategy": "Implement integration tests for TC-P5-03 (deleting an empty book) and TC-P5-04 (attempting to delete a book with transactions, expecting a 400 error). After a successful deletion, query the database to ensure the book and its associated categories/tags/payees are gone.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -277,7 +277,7 @@
             "description": "Implement the `count_by_book_id` function in `crud/crud_balance_flow.py`. This function will count the number of transaction records associated with a specific book ID, serving as the critical safety check before deletion.",
             "dependencies": [],
             "details": "In the file `app/crud/crud_balance_flow.py`, add a new function `count_by_book_id(db: Session, *, book_id: int) -> int`. This function should use SQLAlchemy to query the `BalanceFlow` model and return the count of rows where `book_id` matches the provided argument.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "A unit test should be written to verify this function. Mock the database session and assert that the function correctly builds and executes a count query for a given book_id."
           },
           {
@@ -286,7 +286,7 @@
             "description": "Implement CRUD functions to perform bulk deletion of categories, tags, and payees that belong to a specific book. This is necessary to clean up child entities before the parent book is deleted.",
             "dependencies": [],
             "details": "In `app/crud/crud_category.py`, `app/crud/crud_tag.py`, and `app/crud/crud_payee.py`, add a new function `remove_by_book_id(db: Session, *, book_id: int)`. Each function will execute a delete query for its respective model, filtering by `book_id`. Use `synchronize_session=False` for performance.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests should be created for each new `remove_by_book_id` function to ensure they correctly formulate and execute the bulk delete statement against the mocked database session."
           },
           {
@@ -298,7 +298,7 @@
               2
             ],
             "details": "The `delete_book` service function will accept the database session and the book object. First, it will call `crud.balance_flow.count_by_book_id`. If the count is greater than zero, it must raise an `HTTPException` with status 400. If the count is zero, it will initiate a database transaction. Within the transaction, it will call the `remove_by_book_id` CRUD functions for categories, tags, and payees, and finally delete the book record itself using `crud.book.remove`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write unit tests for the service function. One test should mock the transaction count to be > 0 and assert that a 400 HTTPException is raised. Another test should mock the count to be 0 and verify that the correct sequence of deletion CRUD functions is called within a transaction context."
           },
           {
@@ -309,7 +309,7 @@
               3
             ],
             "details": "In `app/routers/books.py`, add a new route handler for `DELETE /{id}`. It should use an existing dependency to fetch the book object, which also verifies user ownership. The handler will then call the `book_service.delete_book` function. On successful deletion, it must return a `Response` with a `status_code=204` (No Content).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "This will be tested via the integration tests in the next subtask. Manual testing can be done using an API client like Postman or Swagger UI to confirm the endpoint is reachable and requires authentication."
           },
           {
@@ -320,7 +320,7 @@
               4
             ],
             "details": "In `app/tests/api/v1/test_books.py`, create tests for TC-P5-03 and TC-P5-04. For TC-P5-03, create a user, a book, and associated categories/tags, then call the DELETE endpoint and assert a 204 status. Also, query the DB to confirm the book and its child entities are gone. For TC-P5-04, create a book with transactions, call DELETE, and assert a 400 status code and the expected error message.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "The test cases themselves are the testing strategy. The tests should be self-contained, creating and cleaning up their own data to ensure they are repeatable and do not interfere with other tests."
           }
         ]
@@ -668,7 +668,7 @@
     ],
     "metadata": {
       "created": "2025-11-04T01:48:36.155Z",
-      "updated": "2025-11-06T06:07:31.532Z",
+      "updated": "2025-11-07T03:50:45.497Z",
       "description": "Tasks for master context"
     }
   }

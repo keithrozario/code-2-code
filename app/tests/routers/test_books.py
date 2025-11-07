@@ -1,13 +1,12 @@
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-
 from app.main import app
 from app.database import get_db
-from app.moneynote.models import Base, User, Group, Book
-from app.moneynote.schemas.group import GroupCreate
+from app.moneynote.models import Base, User, Group, Book, BalanceFlow
 from app.moneynote.schemas.book import BookCreate
-from app.moneynote.routers.deps import get_current_user
+from app.moneynote.schemas.group import GroupCreate
+
 from app.moneynote.crud import (
     crud_group,
     crud_book,
@@ -159,3 +158,55 @@ def test_copy_book(
         .all()
     )
     assert len(copied_categories) > 0
+
+def test_delete_book_success(client: TestClient, session: Session, test_user: User, test_group: Group, mock_auth):
+    user_id = test_user.id
+    group_id = test_group.id
+
+    # Create an empty book to delete
+    book_to_delete = crud_book.create(db=session, book=BookCreate(name="Book to Delete", group_id=group_id), user_id=user_id)
+
+    response = client.delete(f"/api/v1/books/{book_to_delete.id}", headers={"Authorization": "Bearer test"})
+    assert response.status_code == 204
+
+    # Verify the book is deleted from the database
+    db = next(app.dependency_overrides[get_db]())
+    deleted_book = db.query(Book).filter(Book.id == book_to_delete.id).first()
+    assert deleted_book is None
+
+def test_delete_book_with_transactions_fails(client: TestClient, session: Session, test_user: User, test_group: Group, mock_auth):
+    user_id = test_user.id
+    group_id = test_group.id
+
+    # Create a book and add a transaction to it
+    book_with_transactions = crud_book.create(db=session, book=BookCreate(name="Book with Transactions", group_id=group_id), user_id=user_id)
+    balance_flow = BalanceFlow(book_id=book_with_transactions.id, type=1, amount=100.0, convertedAmount=100.0, createTime=123, title="test", creator_id=user_id, group_id=group_id)
+    session.add(balance_flow)
+    session.commit()
+
+    response = client.delete(f"/api/v1/books/{book_with_transactions.id}", headers={"Authorization": "Bearer test"})
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Book cannot be deleted as it still contains transactions."
+}
+
+    # Verify the book still exists in the database
+    db = next(app.dependency_overrides[get_db]())
+    existing_book = db.query(Book).filter(Book.id == book_with_transactions.id).first()
+    assert existing_book is not None
+
+def test_delete_book_not_found(client: TestClient, test_user: User, mock_auth):
+    # Ensure a user exists, then try to delete a non-existent book
+    response = client.delete(f"/api/v1/books/999", headers={"Authorization": "Bearer test"})
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Book not found"}
+
+def test_delete_book_unauthorized(client: TestClient, session: Session, test_user: User, test_group: Group):
+    user_id = test_user.id
+    group_id = test_group.id
+
+    # Create a book
+    book_to_delete = crud_book.create(db=session, book=BookCreate(name="Unauthorized Book", group_id=group_id), user_id=user_id)
+
+    response = client.delete(f"/api/v1/books/{book_to_delete.id}")
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Not authenticated"}

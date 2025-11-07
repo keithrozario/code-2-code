@@ -2,9 +2,9 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from typing import Optional
 
-from app.moneynote.models import Book
-from app.moneynote.schemas.book import BookCreate, BookCreateFromTemplate, BookCopy
-from app.moneynote.crud import crud_book, crud_category, crud_tag, crud_payee
+from app.moneynote.models import Book, User
+from app.moneynote.schemas import Book, BookCreate, BookCreateFromTemplate, BookCopy
+from app.moneynote.crud import crud_book, crud_category, crud_tag, crud_payee, crud_balance_flow
 from app.moneynote.services.data_cache_service import data_cache_service
 
 def create_book(db: Session, book: BookCreate, user_id: int) -> Book:
@@ -83,3 +83,27 @@ def get_book_details(db: Session, book_id: int, active_group_id: int) -> Book:
     if not book or book.group_id != active_group_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
     return book
+
+def toggle_book(db: Session, book_id: int, user_id: int) -> Book:
+    book = crud_book.get(db, id=book_id)
+    if not book:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    if book.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to toggle this book")
+    return crud_book.toggle_enable_status(db, book)
+
+def delete_book(db: Session, book_id: int, user_id: int):
+    book = crud_book.get(db, id=book_id)
+    if not book:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    if book.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to delete this book")
+
+    transaction_count = crud_balance_flow.count_by_book_id(db, book_id=book_id)
+    if transaction_count > 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Book cannot be deleted as it still contains transactions.")
+
+    crud_category.remove_by_book_id(db, book_id=book_id)
+    crud_tag.remove_by_book_id(db, book_id=book_id)
+    crud_payee.remove_by_book_id(db, book_id=book_id)
+    crud_book.remove(db, id=book_id)

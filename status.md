@@ -9,6 +9,7 @@ All planned development tasks for this phase have been successfully completed or
 - **Deployment Ready:** The application is fully containerized using a `Dockerfile`.
 - **Deployment Scripts:** Scripts for deploying to Google Cloud Run (`deploy.sh`) and for testing the live deployment (`test_deployment.py`) have been created and verified.
 - **Local Environment:** The local development environment is stable, with schema and dependency issues resolved.
+- **Advanced Book Management Schemas:** Pydantic schemas for advanced book management (update and query forms) have been defined.
 
 The project is considered feature-complete for this phase and is in a stable, tested, and deployable state.
 
@@ -75,3 +76,4 @@ The following tasks have been completed or cancelled:
 - **Task 36: Implement GET /books/{id} Endpoint for Book Details** (Status: done)
 - **Task 39: Implement Centralized Exception Handling** (Status: done)
 - **Task 40: Documentation Update for Phase 4 Endpoints** (Status: done)
+- **Task 41: Define Pydantic Schemas for Advanced Book Management** (Status: done)

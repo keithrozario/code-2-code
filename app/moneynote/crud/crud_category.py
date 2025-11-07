@@ -34,3 +34,7 @@ def copy_categories(db: Session, from_book_id: int, to_book_id: int):
                         db.add(new_category)
 
     db.commit()
+
+def remove_by_book_id(db: Session, book_id: int):
+    db.query(Category).filter(Category.book_id == book_id).delete(synchronize_session=False)
+    db.commit()

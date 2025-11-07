@@ -17,3 +17,7 @@ def copy_payees(db: Session, from_book_id: int, to_book_id: int):
         )
         db.add(new_payee)
     db.commit()
+
+def remove_by_book_id(db: Session, book_id: int):
+    db.query(Payee).filter(Payee.book_id == book_id).delete(synchronize_session=False)
+    db.commit()

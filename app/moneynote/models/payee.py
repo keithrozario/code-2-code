@@ -15,3 +15,4 @@ class Payee(Base):
     sort = Column(Integer)
 
     book = relationship("Book", back_populates="payees")
+    balance_flows = relationship("BalanceFlow", back_populates="payee")

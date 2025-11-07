@@ -13,3 +13,4 @@ class User(Base):
 
     groups = relationship("Group", back_populates="owner")
     books = relationship("Book", back_populates="owner")
+    balance_flows = relationship("BalanceFlow", back_populates="creator")

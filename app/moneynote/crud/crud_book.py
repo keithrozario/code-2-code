@@ -11,6 +11,9 @@ def get(db: Session, id: int) -> Book | None:
 def get_by_name(db: Session, name: str) -> Book | None:
     return db.execute(select(Book).filter(Book.name == name)).scalar_one_or_none()
 
+def get_by_name_and_group(db: Session, name: str, group_id: int) -> Book | None:
+    return db.execute(select(Book).filter(Book.name == name, Book.group_id == group_id)).scalar_one_or_none()
+
 def create(db: Session, book: BookCreate, user_id: int) -> Book:
     db_book = Book(**book.model_dump(), user_id=user_id)
     db.add(db_book)
@@ -36,3 +39,16 @@ def get_multi_by_group_filtered(
 
     query = query.offset(offset).limit(limit)
     return db.execute(query).scalars().all()
+
+def toggle_enable_status(db: Session, book: Book) -> Book:
+    book.enable = not book.enable
+    db.add(book)
+    db.commit()
+    db.refresh(book)
+    return book
+
+def remove(db: Session, id: int):
+    book = db.get(Book, id)
+    if book:
+        db.delete(book)
+        db.commit()
