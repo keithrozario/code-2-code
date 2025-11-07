@@ -341,7 +341,7 @@
             "description": "Set up the necessary file structure for the export feature by creating a new CRUD file for the specialized query and a new schema file for the data transfer object.",
             "dependencies": [],
             "details": "Create a new file `app/crud/crud_export.py` for the export-specific database functions. Also, create a new file `app/schemas/export.py` which will contain the Pydantic models for the export data structure.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify that the new files `app/crud/crud_export.py` and `app/schemas/export.py` are created and correctly placed within the project structure. Ensure they have basic boilerplate, like imports and empty class/function definitions."
           },
           {
@@ -668,7 +668,7 @@
     ],
     "metadata": {
       "created": "2025-11-04T01:48:36.155Z",
-      "updated": "2025-11-07T04:03:49.042Z",
+      "updated": "2025-11-07T04:33:05.115Z",
       "description": "Tasks for master context"
     }
   }
