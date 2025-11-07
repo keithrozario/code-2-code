@@ -3,7 +3,7 @@ from fastapi import HTTPException, status
 from typing import Optional
 
 from app.moneynote.models import Book, User
-from app.moneynote.schemas import Book, BookCreate, BookCreateFromTemplate, BookCopy
+from app.moneynote.schemas import Book, BookCreate, BookCreateFromTemplate, BookCopy, BookUpdateForm
 from app.moneynote.crud import crud_book, crud_category, crud_tag, crud_payee, crud_balance_flow
 from app.moneynote.services.data_cache_service import data_cache_service
 
@@ -107,3 +107,44 @@ def delete_book(db: Session, book_id: int, user_id: int):
     crud_tag.remove_by_book_id(db, book_id=book_id)
     crud_payee.remove_by_book_id(db, book_id=book_id)
     crud_book.remove(db, id=book_id)
+
+def update_book(db: Session, book_id: int, book_in: BookUpdateForm, user_id: int) -> Book:
+    book = crud_book.get(db, id=book_id)
+    if not book:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    if book.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to update this book")
+
+    if book_in.name is not None and book_in.name != book.name:
+        existing_book = crud_book.get_by_name_and_group(db, name=book_in.name, group_id=book.group_id)
+        if existing_book and existing_book.id != book_id:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Book with this name already exists in this group.")
+        book.name = book_in.name
+
+    if book_in.notes is not None:
+        book.notes = book_in.notes
+    if book_in.enable is not None:
+        book.enable = book_in.enable
+    if book_in.default_expense_account_id is not None:
+        book.default_expense_account_id = book_in.default_expense_account_id
+    if book_in.default_income_account_id is not None:
+        book.default_income_account_id = book_in.default_income_account_id
+    if book_in.default_transfer_from_account_id is not None:
+        book.default_transfer_from_account_id = book_in.default_transfer_from_account_id
+    if book_in.default_transfer_to_account_id is not None:
+        book.default_transfer_to_account_id = book_in.default_transfer_to_account_id
+    if book_in.default_expense_category_id is not None:
+        book.default_expense_category_id = book_in.default_expense_category_id
+    if book_in.default_income_category_id is not None:
+        book.default_income_category_id = book_in.default_income_category_id
+    if book_in.default_currency_code is not None:
+        book.default_currency_code = book_in.default_currency_code
+    if book_in.export_at is not None:
+        book.export_at = book_in.export_at
+    if book_in.sort is not None:
+        book.sort = book_in.sort
+
+    db.add(book)
+    db.commit()
+    db.refresh(book)
+    return book

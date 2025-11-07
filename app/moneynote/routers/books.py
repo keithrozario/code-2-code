@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.moneynote.routers.deps import get_current_user, get_current_active_group_id
-from app.moneynote.schemas.book import Book, BookCreate, BookCreateFromTemplate, BookCopy, BookDetails
+from app.moneynote.schemas.book import Book, BookCreate, BookCreateFromTemplate, BookCopy, BookDetails, BookUpdateForm
 from app.moneynote.services import book_service
 from app.moneynote.models import User
 from app.moneynote.crud import crud_user
@@ -122,3 +122,21 @@ async def delete_book_endpoint(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     book_service.delete_book(db=db, book_id=book_id, user_id=user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@router.put(
+    "/{book_id}",
+    response_model=BookDetails,
+    tags=["Books"],
+    summary="Update Book",
+    description="Update the details of an existing book owned by the current user."
+)
+async def update_book_endpoint(
+    book_id: int,
+    book_in: BookUpdateForm,
+    db: Session = Depends(get_db),
+    current_user_username: str = Depends(get_current_user)
+):
+    user = crud_user.get_by_username(db, username=current_user_username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return book_service.update_book(db=db, book_id=book_id, book_in=book_in, user_id=user.id)

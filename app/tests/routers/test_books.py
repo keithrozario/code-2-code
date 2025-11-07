@@ -1,10 +1,9 @@
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
-from app.main import app
+
 from app.database import get_db
 from app.moneynote.models import Base, User, Group, Book, BalanceFlow
-from app.moneynote.schemas.book import BookCreate
+from app.moneynote.schemas.book import BookCreate, BookUpdateForm
 from app.moneynote.schemas.group import GroupCreate
 
 from app.moneynote.crud import (
@@ -22,6 +21,8 @@ SQLALCHEMY_DATABASE_URL = "sqlite:///./app/tests/test_books_router.db"
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 )
+from sqlalchemy.orm import Session
+from app.main import app
 from sqlalchemy.orm import sessionmaker
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -158,6 +159,59 @@ def test_copy_book(
         .all()
     )
     assert len(copied_categories) > 0
+
+def test_update_book_success(client: TestClient, session: Session, test_user: User, test_group: Group, mock_auth):
+    user_id = test_user.id
+    group_id = test_group.id
+
+    # Create a book to update
+    book_to_update = crud_book.create(db=session, book=BookCreate(name="Original Book", group_id=group_id), user_id=user_id)
+
+    update_data = {"name": "Updated Book Name", "notes": "New notes", "enable": False}
+    response = client.put(f"/api/v1/books/{book_to_update.id}", json=update_data, headers={"Authorization": "Bearer test"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "Updated Book Name"
+    assert data["notes"] == "New notes"
+    assert data["enable"] is False
+
+    # Verify the book was updated in the database
+    db = next(app.dependency_overrides[get_db]())
+    updated_book = db.query(Book).filter(Book.id == book_to_update.id).first()
+    assert updated_book.name == "Updated Book Name"
+    assert updated_book.notes == "New notes"
+    assert updated_book.enable is False
+
+def test_update_book_name_conflict(client: TestClient, session: Session, test_user: User, test_group: Group, mock_auth):
+    user_id = test_user.id
+    group_id = test_group.id
+
+    # Create two books in the same group
+    book1 = crud_book.create(db=session, book=BookCreate(name="Book One", group_id=group_id), user_id=user_id)
+    book2 = crud_book.create(db=session, book=BookCreate(name="Book Two", group_id=group_id), user_id=user_id)
+
+    # Attempt to update book1's name to book2's name
+    update_data = {"name": "Book Two"}
+    response = client.put(f"/api/v1/books/{book1.id}", json=update_data, headers={"Authorization": "Bearer test"})
+    assert response.status_code == 409
+    assert response.json() == {"detail": "Book with this name already exists in this group."}
+
+def test_update_book_not_found(client: TestClient, test_user: User, mock_auth):
+    # Ensure a user exists, then try to update a non-existent book
+    response = client.put(f"/api/v1/books/999", json={"name": "Non Existent"}, headers={"Authorization": "Bearer test"})
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Book not found"}
+
+def test_update_book_unauthorized(client: TestClient, session: Session, test_user: User, test_group: Group):
+    user_id = test_user.id
+    group_id = test_group.id
+
+    # Create a book
+    book_to_update = crud_book.create(db=session, book=BookCreate(name="Unauthorized Update Book", group_id=group_id), user_id=user_id)
+
+    response = client.put(f"/api/v1/books/{book_to_update.id}", json={"name": "New Name"})
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Not authenticated"}
 
 def test_delete_book_success(client: TestClient, session: Session, test_user: User, test_group: Group, mock_auth):
     user_id = test_user.id

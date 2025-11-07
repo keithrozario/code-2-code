@@ -205,7 +205,7 @@
         "dependencies": [
           41
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -234,7 +234,7 @@
               2
             ],
             "details": "In `app/services/book_service.py`, create an `update_book` function. This function will receive the book object to update, the update data (`BookUpdateForm`), and the user's group ID. If the name is being changed, it must call `crud.book.get_by_name_and_group`. If a conflicting book is found (and it's not the same book being updated), it must raise an `HTTPException(status_code=409)`. If validation passes, it will call the generic `crud.book.update` method to apply the changes.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test this service function by mocking the CRUD layer. Test the successful update path and the conflict path where a 409 exception is expected. Ensure the name check is only triggered when the name in the payload is different from the existing name."
           },
           {
@@ -245,7 +245,7 @@
               3
             ],
             "details": "In `app/routers/books.py`, implement the `PUT /books/{id}` path operation. It should accept the book `id` from the path and a `BookUpdateForm` from the body. It will use dependencies to get the current user and DB session. The endpoint logic will first retrieve the book by ID, verify the current user is authorized to modify it (belongs to the same group), and then call the `update_book` service function. It should return the updated book data.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": null
           },
           {
@@ -256,7 +256,7 @@
               4
             ],
             "details": "In the relevant test module (e.g., `app/tests/api/v1/test_books.py`), add tests for the update endpoint. Cover TC-P5-01: successfully update a book's name, notes, and default account. Cover TC-P5-02: attempt to update a book's name to one that already exists in the same group, and assert a 409 Conflict response. Also test updating a book with an unauthorized user, expecting a 404 or 403 error.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Execute the test suite using pytest. The tests will make live HTTP requests to the test client and assert response status codes and body contents against the test database state."
           }
         ]
@@ -668,7 +668,7 @@
     ],
     "metadata": {
       "created": "2025-11-04T01:48:36.155Z",
-      "updated": "2025-11-07T03:50:45.497Z",
+      "updated": "2025-11-07T04:03:49.042Z",
       "description": "Tasks for master context"
     }
   }
