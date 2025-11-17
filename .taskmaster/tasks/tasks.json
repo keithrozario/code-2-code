@@ -333,7 +333,7 @@
         "testStrategy": "Write a unit test for this CRUD function. Seed the test database with a book and several transactions with associated categories, tags, and payees. Call the function and assert that the returned data structure is complete and correctly matches the seeded data.",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -352,7 +352,7 @@
               1
             ],
             "details": "In `app/schemas/export.py`, create a Pydantic schema named `ExportTransaction` inheriting from `BaseModel`. It should include fields like `create_time` (datetime), `type` (str), `title` (str), `amount` (float), `account_name` (str), `payee_name` (Optional[str]), `categories` (str), and `tags` (str).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Perform a static analysis or a simple import test to ensure the Pydantic model is well-defined and has no syntax errors. Confirm all required fields for the export are present in the schema."
           },
           {
@@ -363,7 +363,7 @@
               1
             ],
             "details": "Inside `app/crud/crud_export.py`, define `get_export_data_by_book(db: Session, *, book_id: int)`. Use SQLAlchemy ORM to create a query on `models.UserBalanceFlow`. Filter by `book_id`. Use `options(joinedload(models.UserBalanceFlow.account), joinedload(models.UserBalanceFlow.payee))` to eagerly load related single entities in a single query.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "This part is difficult to unit test in isolation. It will be tested as part of the complete function test in a later subtask. A preliminary test could involve executing the query with a test session and ensuring no exceptions are raised."
           },
           {
@@ -374,7 +374,7 @@
               3
             ],
             "details": "Modify the query in `get_export_data_by_book`. Add `options(selectinload(models.UserBalanceFlow.categories), selectinload(models.UserBalanceFlow.tags))` to the query. `selectinload` is preferred for many-to-many relationships as it avoids cartesian products by issuing a separate `SELECT ... IN` query.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "During integration testing of the final function, assert that the `categories` and `tags` attributes on the fetched `UserBalanceFlow` ORM objects are populated correctly and are not empty for transactions that have them."
           },
           {
@@ -386,7 +386,7 @@
               4
             ],
             "details": "After executing the query, iterate through the resulting `UserBalanceFlow` ORM objects. For each object, construct an `ExportTransaction` instance. Aggregate the names from the loaded `categories` and `tags` relationships into comma-separated strings. Map all other fields accordingly. The function should return a `List[schemas.ExportTransaction]`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write a unit test for the `get_export_data_by_book` function. Seed a test database with a book, transactions, accounts, payees, categories, and tags. Call the function and assert that the returned list of Pydantic models correctly reflects the seeded data, including the aggregated category and tag strings."
           }
         ]
@@ -401,7 +401,7 @@
         "dependencies": [
           46
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -409,7 +409,7 @@
             "description": "In `services/book_service.py`, create the `export_book_data` function signature accepting `db: Session`, `book_id: int`, and `timeZoneOffset: int`. Implement the call to the CRUD function from Task 46 to retrieve the necessary transaction data for the specified book.",
             "dependencies": [],
             "details": "The new function should be `def export_book_data(db: Session, book_id: int, timeZoneOffset: int) -> BytesIO:`. It will call a function like `crud.transaction.get_all_for_book(db=db, book_id=book_id)` to fetch the list of transaction records. This assumes Task 46 created that CRUD function.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test this part by mocking the `crud.transaction.get_all_for_book` function and asserting that it is called with the correct `db` session and `book_id`."
           },
           {
@@ -420,7 +420,7 @@
               1
             ],
             "details": "After fetching the transaction data, add a conditional check: `if not transactions:`. Inside this block, raise `HTTPException(status_code=404, detail=\"No transactions found for this book.\")`. Ensure `HTTPException` is imported from `fastapi`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Update the unit test to check the scenario where the mocked CRUD function returns an empty list. Assert that an `HTTPException` with status code 404 is raised."
           },
           {
@@ -431,7 +431,7 @@
               2
             ],
             "details": "Add `import openpyxl` and `from io import BytesIO` at the top of `services/book_service.py`. Inside the function, create the workbook instance: `workbook = openpyxl.Workbook()`. Then, get the active sheet: `sheet = workbook.active`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "This is primarily a setup step. Code review will ensure the correct libraries are imported and initialized. The final test will implicitly cover this by attempting to read the generated file."
           },
           {
@@ -442,7 +442,7 @@
               3
             ],
             "details": "Define a list of header strings, e.g., `headers = ['Time', 'Type', 'Title', 'Amount', 'Category', 'Notes']`. Use the `sheet.append(headers)` method to write this list as the first row of the Excel sheet.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "A test can be written to read the generated `BytesIO` stream using `openpyxl` and assert that the first row of the first worksheet contains the exact header strings."
           },
           {
@@ -453,7 +453,7 @@
               4
             ],
             "details": "Loop over the transactions. In the loop, calculate the timezone-adjusted datetime: `adjusted_time = record.create_time + timedelta(minutes=timeZoneOffset)`. Format `adjusted_time` to a string. Create a list with the formatted data for the row and append it using `sheet.append()`. After the loop, save to a stream: `stream = BytesIO()`, `workbook.save(stream)`, `stream.seek(0)`. Return the `stream`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Enhance the unit test to provide sample transaction data. After calling the service, read the returned `BytesIO` stream and verify that the number of data rows matches the input, and that the values (especially the adjusted timestamp) in the first data row are correct."
           }
         ]
@@ -468,7 +468,7 @@
         "dependencies": [
           47
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -476,7 +476,7 @@
             "description": "In `routers/books.py`, create the function signature for the new endpoint `GET /books/{id}/export`. This includes defining the path parameter `id`, the query parameter `timeZoneOffset`, and injecting standard dependencies.",
             "dependencies": [],
             "details": "Add `@router.get(\"/books/{id}/export\")` in `routers/books.py`. Define an async function `export_book` that accepts `id: int`, `timeZoneOffset: int`, and dependencies like `db: Session = Depends(get_db)` and `current_user: models.User = Depends(get_current_active_user)`. Add a placeholder `pass` in the function body.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Code review to ensure the signature matches FastAPI conventions and includes necessary dependencies like `db` and `current_user`."
           },
           {
@@ -487,7 +487,7 @@
               1
             ],
             "details": "Use `crud.book.get(db=db, id=id)` to retrieve the book. Add a check to see if the book exists and if `book.group_id == current_user.group_id`. If either check fails, raise an `HTTPException` with a `404 Not Found` status code.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manually test or write a unit test to verify that accessing a non-existent book ID or a book belonging to another group returns a 404 error."
           },
           {
@@ -498,7 +498,7 @@
               2
             ],
             "details": "After the authorization check, call `book_service.export_book_data(db=db, book_id=id, timeZoneOffset=timeZoneOffset)`. Store the returned `BytesIO` object in a variable for the next step. This subtask depends on Task 47 being completed.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "During development, you can use a mock of the `book_service.export_book_data` function to ensure it is being called with the correct arguments."
           },
           {
@@ -509,7 +509,7 @@
               3
             ],
             "details": "Instantiate `StreamingResponse`, passing the `BytesIO` object from the service. Set `media_type` to `'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'`. Set the `headers` dictionary with a 'Content-Disposition' key, e.g., `{'Content-Disposition': f'attachment; filename=\"book_{id}_export.xlsx\"'}`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Use an API client like Postman or Insomnia to call the endpoint and verify that the response headers (`Content-Type` and `Content-Disposition`) are correct and that a file is downloaded."
           },
           {
@@ -520,7 +520,7 @@
               1
             ],
             "details": "In the `@router.get` decorator for the export endpoint, add a `summary` like 'Export Book Data to Excel'. Add a `responses` dictionary to document the `200 OK` response, specifying the `content` with the correct Excel media type, and the `404 Not Found` error.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "After implementation, check the auto-generated OpenAPI documentation (e.g., at `/docs`) to ensure the new endpoint is documented correctly with its summary, description, and response types."
           }
         ]
@@ -608,7 +608,7 @@
           45,
           48
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -616,7 +616,7 @@
             "description": "Create the new test file at `tests/test_routers/test_books.py`, configure the TestClient and necessary database fixtures, and implement test cases for the `GET /all` books endpoint.",
             "dependencies": [],
             "details": "Create `tests/test_routers/test_books.py`. Based on existing patterns in `tests/`, set up `pytest` fixtures for an isolated test database session and a `TestClient` instance. Add a fixture to pre-populate the database with sample book data. Write a test function for `GET /api/v1/books/all` to assert a 200 status code and that the JSON response contains the list of seeded books.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Execute pytest on the new test file. The test should pass if it successfully retrieves the seeded book data via the endpoint and the status code is 200."
           },
           {
@@ -627,7 +627,7 @@
               1
             ],
             "details": "In `tests/test_routers/test_books.py`, add tests for the `PUT /api/v1/books/{id}` endpoint. Create a test for a successful update, asserting a 200 status code and verifying the data change in the database. Create another test that attempts to update a book with a name that already exists in the same group, asserting a 409 Conflict status. Finally, test updating a non-existent book ID and assert a 404 Not Found status.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify that all three test cases (success, name collision, not found) pass when running pytest. Check that the database state is correctly modified on success and untouched on failure."
           },
           {
@@ -638,7 +638,7 @@
               1
             ],
             "details": "In `tests/test_routers/test_books.py`, add tests for `DELETE /api/v1/books/{id}`. For the success case, call the endpoint and assert a 200 status code, then verify the book is removed from the database. For the safety check, seed a related `balance_flow` record, attempt deletion, and assert a 400 Bad Request status. Also, test deletion with a non-existent ID and assert a 404 Not Found status.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run pytest and confirm all test scenarios pass: successful deletion is confirmed in the DB, deletion is blocked when dependencies exist, and a 404 is returned for invalid IDs."
           },
           {
@@ -649,7 +649,7 @@
               1
             ],
             "details": "In `tests/test_routers/test_books.py`, add tests for `PATCH /api/v1/books/{id}/toggle`. Create a book with `is_active=true`. Call the endpoint and assert a 200 status code, then verify the book's `is_active` status is `false` in the database. Call the endpoint again and verify it toggles back to `true`. Finally, test the endpoint with a non-existent book ID and assert a 404 Not Found status.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Execute pytest. The tests should validate that the `is_active` field is correctly updated in the database after each toggle call and that a 404 error is properly returned for non-existent book IDs."
           },
           {
@@ -660,7 +660,7 @@
               1
             ],
             "details": "In `tests/test_routers/test_books.py`, add tests for `GET /api/v1/books/{id}/export`. For a valid book ID, make a request and assert a 200 status code. Also, assert that the `Content-Type` header in the response is `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`. No Excel file parsing is needed. Add a second test for a non-existent book ID and assert a 404 Not Found status.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run pytest. A successful test run will confirm that the endpoint returns the correct status code and content type for a valid request, and a 404 for an invalid one."
           }
         ]
@@ -668,7 +668,7 @@
     ],
     "metadata": {
       "created": "2025-11-04T01:48:36.155Z",
-      "updated": "2025-11-07T04:33:05.115Z",
+      "updated": "2025-11-07T06:29:31.446Z",
       "description": "Tasks for master context"
     }
   }

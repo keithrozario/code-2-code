@@ -1,10 +1,14 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from typing import Optional
+from io import BytesIO
+from datetime import datetime, timedelta
+import openpyxl
 
 from app.moneynote.models import Book, User
 from app.moneynote.schemas import Book, BookCreate, BookCreateFromTemplate, BookCopy, BookUpdateForm
-from app.moneynote.crud import crud_book, crud_category, crud_tag, crud_payee, crud_balance_flow
+from app.moneynote.schemas.export import ExportTransaction
+from app.moneynote.crud import crud_book, crud_category, crud_tag, crud_payee, crud_balance_flow, crud_export
 from app.moneynote.services.data_cache_service import data_cache_service
 
 def create_book(db: Session, book: BookCreate, user_id: int) -> Book:
@@ -148,3 +152,42 @@ def update_book(db: Session, book_id: int, book_in: BookUpdateForm, user_id: int
     db.commit()
     db.refresh(book)
     return book
+
+def export_book_data(db: Session, book_id: int, timeZoneOffset: int) -> BytesIO:
+    transactions = crud_export.get_export_data_by_book(db, book_id=book_id)
+    if not transactions:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No transactions found for this book.")
+
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+
+    headers = [
+        "Time",
+        "Type",
+        "Title",
+        "Amount",
+        "Account Name",
+        "Payee Name",
+        "Categories",
+        "Tags",
+    ]
+    sheet.append(headers)
+
+    for transaction in transactions:
+        adjusted_time = transaction.create_time + timedelta(minutes=timeZoneOffset)
+        row = [
+            adjusted_time.strftime("%Y-%m-%d %H:%M:%S"),
+            transaction.type,
+            transaction.title,
+            transaction.amount,
+            transaction.account_name,
+            transaction.payee_name,
+            transaction.categories,
+            transaction.tags,
+        ]
+        sheet.append(row)
+
+    stream = BytesIO()
+    workbook.save(stream)
+    stream.seek(0)
+    return stream

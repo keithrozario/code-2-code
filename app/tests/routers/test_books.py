@@ -255,12 +255,118 @@ def test_delete_book_not_found(client: TestClient, test_user: User, mock_auth):
     assert response.json() == {"detail": "Book not found"}
 
 def test_delete_book_unauthorized(client: TestClient, session: Session, test_user: User, test_group: Group):
+
+    user_id = test_user.id
+
+    group_id = test_group.id
+
+
+
+    # Create a book
+
+    book_to_delete = crud_book.create(db=session, book=BookCreate(name="Unauthorized Book", group_id=group_id), user_id=user_id)
+
+
+
+    response = client.delete(f"/api/v1/books/{book_to_delete.id}")
+
+    assert response.json() == {"detail": "Not authenticated"}
+
+def test_export_book_success(client: TestClient, session: Session, test_user: User, test_group: Group, mock_auth):
     user_id = test_user.id
     group_id = test_group.id
 
-    # Create a book
-    book_to_delete = crud_book.create(db=session, book=BookCreate(name="Unauthorized Book", group_id=group_id), user_id=user_id)
+    # Create a book and add a transaction to it
+    book_to_export = crud_book.create(db=session, book=BookCreate(name="Export Book", group_id=group_id), user_id=user_id)
+    balance_flow = BalanceFlow(book_id=book_to_export.id, type=1, amount=100.0, convertedAmount=100.0, createTime=123, title="test", creator_id=user_id, group_id=group_id)
+    session.add(balance_flow)
+    session.commit()
 
-    response = client.delete(f"/api/v1/books/{book_to_delete.id}")
-    assert response.status_code == 401
-    assert response.json() == {"detail": "Not authenticated"}
+    response = client.get(f"/api/v1/books/{book_to_export.id}/export", headers={"Authorization": "Bearer test"})
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    assert "attachment; filename=" in response.headers["content-disposition"]
+
+def test_export_book_no_transactions(client: TestClient, session: Session, test_user: User, test_group: Group, mock_auth):
+    user_id = test_user.id
+    group_id = test_group.id
+
+    # Create an empty book
+    empty_book = crud_book.create(db=session, book=BookCreate(name="Empty Book", group_id=group_id), user_id=user_id)
+
+    response = client.get(f"/api/v1/books/{empty_book.id}/export", headers={"Authorization": "Bearer test"})
+    assert response.status_code == 404
+    assert response.json() == {"detail": "No transactions found for this book."}
+
+def test_export_book_not_found(client: TestClient, test_user: User, mock_auth):
+    # Ensure a user exists, then try to export a non-existent book
+    response = client.get(f"/api/v1/books/999/export", headers={"Authorization": "Bearer test"})
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Book not found"}
+
+
+def test_toggle_book_status(client: TestClient, session: Session, test_user: User, test_group: Group, mock_auth):
+
+    user_id = test_user.id
+
+    group_id = test_group.id
+
+
+
+    # Create a book to toggle
+
+    book_to_toggle = crud_book.create(db=session, book=BookCreate(name="Toggle Book", group_id=group_id), user_id=user_id)
+
+    assert book_to_toggle.enable is True
+
+
+
+    # First toggle: True -> False
+
+    response = client.patch(f"/api/v1/books/{book_to_toggle.id}/toggle", headers={"Authorization": "Bearer test"})
+
+    assert response.status_code == 200
+
+    assert response.json()["enable"] is False
+
+
+
+    # Verify in database
+
+    db = next(app.dependency_overrides[get_db]())
+
+    toggled_book = db.query(Book).filter(Book.id == book_to_toggle.id).first()
+
+    assert toggled_book.enable is False
+
+
+
+    # Second toggle: False -> True
+
+    response = client.patch(f"/api/v1/books/{book_to_toggle.id}/toggle", headers={"Authorization": "Bearer test"})
+
+    assert response.status_code == 200
+
+    assert response.json()["enable"] is True
+
+
+
+    # Verify in database
+
+    toggled_book = db.query(Book).filter(Book.id == book_to_toggle.id).first()
+
+    assert toggled_book.enable is True
+
+
+
+def test_toggle_book_not_found(client: TestClient, test_user: User, mock_auth):
+
+    response = client.patch(f"/api/v1/books/999/toggle", headers={"Authorization": "Bearer test"})
+
+    assert response.status_code == 404
+
+    assert response.json() == {"detail": "Book not found"}
+
+
+
+
